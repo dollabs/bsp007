@@ -763,26 +763,40 @@
 
 (defn mcplanner
   [from to dpset visited path ron depth accept-gap-fillers]
-  #_(println "mcplqnner: from=" from "to=" to "visited=" visited "path=" path)
-  (let [fromprops (find-binary-propositions-matching #{from} nil nil #{:is-a} nil ron)
-        winners (map
-                 (fn [{pt :ptype, sj :subject, obj :object}]
-                   [(if (= pt :connects-with) :lateral :up) obj])
-                 (filter-binary-propositions nil nil #{:connects-with :is-part-of} nil #{to} nil fromprops))
+  #_(println "mcplanner: from=" from "to=" to "visited=" visited "path=" path)
+  (let [fromprops (find-binary-propositions-matching #{from} nil nil #{:is-a} nil ron) ; all :is-part-of or :connects-with from 'from'
+        downprops (find-binary-propositions-matching nil nil #{:is-part-of} nil #{from} ron) ; all is-part-of to 'from'
+        winners (concat
+                 (map
+                  (fn [{pt :ptype, sj :subject, obj :object}]
+                    [(if (= pt :connects-with) :lateral :up) obj])
+                  (filter-binary-propositions nil nil #{:connects-with :is-part-of} nil #{to} nil fromprops)) ; goes to 'to'
+                 (map
+                  (fn [{pt :ptype, sj :subject, obj :object}]
+                    [:down sj])
+                  (filter-binary-propositions #{to} nil #{:is-part-of} nil nil nil downprops))) ; came from 'to'
         ;; - (println "mcplanner("from","to","visited","path","ron","depth") fromprops:")
         - nil #_(if (empty? fromprops)
                   (println "Nothing found")
                   (doseq [p fromprops] (print-proposition p)))
-        options (map
-                 (fn [{pt :ptype, sj :subject, obj :object}]
-                   (let [totype (:object (first (find-binary-propositions-matching #{obj} nil #{:is-a} nil nil nil)))]
-
-                     [(if (= pt :connects-with) :lateral :up) obj dpset totype]))
-                 (filter-binary-propositions nil nil #{:connects-with :is-part-of} nil nil visited fromprops))
-        selected (if (not (empty? winners)) (first winners) (if (empty? options) nil (rand-nth options)))]
+        options (concat
+                 (map
+                  (fn [{pt :ptype, sj :subject, obj :object}]
+                    (let [totype (:object (first (find-binary-propositions-matching #{obj} nil #{:is-a} nil nil nil)))]
+                      [(if (= pt :connects-with) :lateral :up) obj dpset totype]))
+                  (filter-binary-propositions nil nil #{:connects-with :is-part-of} nil nil visited fromprops)) ; avoid already visited
+                 (map
+                  (fn [{pt :ptype, sj :subject, obj :object}] ;; pt is necessarily :is-part-of
+                    (let [totype (:object (first (find-binary-propositions-matching #{sj} nil #{:is-a} nil nil nil)))]
+                      [:down sj dpset totype]))
+                  (filter-binary-propositions nil visited #{:is-part-of} nil nil nil downprops)))
+        selected (if (not (empty? winners))
+                   (rand-nth winners)
+                   (if (not (empty? options))
+                     (rand-nth options)))]
     ;; (println "winners=" winners "Options=" options "selected=" selected)
     (if (not (empty? winners))
-      (concat [(first winners)] path)
+      (concat [selected] path)
       (if (or (= depth 0) (empty? selected))
         (if accept-gap-fillers (concat [[:gap-filler to]] path) nil)
         (let [[method moveto dpset type] selected
