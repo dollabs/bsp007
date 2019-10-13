@@ -709,7 +709,7 @@
     fieldatom))
 
 (defn load-model-from-json-string
-  [json-string root]
+  [json-string root args]
   (let [ir (irx/read-ir-from-json-string json-string)
         spam (irx/json-ir-to-spamela ir false)]
     (add-pclasses spam)
@@ -742,16 +742,16 @@
                   (add-preandpost pre-and-post)
                   #_(.write *out* (format "%nRoot class %s, found %s" sroot
                                           (with-out-str (pprint root-class))))
-                  (instantiate-pclass nil (first sroot) spam root-class nil nil "root" "root-part")
+                  (instantiate-pclass nil (first sroot) spam root-class nil args "root" "root-part")
                   ;; Now establish the inverse influence table in the model.
                   (reset! (.invertedinfluencehashtable *current-model*) (inverted-method-influence-table)))
                 (println "root-class" root "not found in model - can't proceed.")))))))))
 
 (defn load-model
   "Load a model from a file as produced from a pamela build with --json-ir."
-  [file root]
+  [file root & args]
   (let [raw-json-ir (slurp file)]
-    (load-model-from-json-string raw-json-ir root)))
+    (load-model-from-json-string raw-json-ir root args)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Interface
