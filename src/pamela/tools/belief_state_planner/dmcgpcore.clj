@@ -415,7 +415,7 @@
   "Given a call, construct the IR for the call and return also the prerequisites
    and the bindings, as a vector [ir-call vector-of-prerequisites vector-of-bindings]."
   [action goal query]
-  ;; (println "action=" action " goal=" goal " query=" query)
+  (println "action=" action " goal=" goal " query=" query)
   (let [[args argmap] (compile-arglist action goal (second query))  ;+++ kludge "second" +++
         object (compile-controllable-object action goal (second query))] ;+++ kludge "second" +++
     [(ir-method-call (ir-field-ref [object (irx/.mname (.methodsig action))]) args)
@@ -477,14 +477,16 @@
 (defn simplify-condition
   "maniulate the condition into conjunctive normal form and return a list of conjunctions."
   [condit]
-  (case (first condit)
-    ;; NOT negate the simplified subexpression
-    :not (conjunctive-list (simplify-negate (second condit)))
-    ;; AND return the simplified parts as a list.
-    :and (apply concat (map simplify-condition (rest condit)))
-    ;; OR - Happy OR Sad = ~(~Happy AND ~Sad)
-    :or (conjunctive-list (simplify-negate (into [:and] (map simplify-negate (rest condit)))))
-    (list condit)))
+  (if (not (or (list? condit) (vector? condit)))
+    condit
+    (case (first condit)
+      ;; NOT negate the simplified subexpression
+      :not (conjunctive-list (simplify-negate (second condit)))
+      ;; AND return the simplified parts as a list.
+      :and (apply concat (map simplify-condition (rest condit)))
+      ;; OR - Happy OR Sad = ~(~Happy AND ~Sad)
+      :or (conjunctive-list (simplify-negate (into [:and] (map simplify-negate (rest condit)))))
+      (list condit))))
 
 ;;; (simplify-condition '[:and [:equal [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]])
 ;;; (simplify-condition '[:or [:equal [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]])
@@ -541,12 +543,17 @@
               ;; Next generate the correct call for the chosen methods
               actions (compile-calls selected this-goal queries)
               bindings nil
-              - (println "actions=" actions)
-              subgoals (apply concat (map (fn [[call prec]]
-                                            (simplify-condition prec))
-                                          actions))
+              ;;- (println "actions=" actions)
+              subgoals (doall (apply concat (map (fn [[call prec]]
+                                            (let [simp (simplify-condition prec)]
+                                              (if (not (or (list? simp) (vector? simp)))
+                                                (list simp)
+                                                simp)))
+                                          actions)))
               outstanding-goals  (remove nil? (concat subgoals outstanding-goals))]
-          (println "selected=" selected "actions=" actions "subgoals=" subgoals)
+          (println "selected=" selected)
+          (println "actions=" actions)
+          (println "subgoals=" (str subgoals))
           (if (empty? outstanding-goals)
             (concat actions complete-plan)
             (recur outstanding-goals (concat actions complete-plan))))))))

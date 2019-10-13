@@ -130,7 +130,11 @@
 (defn get-inverse-root-field-type-map
   []
   (let [root-fields (get-root-fields)
-        field-type-map (map (fn [[name obj]] [(.type @obj) name]) root-fields)]
+        field-type-map (remove nil? (map (fn [[name obj]]
+                                           (if (instance? RTobject @obj)
+                                             [(.type @obj) name]
+                                             nil))
+                                         root-fields))]
     (group-by-first-equal field-type-map)))
 
 (defn get-root-objects-of-type
@@ -403,6 +407,7 @@
     (group-by-first-equal eff-table)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn lookup-lvar
   "Search LVARS for a match with instance and name"
   [instance name]
@@ -474,60 +479,74 @@
              " class-bindings=" class-bindings
              " method-bindings=" method-bindings)
   ;; (pprint spam)
-  (if (or (string? expn) (number? expn))
-    expn
-    (if (not (or (seq? expn) (vector? expn)))
-      (if (map? expn)
-        (let [vtype (get expn :type)]
-          (case vtype
-            :lvar (make-lvar (get expn :name))
-            ;; :pclass-arg-ref
-            ;; (let [names (get expn :names)
-            ;;       argument (get class-bindings (first names))]
-            ;;   ;; (println "Found argument " names " = " argument)
-            ;;   (if (empty? (rest names))
-            ;;     argument
-            ;;     (deref-field (rest names) argument))) ;handle case where an indirect reference is made through a class arg
-            (do (println "ERROR: Unknown form in Evaluate: " expn)
-                expn)))) ;+++ we shouldn't get here
-      (case (first expn)
-        :make-instance
-        (let [cname (second expn)
-              class-spam (get (into {} spam) cname)
-              classargs (get class-spam :args)
-              numargs (count classargs)
-              provided-args (drop 2 expn)
-              extra-args (into {} (drop numargs provided-args))
-              class-args (take numargs provided-args)
-              id (get extra-args :id nil)
-              plant-part (get extra-args :plant-part nil)]
-          (if (> numargs (count class-args))
-            (instantiation-error
-             (str "missing arguments for pclass (" cname ") : " (str spam))))
-          (instantiate-pclass
-           wrtobject
-           cname
-           spam
-           class-spam
-           class-bindings
-           class-args ;(rest (rest expn))
-           id ;(last expn)
-           plant-part))
-        :or (if (= (count (rest expn)) 1)
-              (evaluate wrtobject (second expn) class-bindings method-bindings cspam spam)
-              :true) ;+++ this is not finished +++ only the trivial case is implemented
-        :arg nil                            ; method arg NYI
-        :class-arg (let [res (get class-bindings (second expn))]
-                     (if (and (not (symbol? res)) (not (keyword? res)) (empty? res))
-                       (println "ERROR: In evaluate with " expn "class-bindings=" class-bindings "res=" res))
-                     res)
-        :field-ref (do (println "UNEXPECTED: Found a field ref: " expn) nil)
-        :field (deref-field (rest expn) wrtobject)
-        :mode-of (last expn)
-        :make-lvar (make-lvar (second expn))
-        (do
-          (println "ERROR: Unknown case: " expn)
-          nil)))))                               ; unrecognised defaults to nil
+  (case expn
+    :true true
+    :false false
+    (if (or (string? expn) (number? expn))
+      expn
+      (if (not (or (seq? expn) (vector? expn)))
+        (if (map? expn)
+          (let [vtype (get expn :type)]
+            (case vtype
+              :lvar (make-lvar (get expn :name))
+              ;; :pclass-arg-ref
+              ;; (let [names (get expn :names)
+              ;;       argument (get class-bindings (first names))]
+              ;;   ;; (println "Found argument " names " = " argument)
+              ;;   (if (empty? (rest names))
+              ;;     argument
+              ;;     (deref-field (rest names) argument))) ;handle case where an indirect reference is made through a class arg
+              (do (println "ERROR: Unknown form in Evaluate: " expn)
+                  expn)))
+          nil) ;+++ we shouldn't get here
+        (case (first expn)
+          :make-instance ; (:make-instance pname plant-id ... args)
+          (let [cname (second expn)
+                plant-id (nth expn 2)
+                ;; - (println "in evaluage :make-instance with expn=" expn)
+                class-spam (get (into {} spam) cname)
+                classargs (get class-spam :args)
+                numargs (count classargs)
+                provided-args (drop 3 expn)
+                extra-args (into {} (drop numargs provided-args))
+                class-args (take numargs provided-args)
+                id (get extra-args :id nil) ;+++ does nothing
+                plant-part (get extra-args :plant-part nil)] ;+++ does nothing
+            ;; (println "class-spam=" class-spam)
+            ;; (println "provided-args=" provided-args)
+            ;; (println "extra-args=" extra-args)
+            ;; (println "plant-id=" plant-id)
+            (if (> numargs (count class-args))
+              (instantiation-error
+               (str "missing arguments for pclass (" cname ") : " (str spam))))
+            (instantiate-pclass
+             wrtobject
+             cname
+             spam
+             class-spam
+             class-bindings
+             class-args ;(rest (rest expn))
+             plant-id ;(last expn)
+             plant-part)) ;+++ plant-part not implemented +++
+          :or (if (= (count (rest expn)) 1)
+                (evaluate wrtobject (second expn) class-bindings method-bindings cspam spam)
+                :true) ;+++ this is not finished +++ only the trivial case is implemented
+          :arg nil                            ; method arg NYI
+          :class-arg (let [res (get class-bindings (second expn))]
+                       (if (and (not (symbol? res)) (not (keyword? res)) (empty? res))
+                         (println "ERROR: In evaluate with " expn "class-bindings=" class-bindings "res=" res))
+                       res)
+          :field-ref (do (println "UNEXPECTED: Found a field ref: " expn) nil)
+          :field (deref-field (rest expn) wrtobject)
+          :mode-of (last expn)
+          :make-lvar (make-lvar (second expn))
+          :function-call (do
+                           (println "evaluate: :function-call")
+                           (pprint expn)
+                           true)
+          (do
+            (println "ERROR: Unknown case: " expn)
+            nil))))))                               ; unrecognised defaults to nil
 
 (defn maybe-deref
   [thing]
@@ -750,6 +769,7 @@
 (defn load-model
   "Load a model from a file as produced from a pamela build with --json-ir."
   [file root & args]
+  (println "Loading " file " root=" root " args=" args)
   (let [raw-json-ir (slurp file)]
     (load-model-from-json-string raw-json-ir root args)))
 

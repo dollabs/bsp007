@@ -40,6 +40,8 @@
 
 ;;; (readiniffordebugging biased-coin-edn)
 ;;; (readiniffordebugging switchandbulb-edn)
+;;; (readiniffordebugging switchandbulb-edn)
+
 (defn setirfortesting [ir]
   (def  ^:dynamic *testir* ir))
 
@@ -141,12 +143,12 @@
   "Compile expression into evaluable form, used in conditions;"
   [ref]
   ;; (println "in compile-reference, ref=" ref)
-  (let [{type :type, names :names, pclass :pclass, args :args, mode :mode, mode-ref :mode-ref} ref ]
+  (let [{type :type, names :names, pclass :pclass, args :args, mode :mode, mode-ref :mode-ref plant-id :plant-id} ref ]
     (case type
       :field-ref (into [] (cons :field names))
       :method-arg-ref (into [] (if (> (count names) 1) (cons :arg-field names) (cons :arg names)))
       :pclass-arg-ref (into [] (cons :class-arg names))
-      :pclass-ctor (into [] (cons :make-instance (cons pclass args)))
+      :pclass-ctor (into [] (cons :make-instance (cons pclass (cons plant-id args))))
       :mode-ref  (into [] [:mode-of (compile-reference mode-ref) mode])
       :symbol-ref names
       ref)))
