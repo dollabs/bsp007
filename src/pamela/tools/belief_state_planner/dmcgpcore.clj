@@ -250,7 +250,7 @@
     (nth postconds 1)
     (if (not (= (first (nth postconds 2)) :arg) (nth postconds 2)) nil)))
 
-;;; +++ we need to handle all of the cases here especially multipkle precondition case+++
+;;; +++ we need to handle all of the cases here especially multiple precondition case+++
 (defn match-goal-query-aux
   [goal postconds]
   (println "in match-goal-query-aux with (" goal "," postconds ")")
@@ -498,7 +498,7 @@
   condit)
 
 (defn condition-satisfied?
-  [condit] ; This should guarantee a null plan
+  [condit wrtobject]
   (case (first condit)
     ;; NOT negate the recursive result
     :not (not (condition-satisfied? (second condit)))
@@ -507,14 +507,14 @@
     ;; OR - true if at least one subexpression is satisfied
     :or (some condition-satisfied? (rest condit))
     ;; EQUAL -
-    :equal (y-or-n? (str "(condition-satisfied? " (with-out-str (print condit)) ")"))
-    ;; (let [first-expn (evaluate (second condit))
-    ;;       second-expn (evaluate (third condit))]
-    ;;   (print "(= "
-    ;;          (with-out-str (print (second condit))) "=" first-expn
-    ;;          (with-out-str (print (third condit))) "=" second-expn
-    ;;          ")")
-    ;;   (= first expn second expn))
+    :equal ;(y-or-n? (str "(condition-satisfied? " (with-out-str (print condit)) ")"))
+    (let [first-expn (rtm/evaluate  wrtobject (nth condit 1) nil nil nil nil)
+          second-expn (rtm/evaluate wrtobject (nth condit 2) nil nil nil nil)]
+      (println "(= "
+               (with-out-str (print (nth condit 1))) "=" first-expn
+               (with-out-str (print (nth condit 2))) "=" second-expn
+               ")")
+      (= first-expn second-expn))
     (do (println "(condition-satisfied? " condit ")") true)))
 
 (defn plan
@@ -523,19 +523,20 @@
          complete-plan []]          ; List of actions collected so far
     (println "Current outstanding goals=" goals)
     (let [this-goal (first goals)        ; We will solve this goal first
+          wrtobject (second (first root-objects))
           - (println "Solving for =" this-goal)
           outstanding-goals (rest goals)] ; Afterwards we will solve the rest
-      (if (condition-satisfied? this-goal)
+      (if (condition-satisfied? this-goal wrtobject)
         (if (empty? outstanding-goals)
           complete-plan
           (recur outstanding-goals complete-plan))
         (let [queries (generate-lookup-from-condition pclass this-goal)
               - (do (println "Root query=") (pprint queries))
               iitab (rtm/inverted-influence-table)
-              - (do (println "iitab=") (pprint iitab))
+              ;; - (do (println "iitab=") (pprint iitab))
               candidates (map (fn [[agoal aquery]] [agoal aquery (get iitab aquery)])
                               queries)    ;+++ need to handle nested queries+++
-              - (do (println "candidates=") (pprint candidates))
+              ;; - (do (println "candidates=") (pprint candidates))
               candidates (apply concat (map (fn [cand] (verify-candidate cand)) candidates))
               - (do (println "good candidates=") (pprint candidates))
               ;; Now select a method if no match, generate a gap filler

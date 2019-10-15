@@ -209,7 +209,7 @@
   (if *printdebug*
     (do (println "adding spam:\n")
         (pprint pcs)))
-  (reset! (.pclasses *current-model*) pcs)) ;+++ unfinished, thsi needs to merge with wgats already there
+  (reset! (.pclasses *current-model*) pcs)) ;+++ unfinished, thsi needs to merge with whats already there
 
 (defn add-preandpost
   "Add a preandpost condition vector from a loaded model file."
@@ -528,9 +528,11 @@
              class-args ;(rest (rest expn))
              plant-id ;(last expn)
              plant-part)) ;+++ plant-part not implemented +++
-          :or (if (= (count (rest expn)) 1)
-                (evaluate wrtobject (second expn) class-bindings method-bindings cspam spam)
-                :true) ;+++ this is not finished +++ only the trivial case is implemented
+          :or (some #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
+          :and (every? #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
+          ;; :or (if (= (count (rest expn)) 1)
+          ;;       (evaluate wrtobject (second expn) class-bindings method-bindings cspam spam)
+          ;;       :true) ;+++ this is not finished +++ only the trivial case is implemented
           :arg nil                            ; method arg NYI
           :class-arg (let [res (get class-bindings (second expn))]
                        (if (and (not (symbol? res)) (not (keyword? res)) (empty? res))
