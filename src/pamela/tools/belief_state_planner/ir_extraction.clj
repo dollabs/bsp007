@@ -25,7 +25,7 @@
 
 (def ^:dynamic pamela-model nil)
 (def ^:dynamic outfile nil)
-(def ^:dynamic verbosity 1)
+(def ^:dynamic verbosity 0)
 
 (defn read-ir-file [pathstring]
   (read-string (slurp pathstring)))
@@ -370,7 +370,7 @@
     (do
       (let [fields (get ir :fields)
             types  (remove nil? (map consume-constructor-component-type-map
-                        (into () fields)))]
+                                     (into () fields)))]
         (if (not (empty? types))
           [name (into {} types)])))))
 
@@ -476,8 +476,7 @@
                all-inherited))))
 
 (defn is-a [obj typename alltypes]
-  (let [type-of-obj (get alltypes obj)]
-    ;;(println "type-of-obj=" type-of-obj)
+  (let [type-of-obj (conj (get alltypes obj) obj)]
     (if type-of-obj
       (if (not (empty? (set/intersection (set [typename]) type-of-obj)))
         true
@@ -659,9 +658,9 @@
           (do (printf "spamela output to %s%n" outfile) (pprint spamela)))
         nil))))
 
-(def dcryppstest-model "/Users/dcerys/DOLL/CASE/git/data/missile-guidance/missile_guidance_v5.ir.json")
+(def dcryppstest-model "/Users/paulr/checkouts/bitbucket/CASE-Vanderbilt-DOLL/data/missile-guidance/missile_guidance_v5.ir.json")
 (def missile-guidance-model dcryppstest-model)
-(def missile-guidance-dp "/Users/dcerys/DOLL/CASE/git/data/missile-guidance/missile_guidance_v5.dp.json")
+(def missile-guidance-dp "/Users/paulr/checkouts/bitbucket/CASE-Vanderbilt-DOLL/data/missile-guidance/missile_guidance_v5.dp.json")
 ;(def dcryppstest-model "/users/paulr/checkouts/bitbucket/CASE-Vanderbilt-DOLL/data/missile-guidance/missile-guidance.json")
 ;(def dcryppstest-model "/users/paulr/checkouts/bitbucket/CASE-Vanderbilt-DOLL/data/missile-guidance/missile-guidance-compatible.json")
 

@@ -12,6 +12,7 @@
             [clojure.pprint :as pp :refer [pprint]]
             [clojure.tools.logging :as log]
             [clojure.java.io :as io]
+            [clojure.set :as set]
             [environ.core :refer [env]]
             [pamela.tools.belief-state-planner.montecarloplanner :as bs]
             [pamela.tools.belief-state-planner.ir-extraction :as irx]
@@ -723,16 +724,15 @@
   "Find the atom represented by the specified field name in the RTobject provided."
   [object field]
   (let [fields @(.fields object)
-        fieldatom (get fields field)]
+        fieldatom (if fields (get fields field))]
     #_(if fieldatom
       (.write *out* (format "%nFound field %s = %s !!!%n" field fields))
       (.write *out* (format "%nField %s not found in %s !!!%n" field fields)))
     fieldatom))
 
-(defn load-model-from-json-string
-  [json-string root args]
-  (let [ir (irx/read-ir-from-json-string json-string)
-        spam (irx/json-ir-to-spamela ir false)]
+(defn load-model-from-ir
+  [ir root args]
+  (let [spam (irx/json-ir-to-spamela ir false)]
     (add-pclasses spam)
     (if (not (= ir nil))
       (do
@@ -767,6 +767,11 @@
                   ;; Now establish the inverse influence table in the model.
                   (reset! (.invertedinfluencehashtable *current-model*) (inverted-method-influence-table)))
                 (println "root-class" root "not found in model - can't proceed.")))))))))
+
+(defn load-model-from-json-string
+  [json-string root args]
+  (let [ir (irx/read-ir-from-json-string json-string)]
+    (load-model-from-ir ir root args)))
 
 (defn load-model
   "Load a model from a file as produced from a pamela build with --json-ir."
@@ -870,8 +875,19 @@
     (doseq [var interconnected]
       (doseq [ovar interconnected]
         (if (not (= var ovar))
-          ;;(println var "connects to" ovar)
           (bs/add-binary-proposition :connects-with var ovar))))))
+
+(defn add-connectivity-propositions-unidirectional
+  [lco]
+  (let [done (atom #{})]
+    (doseq [interconnected lco]
+      (doseq [var interconnected]
+        (doseq [ovar interconnected]
+          (if (and (not (= var ovar))
+                   (empty? (set/intersection @done (set [[var ovar][ovar var]]))))
+            (do
+                (bs/add-binary-proposition :connects-with var ovar)
+                (reset! done (set/union @done (set [[var ovar][ovar var]]))))))))))
 
 ;;; (add-connectivity-propositions lco)
 
@@ -890,6 +906,12 @@
   (-> (lvar-connectivity-map)
       (list-of-connected-objects)
       (add-connectivity-propositions)))
+
+(defn establish-unidirectional-connectivity-propositions
+  []
+  (-> (lvar-connectivity-map)
+      (list-of-connected-objects)
+      (add-connectivity-propositions-unidirectional)))
 
 ;;; :is-Part-of propositions
 
@@ -950,6 +972,16 @@
                         (if (= (.type obj) typename) obj))
                       (seq objects)))))
 
+(defn find-type-of-field
+  [object-type field]
+  (let [objects (find-objects-of-type object-type)]
+    (if (not (empty? objects))
+      (let [;;- (println "Found objects : " objects)
+            field (get-field-atom (first objects) field)]
+        (if field
+          (let [field-val @field]
+            (if field-val (.type field-val)))
+          (println "Field " field " does not exist in " (first objects)))))))
 
 (defn nyi
   [msg]

@@ -22,6 +22,8 @@
 
 (def ^:dynamic *print-warnings* true)
 
+(def ^:dynamic *print-debugging* false)
+
 ;;;    "Defines the basic belief state class that represents the domains
 ;;;     proposition-types propositions and variables of the belief state."
 (defrecord BeliefState
@@ -763,7 +765,7 @@
 
 (defn mcplanner
   [from to dpset visited path ron depth accept-gap-fillers]
-  #_(println "mcplanner: from=" from "to=" to "visited=" visited "path=" path)
+  (if *print-debugging* (println "mcplanner: from=" from "to=" to "visited=" visited "path=" path))
   (let [fromprops (find-binary-propositions-matching #{from} nil nil #{:is-a} nil ron) ; all :is-part-of or :connects-with from 'from'
         downprops (find-binary-propositions-matching nil nil #{:is-part-of} nil #{from} ron) ; all is-part-of to 'from'
         winners (concat
@@ -775,10 +777,11 @@
                   (fn [{pt :ptype, sj :subject, obj :object}]
                     [:down sj])
                   (filter-binary-propositions #{to} nil #{:is-part-of} nil nil nil downprops))) ; came from 'to'
-        ;; - (println "mcplanner("from","to","visited","path","ron","depth") fromprops:")
-        - nil #_(if (empty? fromprops)
-                  (println "Nothing found")
-                  (doseq [p fromprops] (print-proposition p)))
+        - (if *print-debugging* (println "mcplanner("from","to","visited","path","ron","depth") fromprops:"))
+        - (if *print-debugging*
+            (if (empty? fromprops)
+              (println "Nothing found")
+              (doseq [p fromprops] (print-proposition p))))
         options (concat
                  (map
                   (fn [{pt :ptype, sj :subject, obj :object}]
@@ -794,7 +797,7 @@
                    (rand-nth winners)
                    (if (not (empty? options))
                      (rand-nth options)))]
-    ;; (println "winners=" winners "Options=" options "selected=" selected)
+    (if *print-debugging* (println "winners=" winners "Options=" options "selected=" selected))
     (if (not (empty? winners))
       (concat [selected] path)
       (if (or (= depth 0) (empty? selected))
@@ -803,7 +806,7 @@
               newpath (concat [selected] path)
               newvisited (conj visited moveto)
               newdepth 8 #_(- depth 1)]
-          #_(println "Moving to:" moveto "via:" method "newpath:" newpath "visited:" newvisited "depth=" newdepth)
+          (if *print-debugging* (println "Moving to:" moveto "via:" method "newpath:" newpath "visited:" newvisited "depth=" newdepth))
           (mcplanner moveto to dpset newvisited newpath ron newdepth accept-gap-fillers)))))) ;++++
 
 (defn translate-attack-plan
@@ -815,21 +818,21 @@
 
 (defn monte-carlo-plan-attacks
   [attacker ooi samples accept-gap-fillers ron maxdepth]
-  #_(println "in monte-carlo-plan-attacks with attacker=" attacker " ooi=" ooi" root=" ron)
+  (if *print-debugging* (println "in monte-carlo-plan-attacks with attacker=" attacker " ooi=" ooi" root=" ron))
   (let [[objects-of-interest ooidpmap] ooi]
-    #_(println "ooi=" objects-of-interest "ooidpmap=" ooidpmap)
+    (if *print-debugging* (println "ooi=" objects-of-interest "ooidpmap=" ooidpmap))
     (let [solutions (atom #{})]
       (doseq [anooi (seq objects-of-interest)]
-        #_(println "Solving for attack on: " anooi "samples=" samples)
+        (if *print-debugging* (println "Solving for attack on: " anooi "samples=" samples))
         (dotimes [i samples]
           (let [dp (get ooidpmap anooi)
                 fromtype (:object (first (find-binary-propositions-matching #{anooi} nil #{:is-a} nil nil nil)))
                 asample (mcplanner anooi attacker dp #{anooi} [[:at anooi dp fromtype]] ron (- maxdepth 1) accept-gap-fillers)]
             (if asample
               (do
-                #_(println "Found a sample: " asample)
+                (if *print-debugging* (println "Found a sample: " asample))
                 (reset! solutions (conj @solutions asample)))))))
-        #_(println "Solutions found: ")
+        (if *print-debugging* (println "Solutions found: "))
         (pprint @solutions)
       (json/write-str (translate-attack-plan (into [] @solutions))))))
 
