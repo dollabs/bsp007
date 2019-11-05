@@ -98,7 +98,7 @@
         fields @(.fields root)]
     fields))
 
- (defn get-field-value
+ (defn get-root-field-value
   [objectname fieldname]
   (let [objects (get-root-fields)
         named-object @(get objects objectname)
@@ -976,12 +976,25 @@
   [object-type field]
   (let [objects (find-objects-of-type object-type)]
     (if (not (empty? objects))
-      (let [;;- (println "Found objects : " objects)
-            field (get-field-atom (first objects) field)]
-        (if field
-          (let [field-val @field]
+      (let [- (println "Found objects : " objects)
+            fieldat (get-field-atom (first objects) field)]
+        (if fieldat
+          (let [field-val @fieldat]
             (if field-val (.type field-val)))
-          (println "Field " field " does not exist in " (first objects)))))))
+          (println "Field " field " does not exist in " (first objects))))
+      (do (println "No objects of type " object-type "were found.") nil))))
+
+(defn find-name-of-field-object
+  [object-type field]
+  (let [objects (find-objects-of-type object-type)]
+    (if (not (empty? objects))
+      (let [- (println "Found objects : " objects)
+            fieldat (get-field-atom (first objects) field)]
+        (if fieldat
+          (let [field-val @fieldat]
+            (if field-val (.variable field-val)))
+          (println "Field " field " does not exist in " (first objects))))
+      (do (println "No objects of type " object-type "were found.") nil))))
 
 (defn nyi
   [msg]
@@ -1000,22 +1013,32 @@
 (def accept-gap-fillers false)
 
 (defn generate-attack-plans
-  [ooi]
-  (if (and (empty? (find-objects-of-type 'TypicalAttacker))
-           (empty? (find-objects-of-type 'TypicalAttacker_Impl)))
-    (do (println "TypicalAttacker not found in model - can't proceed.")
-        nil)
-    (let [attackers (if (empty? (find-objects-of-type 'TypicalAttacker))
-                      (find-objects-of-type 'TypicalAttacker_Impl)
-                      (find-objects-of-type 'TypicalAttacker))
-          attacker (first attackers)
-          attackerobjname (.variable attacker)
-          rootobject (second (first (get-root-objects)))
-          rootobjectname (.variable rootobject)]
-      #_(println "Attackers=" attackers
-                 "attackerobjname=" attackerobjname
-                 "rootobjectname="rootobjectname)
-      (bs/monte-carlo-plan-attacks attackerobjname ooi numsamples accept-gap-fillers #{rootobjectname} maxplandepth))))
+  [ooi attack-surface]
+  ;; (if (and (empty? (find-objects-of-type 'TypicalAttacker))
+  ;;          (empty? (find-objects-of-type 'TypicalAttacker_Impl)))
+  ;;   (do (println "TypicalAttacker not found in model - can't proceed.")
+  ;;       nil)
+  (let [aap (read-string attack-surface)]
+    (if (or (= aap nil) (= (count aap) 0))
+      (println "Error: No attack access point specified.")
+      (let [;;attackers (if (empty? (find-objects-of-type 'TypicalAttacker))
+            ;;            (find-objects-of-type 'TypicalAttacker_Impl)
+            ;;            (find-objects-of-type 'TypicalAttacker))
+            ;;attacker (first attackers)
+            ;;attackerobjname (.variable attacker)
+            rootobject (second (first (get-root-objects)))
+            rootobjectname (.variable rootobject)
+            rootobjecttype (.type rootobject)
+            attacksurfacename (first aap)
+            attackobjname (find-name-of-field-object rootobjecttype attacksurfacename)
+            ]
+        (if (> (count aap) 1)
+          (println "Warning: Multiple attack access points " aap " were provided but at present onlt the first will be used."))
+        (println "Attack-point name" attacksurfacename "Attack surface" attackobjname "rootobjectname=" rootobjectname)
+        (if (not attackobjname)
+          (println "Attack-point " rootobjecttype "." attacksurfacename "not found.")
+          (bs/monte-carlo-plan-attacks attackobjname ooi numsamples accept-gap-fillers #{rootobjectname} maxplandepth))
+        ))))
 
 ;;; (def dps (load-desired-properties "/Users/paulr/checkouts/bitbucket/CASE-Vanderbilt-DOLL/data/missile-guidance/missile-guidance.dp.json"))
 ;;; (def ooi (objects-of-interest dps))
