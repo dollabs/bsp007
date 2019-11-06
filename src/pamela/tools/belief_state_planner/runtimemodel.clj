@@ -567,20 +567,20 @@
         (println "ERROR: trying to dereference " namelist "with null wrtobject!")
         [:not-found namelist])
       (let [fields (.fields wrtobject)
-            ;; - (println "***!!! fields = " @fields)
+             - (println "***!!! fields = " @fields)
             match (get @fields (first namelist) )
-            ;;- (println "***!!! found match for" (first namelist)  " = " match)
+            - (println "***!!! found match for" (first namelist)  " = " match)
             remaining (rest namelist)]
         (if (empty? remaining)
           (do
-            ;; (println "***!!! dereferenced " (first namelist) "=" (maybe-deref match))
+            (println "***!!! dereferenced " (first namelist) "=" (maybe-deref match))
             (if (= match nil)
               [:not-found namelist]
               (maybe-deref match)))
           (do
             (if (not (= match nil))
               (do
-                ;; (println "***!!! recursive dereference with object=" @match)
+                (println "***!!! recursive dereference with object=" @match)
                 (deref-field remaining @match))
               [:not-found namelist])))))))
 
@@ -976,7 +976,7 @@
   [object-type field]
   (let [objects (find-objects-of-type object-type)]
     (if (not (empty? objects))
-      (let [- (println "Found objects : " objects)
+      (let [;; - (println "Found objects : " objects)
             fieldat (get-field-atom (first objects) field)]
         (if fieldat
           (let [field-val @fieldat]
@@ -988,7 +988,7 @@
   [object-type field]
   (let [objects (find-objects-of-type object-type)]
     (if (not (empty? objects))
-      (let [- (println "Found objects : " objects)
+      (let [;; - (println "Found objects : " objects)
             fieldat (get-field-atom (first objects) field)]
         (if fieldat
           (let [field-val @fieldat]
@@ -1034,7 +1034,7 @@
             ]
         (if (> (count aap) 1)
           (println "Warning: Multiple attack access points " aap " were provided but at present onlt the first will be used."))
-        (println "Attack-point name" attacksurfacename "Attack surface" attackobjname "rootobjectname=" rootobjectname)
+        ;; (println "Attack-point name" attacksurfacename "Attack surface" attackobjname "rootobjectname=" rootobjectname)
         (if (not attackobjname)
           (println "Attack-point " rootobjecttype "." attacksurfacename "not found.")
           (bs/monte-carlo-plan-attacks attackobjname ooi numsamples accept-gap-fillers #{rootobjectname} maxplandepth))
