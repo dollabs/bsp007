@@ -567,20 +567,20 @@
         (println "ERROR: trying to dereference " namelist "with null wrtobject!")
         [:not-found namelist])
       (let [fields (.fields wrtobject)
-             - (println "***!!! fields = " @fields)
+            ;; - (println "***!!! fields = " @fields)
             match (get @fields (first namelist) )
-            - (println "***!!! found match for" (first namelist)  " = " match)
+            ;; - (println "***!!! found match for" (first namelist)  " = " match)
             remaining (rest namelist)]
         (if (empty? remaining)
           (do
-            (println "***!!! dereferenced " (first namelist) "=" (maybe-deref match))
+            ;; (println "***!!! dereferenced " (first namelist) "=" (maybe-deref match))
             (if (= match nil)
               [:not-found namelist]
               (maybe-deref match)))
           (do
             (if (not (= match nil))
               (do
-                (println "***!!! recursive dereference with object=" @match)
+                ;; (println "***!!! recursive dereference with object=" @match)
                 (deref-field remaining @match))
               [:not-found namelist])))))))
 
