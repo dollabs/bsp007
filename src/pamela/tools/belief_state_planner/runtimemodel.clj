@@ -1018,7 +1018,10 @@
   ;;          (empty? (find-objects-of-type 'TypicalAttacker_Impl)))
   ;;   (do (println "TypicalAttacker not found in model - can't proceed.")
   ;;       nil)
-  (let [aap (read-string attack-surface)]
+  (let [aap (cond
+              (nil? attack-surface) []
+              (vector? attack-surface) attack-surface
+              (string? attack-surface) (read-string attack-surface))]
     (if (or (= aap nil) (= (count aap) 0))
       (println "Error: No attack access point specified.")
       (let [;;attackers (if (empty? (find-objects-of-type 'TypicalAttacker))
@@ -1029,7 +1032,10 @@
             rootobject (second (first (get-root-objects)))
             rootobjectname (.variable rootobject)
             rootobjecttype (.type rootobject)
-            attacksurfacename (first aap)
+            attacksurfacename (let [asname (first aap)]
+                                (if (string? asname)
+                                  (symbol asname)
+                                  asname))
             attackobjname (find-name-of-field-object rootobjecttype attacksurfacename)
             ]
         (if (> (count aap) 1)
