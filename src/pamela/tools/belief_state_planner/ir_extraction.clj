@@ -140,7 +140,7 @@
 
 ;;; (get-modes-from-ir *testir*)
 (defn compile-reference
-  "Compile expression into evaluable form, used in conditions;"
+  "Compile expression into evaluable form, used in conditions."
   [ref]
   ;; (println "in compile-reference, ref=" ref)
   (let [{type :type, names :names, pclass :pclass, args :args, mode :mode, mode-ref :mode-ref plant-id :plant-id} ref ]

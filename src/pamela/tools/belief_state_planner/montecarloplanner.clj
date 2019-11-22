@@ -418,6 +418,17 @@
           0.0)
         (or (get @(get variable :value) vbel) 0.0)))))
 
+(defn get-belief-distribution-in-variable
+  "Returns the PDF for the variable"
+  [vname & [bs]]
+  (with-belief-state bs
+    (let [variable (get-variable vname)]
+      (if (nil? variable)
+        (do
+          (if *print-warnings* (printf "Warning: Unknown variable referenced: %s%n" vname))
+          ())
+        (or @(get variable :value) ())))))
+
 ;;; (get-belief-in-variable 'quux :E)
 ;;; (get-belief-in-variable 'quuxy :E)
 

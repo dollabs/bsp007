@@ -473,10 +473,21 @@
   [astring]
   (throw (Throwable. (str "Instantiation error: " astring))))
 
+(defn get-likely-value
+  [pdf threshold]
+  (let [values (keys pdf)
+        numvals (count values)]
+    (if (= numvals 1)
+      (first values)
+      (let [best (apply max-key val pdf)]
+        (if (>= (second best) threshold)
+          (first best)
+          :unknown)))))
+
 (defn evaluate
   "Evaluate an expression in the current belief state with args as provided."
   [wrtobject expn class-bindings method-bindings cspam spam]
-  #_(println "\nIn evaluate with expn=" expn
+  (println "\nIn evaluate with expn=" expn
              " class-bindings=" class-bindings
              " method-bindings=" method-bindings)
   ;; (pprint spam)
@@ -540,7 +551,23 @@
                          (println "ERROR: In evaluate with " expn "class-bindings=" class-bindings "res=" res))
                        res)
           :field-ref (do (println "UNEXPECTED: Found a field ref: " expn) nil)
-          :field (deref-field (rest expn) wrtobject)
+          :field (let [value (deref-field (rest expn) wrtobject)]
+                   (if (not (instance? RTobject value))
+                     value
+                     (let [variable (.variable value)
+                           pdf (bs/get-belief-distribution-in-variable variable)]
+                       (get-likely-value pdf 0.8))))  ; +++ where did 0.8 come from!!!
+
+          :arg-field (let [[object & field] (rest expn)
+                           obj (deref-field (rest object) #_wrtobject (first (get-root-objects))) ; Force caller to be root+++?
+                           - (println ":arg-field obj= " obj)
+                           value (deref-field field obj)] ; +++ handle multilevel case
+                         (if (not (instance? RTobject value))
+                           value
+                           (let [variable (.variable value) ; +++ avoid duplication of this idiom
+                                 pdf (bs/get-belief-distribution-in-variable variable)]
+                             (get-likely-value pdf 0.8))))
+
           :mode-of (last expn)
           :make-lvar (make-lvar (second expn))
           :function-call (do
@@ -559,6 +586,7 @@
 
 (defn deref-field
   [namelist wrtobject]
+  (println "deref-field: " namelist wrtobject)
   (if (vector? wrtobject)
     (do (println "ERROR: dereference failed on bad wrtobject=" wrtobject)
         [:not-found namelist])
@@ -575,14 +603,14 @@
           (do
             ;; (println "***!!! dereferenced " (first namelist) "=" (maybe-deref match))
             (if (= match nil)
-              [:not-found namelist]
+              [:not-found namelist :in wrtobject]
               (maybe-deref match)))
           (do
             (if (not (= match nil))
               (do
                 ;; (println "***!!! recursive dereference with object=" @match)
                 (deref-field remaining @match))
-              [:not-found namelist])))))))
+              [:not-found namelist :in wrtobject])))))))
 
 (defn field-exists
   [names wrtobject]
@@ -1039,7 +1067,7 @@
             attackobjname (find-name-of-field-object rootobjecttype attacksurfacename)
             ]
         (if (> (count aap) 1)
-          (println "Warning: Multiple attack access points " aap " were provided but at present onlt the first will be used."))
+          (println "Warning: Multiple attack access points " aap " were provided but at present only the first will be used."))
         ;; (println "Attack-point name" attacksurfacename "Attack surface" attackobjname "rootobjectname=" rootobjectname)
         (if (not attackobjname)
           (println "Attack-point " rootobjecttype "." attacksurfacename "not found.")
