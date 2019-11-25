@@ -45,6 +45,26 @@
 (defn setirfortesting [ir]
   (def  ^:dynamic *testir* ir))
 
+(defn break
+  [& message]
+  (print "BREAK: ")
+  (apply println message)
+  (println "(type y to continue, ^C ^C to abort)")
+  (case (let [answer (read) - (println answer)] answer)
+    y true
+    (recur message)))
+
+(defn error
+  [& message]
+  (print "ERROR: ")
+  (apply println message)
+  (println "(type y to continue anyway, ^C ^C to abort)")
+  (case (let [answer (read) - (println answer)] answer)
+    y true
+    (clojure.stacktrace/print-stack-trace (Exception. "Error"))))
+
+;;; (error "This is a test" 42 "error message")
+
 (defn unencode-ir-strings
   "Unencode string/symbol/keyword encoded as readable strings"
   [ir]
@@ -188,13 +208,15 @@
                         (dxp/make-OR (map (fn [part] (compile-condition part)) args)))
       :implies        (if (= numargs 2) (dxp/make-IMPLIES (compile-condition (first args))
                                                           (compile-condition (second args)))
-                          cond) ; +++ unfinished - what do we wan to do with a malformed implies
+                          cond) ; +++ unfinished - what do we want to do with a malformed implies
       :xor            (if (= numargs 2) (dxp/make-XOR (compile-condition (first args))
                                                       (compile-condition (second args)))
-                          cond) ; +++ unfinished - what do we wan to do with a malformed xor
+                          cond) ; +++ unfinished - what do we want to do with a malformed xor
       :not            (if (= numargs 1)
                         (dxp/make-NOT (compile-condition (first args)))
-                        cond) ; +++ unfinished - what do we wan to do with a malformed xor
+                        cond) ; +++ unfinished - what do we want to do with a malformed xor
+      :function-call  (dxp/make-CALL (get (first args) :names)
+                                     (map (fn [arg] (compile-reference arg)) (rest args)))
       'true)))
 
 (defn lvar? [lv]

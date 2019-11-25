@@ -649,18 +649,21 @@
 
 (defn filter-binary-propositions ;; and not excluded, (or not restricted, matching)
   [a not-a relation not-relation b not-b props]
-  ;;(println "In filter-binary-propositions with:" [a not-a relation not-relation b not-b "props"])
-  (seq (remove nil? (map (fn [aprop]
-                      (let [{pt :ptype, sj :subject, obj :object} aprop]
-                        (if (and
-                             (and (or (empty? not-a) (not (get not-a sj))) ; not excluded
-                                  (or (empty? a) (get a sj)))
-                             (and (or (empty? not-b) (not (get not-b obj)))
-                                  (or (empty? b) (get b obj)))
-                             (and (or (empty? not-relation) (not (get not-relation pt)))
-                                  (or (empty? relation) (get relation pt))))
-                          aprop)))
-                    props))))
+  (println "In filter-binary-propositions with:" a not-a relation not-relation b not-b "matching props=")
+
+  (let [matches (seq (remove nil? (map (fn [aprop]
+                                         (let [{pt :ptype, sj :subject, obj :object} aprop]
+                                           (if (and
+                                                (and (or (empty? not-a) (not (get not-a sj))) ; not excluded
+                                                     (or (empty? a) (get a sj)))
+                                                (and (or (empty? not-b) (not (get not-b obj)))
+                                                     (or (empty? b) (get b obj)))
+                                                (and (or (empty? not-relation) (not (get not-relation pt)))
+                                                     (or (empty? relation) (get relation pt))))
+                                             aprop)))
+                                       props)))]
+    (pprint matches)
+    matches))
 
 (defn find-binary-propositions-matching
   [a not-a relation not-relation b not-b]

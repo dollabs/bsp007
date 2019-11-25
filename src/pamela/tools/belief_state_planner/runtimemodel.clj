@@ -244,6 +244,14 @@
     (add-lvar lv)
     lv))
 
+(defn is-lvar?
+  [thing]
+  (instance? LVar thing))
+
+(defn is-bound-lvar?
+  [thing]
+  (not (= @(.boundp thing) :unbound)))
+
 (defn deref-lvar
   [something]
   (if (instance? LVar something)
@@ -262,6 +270,11 @@
       (if (instance? LVar boundto)
         (bind-lvar boundto nval)
         (= boundto (deref-lvar nval))))))
+
+(defn unbind-lvar
+  [lv]
+  (reset! (.boundp lv) :unbound)
+  (reset! (.binding lv) nil))
 
 (defn describe-lvar
   [lv]
@@ -508,7 +521,10 @@
               ;;   (if (empty? (rest names))
               ;;     argument
               ;;     (deref-field (rest names) argument))) ;handle case where an indirect reference is made through a class arg
-              (do (println "ERROR: Unknown form in Evaluate: " expn)
+              :mode-ref
+              (get expn :mode)
+
+              (do (irx/error "Unknown form in Evaluate: " expn)
                   expn)))
           nil) ;+++ we shouldn't get here
         (case (first expn)
@@ -548,9 +564,9 @@
           :arg nil                            ; method arg NYI
           :class-arg (let [res (get class-bindings (second expn))]
                        (if (and (not (symbol? res)) (not (keyword? res)) (empty? res))
-                         (println "ERROR: In evaluate with " expn "class-bindings=" class-bindings "res=" res))
+                         (irx/error "In evaluate with " expn "class-bindings=" class-bindings "res=" res))
                        res)
-          :field-ref (do (println "UNEXPECTED: Found a field ref: " expn) nil)
+          :field-ref (do (irx/error "UNEXPECTED: Found a field ref: " expn) nil)
           :field (let [value (deref-field (rest expn) wrtobject)]
                    (if (not (instance? RTobject value))
                      value
@@ -559,7 +575,7 @@
                        (get-likely-value pdf 0.8))))  ; +++ where did 0.8 come from!!!
 
           :arg-field (let [[object & field] (rest expn)
-                           obj (deref-field (rest object) #_wrtobject (first (get-root-objects))) ; Force caller to be root+++?
+                           obj (deref-field (rest object) #_wrtobject (second (first (get-root-objects)))) ; Force caller to be root+++?
                            - (println ":arg-field obj= " obj)
                            value (deref-field field obj)] ; +++ handle multilevel case
                          (if (not (instance? RTobject value))
@@ -575,7 +591,7 @@
                            (pprint expn)
                            true)
           (do
-            (println "ERROR: Unknown case: " expn)
+            (irx/error "Unknown case: " expn)
             nil))))))                               ; unrecognised defaults to nil
 
 (defn maybe-deref
@@ -588,11 +604,11 @@
   [namelist wrtobject]
   (println "deref-field: " namelist wrtobject)
   (if (vector? wrtobject)
-    (do (println "ERROR: dereference failed on bad wrtobject=" wrtobject)
+    (do (irx/error "dereference failed on bad wrtobject=" wrtobject)
         [:not-found namelist])
     (if (empty? wrtobject)
       (do
-        (println "ERROR: trying to dereference " namelist "with null wrtobject!")
+        (irx/error "trying to dereference " namelist "with null wrtobject!")
         [:not-found namelist])
       (let [fields (.fields wrtobject)
             ;; - (println "***!!! fields = " @fields)
@@ -849,6 +865,7 @@
 ;;; Standard propositions about the loaded model
 
 ;;; LVAR connectivity
+
 
 (defn lvars-in-object
   "Scan the fields of an object to find all lvar references."

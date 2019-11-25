@@ -330,8 +330,11 @@
 
 (defn select-candidate
   [cands]
-  ;; +++ move  montecarlo calculation and selection into here +++
-  (list (first cands)))
+  (let [choices (count cands)]
+    (case choices
+      0 nil
+      1 (list (first cands))
+      (list (nth cands (rand-int choices)))))) ; put learning mechanism back in here.
 
 (defn get-references-from-expression
   "Generate the ir for the expression and the mapping from the argument name to the expression and its IR."
@@ -358,7 +361,7 @@
 (defn make-args-map-and-args
   [formals actuals]
   (if (not (= (count formals) (count actuals)))
-    (println "ERROR: Wrong Number of Arguments in: make-args-map-and-args formals=" formals " actuals=" actuals))
+    (irx/error  "Wrong Number of Arguments in: make-args-map-and-args formals=" formals " actuals=" actuals))
   (let [argsmap (into {} (map (fn [f a] [f a]) formals actuals))]
     (println "argsmap=" argsmap)
     [actuals argsmap]))
@@ -384,21 +387,26 @@
   (let [pcls (.pclass action)
         msig (.methodsig action)
         argnames (.arglist msig)
-        mname (.mname msig)]
+        mname (.mname msig)
+        returnvals
     ;; (println "class/method/argnames=" pcls mname argnames)
-    (cond
-      ;; Handle arglist by query type
-      (= query [:any [:arg-mode]])
-      ;; Here we are looking to provide the object being affected
-      (make-args-map-and-args argnames (map irx/compile-reference (get-references-from-condition goal)))
+        (cond
+          ;; Handle arglist by query type
+          (= query [:any [:arg-mode]])
+          ;; Here we are looking to provide the object being affected
+          (make-args-map-and-args argnames (map irx/compile-reference (get-references-from-condition goal)))
 
-      :otherwise (make-args-map-and-args argnames [(irx/compile-reference (get-goal-reference query goal))]) ;+++ why only one?
+          :otherwise
+          (make-args-map-and-args argnames [(irx/compile-reference (get-goal-reference query goal))]) ;+++ why only one?
 
-      #_(let [amap (match-goal-query? goal query)]
-                   (make-args-map-and-args argnames (map (fn [arg]
-                                                           (irx/compile-reference (get amap arg)))
-                                                         argnames)))
-      #_(make-args-map-and-args argnames (map irx/compile-reference (get-references-from-condition goal))))))
+          #_(let [amap (match-goal-query? goal query)]
+              (make-args-map-and-args argnames (map (fn [arg]
+                                                      (irx/compile-reference (get amap arg)))
+                                                    argnames)))
+          #_(make-args-map-and-args argnames (map irx/compile-reference (get-references-from-condition goal))))]
+    (println "compile-arglist returns:")
+    (pprint returnvals)
+    returnvals))
 
 (defn compile-controllable-object
   [action goal query]
@@ -411,6 +419,10 @@
   (let [replaced (if (not (vector? condit))
                    condit
                    (case (first condit)
+                     :call (into [(nth condit 0) (nth condit 1) (nth condit 2)]
+                                 (map (fn [subexp]
+                                        (replace-args-with-bindings subexp argmap))
+                                      (rest (rest (rest condit)))))
                      :arg (get argmap (second condit))
                      :arg-field [:arg-field ;+++ should we thunkify the root caller?
                                  (get argmap (nth condit 1))
@@ -505,6 +517,14 @@
       (println "simplified=" result "simpres=" simpres)
       simpres)))
 
+(defn simplify-cond-top-level
+  [condit]
+  (let [simplified (simplify-condition condit)
+        terms (count simplified)]
+    (if (> terms 1)
+      (list (into [:and] simplified))
+      simplified)))
+
 ;;; (simplify-condition '[:and [:equal [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]])
 ;;; (simplify-condition '[:or [:equal [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]])
 
@@ -512,7 +532,53 @@
   [condit bindings]
   ;; This call is no longer needed since we do substitution earlier.
   ;(println "in substitute-bindings with: " condit)
-  condit)
+    condit)
+
+;;; This is the non-learning version to begin with - learning version still needs debugging
+
+(defn select-and-bind2
+  [arg1 arg2 matches]
+  (let [num-matches (count matches)]
+    (println "In select-and-bind2: num-matches=" num-matches "here: " matches)
+    (case num-matches
+      0 false
+
+      1 (do (irx/break "Found one match") true)
+
+      (do (irx/break "Found more than one match") true))))
+
+(defn internal-condition-call
+  [plant name args]
+  (case plant
+    'dmcp
+    (case name
+      'find-binary-proposition
+      (let [[pname arg1 arg2] args
+            ;; bound lvars will already be dereferenced, so actually testing for lvar says that it is unbound
+            ;; Leave the reducdant unbound test in for debugging.
+            arg1-unbound-lvar (and (rtm/is-lvar? arg1) (not (rtm/is-bound-lvar? arg1)))
+            arg2-unbound-lvar (and (rtm/is-lvar? arg2) (not (rtm/is-bound-lvar? arg2)))]
+        (println "in internal-condition-call with pname=" pname
+                 " arg1=" (if arg1-unbound-lvar :unbound arg1)
+                 " arg2=" (if arg2-unbound-lvar :unbound arg2))
+        (cond ;; There are 4 cases, one bound, the other bound, both bound, neither bound
+          (not (or arg1-unbound-lvar arg2-unbound-lvar)) ; both bound
+          (select-and-bind2 arg1 arg2 (bs/find-binary-propositions-matching #{arg1} nil #{pname} nil #{arg2} nil))
+
+          (and arg1-unbound-lvar (not arg2-unbound-lvar)) ; arg2 bound
+          (select-and-bind2 arg1 arg2 (bs/find-binary-propositions-matching nil nil #{pname} nil #{arg2} nil))
+
+          (and (not arg1-unbound-lvar) arg2-unbound-lvar) ; arg1 bound
+          (select-and-bind2 arg1 arg2 (bs/find-binary-propositions-matching #{arg1} nil #{pname} nil nil nil))
+
+          (and arg1-unbound-lvar arg2-unbound-lvar) ; This is a strange request, but not illegal
+          (select-and-bind2 arg1 arg2 (bs/find-binary-propositions-matching nil nil #{pname} nil #{arg2} nil))
+
+          :otherwise (irx/error "internal-condition-call: can't get here, arg1=" arg1 " arg2=" arg2)))
+
+      (irx/error "Internal-condition-call: Unknown function: " name))
+
+    (irx/error "Internal-condition-call: Can't get here, plant =" plant)))
 
 ;;; Why not just push all of this into rtm/evaluate?
 
@@ -523,11 +589,11 @@
     (let [[acondit wrtobj] (rest condit)]
       (condition-satisfied? acondit wrtobj))
     ;; NOT negate the recursive result
-    :not (not (condition-satisfied? (second condit)))
+    :not (not (condition-satisfied? (second condit) wrtobject))
     ;; AND - check that all subextressions are satisfied
-    :and (every? condition-satisfied? (rest condit))
+    :and (every? (fn [condit] (condition-satisfied? condit wrtobject)) (rest condit))
     ;; OR - true if at least one subexpression is satisfied
-    :or (some condition-satisfied? (rest condit))
+    :or (some (fn [condit] (condition-satisfied? condit wrtobject)) (rest condit))
     ;; EQUAL -
     :equal ;(y-or-n? (str "(condition-satisfied? " (with-out-str (print condit)) ")"))
     (let [first-expn (rtm/evaluate  wrtobject (nth condit 1) nil nil nil nil)
@@ -537,7 +603,18 @@
                (with-out-str (print (nth condit 2))) "=" second-expn
                ")")
       (= first-expn second-expn))
-    (do (println "(condition-satisfied? " condit ")") true)))
+    :call
+    (let [plant (nth condit 1)
+          names (nth condit 2)
+          args (doall (map (fn [arg]
+                             (rtm/evaluate wrtobject arg nil nil nil nil))
+                           (rest (rest (rest condit)))))]
+      (cond (= plant 'dmcp) ;+++ dmcp handled specially
+            (internal-condition-call plant (first names) args)
+
+            :otherwise (do (irx/break "CALL: plant=" plant " names=" names " args=" args) true)))
+
+    (irx/error "(condition-satisfied? " condit ")")))
 
 (defn plan
   [root-objects controllable-objects pclass list-of-goals]
@@ -576,9 +653,9 @@
               ;; - (println "actions=" actions)
               subgoals (apply concat (map (fn [[call prec] rto]
                                             (map (fn [conj] [:thunk conj rto])
-                                                 (simplify-condition prec)))
+                                                 (simplify-cond-top-level prec)))
                                           actions rtos))
-              ;;subgoals (apply concat (map (fn [[call prec]] (simplify-condition prec)) actions))
+              ;;subgoals (apply concat (map (fn [[call prec]] (simplify-cond-top-level prec)) actions))
               outstanding-goals  (remove nil? (concat subgoals outstanding-goals))]
           (println "selected=" selected)
           (println "actions=" actions)
@@ -611,7 +688,7 @@
                       (map (fn [agoal]
                              [:thunk agoal (second (first root-objects))]
                              #_agoal)
-                           (simplify-condition goal-conds)))
+                           (simplify-cond-top-level goal-conds)))
         ;; +++ Now put the call into the solution
         compiled-calls (scompile-call-sequence (seq (map first actions)))
         ]

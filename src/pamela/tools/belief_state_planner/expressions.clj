@@ -108,6 +108,13 @@
   [part1 part2]
   [:< part1 part2])
 
+;;; Function-call
+
+(defn make-CALL
+  "Constructor for function call"
+  [names args]
+  (vec (concat [:call (first names) (rest names)] args)))
+
 ;;;... to be continued
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Auxiliary functions
