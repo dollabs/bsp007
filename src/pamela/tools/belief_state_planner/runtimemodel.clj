@@ -264,6 +264,7 @@
   [lv nval]
   (if (= @(.boundp lv) :unbound)
     (do
+      (if planbindset (reset! planbindset (conj @planbindset lv)))
       (reset! (.boundp lv) :bound)
       (reset! (.binding lv) (deref-lvar nval)))
     (let [boundto (deref-lvar lv)]
@@ -275,6 +276,37 @@
   [lv]
   (reset! (.boundp lv) :unbound)
   (reset! (.binding lv) nil))
+
+(def planbindset nil)
+
+;;; Start tracking LV bind operations
+
+(defn unbind-planbind-set
+  []
+  (if planbindset
+    (do
+      (doseq [lvar @planbindset]
+        (unbind-lvar lvar)))))
+
+(defn start-plan-bind-set
+  []
+  (def planbindset (atom #{})))
+
+(defn stop-plan-bind-set
+  []
+  (unbind-planbind-set)
+  (def planbindset nil))
+
+;;; (def x (make-lvar "x"))
+;;; x
+;;; (start-plan-bind-set)
+;;; planbindset
+;;; (bind-lvar x 42)
+;;; x
+;;; planbindset
+;;; (stop-plan-bind-set)
+;;; x
+;;; planbindset
 
 (defn describe-lvar
   [lv]
@@ -500,7 +532,7 @@
 (defn evaluate
   "Evaluate an expression in the current belief state with args as provided."
   [wrtobject expn class-bindings method-bindings cspam spam]
-  (println "\nIn evaluate with expn=" expn
+  #_(println "\nIn evaluate with expn=" expn
              " class-bindings=" class-bindings
              " method-bindings=" method-bindings)
   ;; (pprint spam)
@@ -556,6 +588,7 @@
              class-args ;(rest (rest expn))
              plant-id ;(last expn)
              plant-part)) ;+++ plant-part not implemented +++
+          :value (second expn)
           :or (some #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
           :and (every? #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
           ;; :or (if (= (count (rest expn)) 1)
@@ -596,13 +629,19 @@
 
 (defn maybe-deref
   [thing]
-  (if (= (type thing) clojure.lang.Atom)
-    @thing
-    thing))
+  (let [derefedthing
+        (if (= (type thing) clojure.lang.Atom)
+          @thing
+          thing)
+        deboundthing
+        (if (and (is-lvar? derefedthing) (is-bound-lvar? derefedthing))
+          (deref-lvar derefedthing)
+          derefedthing)]
+    deboundthing))
 
 (defn deref-field
   [namelist wrtobject]
-  (println "deref-field: " namelist wrtobject)
+  (println "deref-field: " namelist (.variable wrtobject))
   (if (vector? wrtobject)
     (do (irx/error "dereference failed on bad wrtobject=" wrtobject)
         [:not-found namelist])
