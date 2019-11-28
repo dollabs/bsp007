@@ -238,6 +238,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Lvar implementation
 
+(def planbindset nil)
+
 (defn make-lvar
   [name]
   (let [lv (LVar. name (atom nil) (atom :unbound))]
@@ -276,8 +278,6 @@
   [lv]
   (reset! (.boundp lv) :unbound)
   (reset! (.binding lv) nil))
-
-(def planbindset nil)
 
 ;;; Start tracking LV bind operations
 
@@ -656,9 +656,9 @@
             remaining (rest namelist)]
         (if (empty? remaining)
           (do
-            ;; (println "***!!! dereferenced " (first namelist) "=" (maybe-deref match))
+            (println "***!!! dereferenced " (first namelist) "=" match) ;(maybe-deref match))
             (if (= match nil)
-              [:not-found namelist :in wrtobject]
+              (irx/error "DEREF ERROR: [:not-found" namelist ":in" wrtobject "]")
               (maybe-deref match)))
           (do
             (if (not (= match nil))
@@ -953,25 +953,43 @@
 
 ;;; (def lco (list-of-connected-objects cm))
 
-(defn add-connectivity-propositions
-  [lco]
-  (doseq [interconnected lco]
-    (doseq [var interconnected]
-      (doseq [ovar interconnected]
-        (if (not (= var ovar))
-          (bs/add-binary-proposition :connects-with var ovar))))))
+(defn find-objects-of-type
+  "Find all instantiated objects of a given type"
+  [typename]
+  (let [objects @(.objects *current-model*)]
+    (remove nil? (map (fn [obj]
+                        (if (= (.type obj) typename) obj))
+                      (seq objects)))))
 
-(defn add-connectivity-propositions-unidirectional
-  [lco]
-  (let [done (atom #{})]
+(defn add-connectivity-propositions
+  [lco root]
+  (let [rootobj (if root (first (find-objects-of-type (symbol root))))
+        rootvar (if rootobj (.variable rootobj))]
+    ;; (println "rootvar=" rootvar "root=" root)
     (doseq [interconnected lco]
       (doseq [var interconnected]
         (doseq [ovar interconnected]
           (if (and (not (= var ovar))
+                   (not (= var  rootvar))
+                   (not (= ovar rootvar)))
+            (bs/add-binary-proposition :connects-with var ovar)))))))
+
+(defn add-connectivity-propositions-unidirectional
+  [lco root]
+  (let [done (atom #{})
+        rootobj (if root (first (find-objects-of-type (symbol root))))
+        rootvar (if rootobj (.variable rootobj))]
+    ;; (println "rootvar=" rootvar)
+    (doseq [interconnected lco]
+      (doseq [var interconnected]
+        (doseq [ovar interconnected]
+          (if (and (not (= var ovar))
+                   (not (= var  rootvar))
+                   (not (= ovar rootvar))
                    (empty? (set/intersection @done (set [[var ovar][ovar var]]))))
             (do
-                (bs/add-binary-proposition :connects-with var ovar)
-                (reset! done (set/union @done (set [[var ovar][ovar var]]))))))))))
+              (bs/add-binary-proposition :connects-with var ovar)
+              (reset! done (set/union @done (set [[var ovar][ovar var]]))))))))))
 
 ;;; (add-connectivity-propositions lco)
 
@@ -986,16 +1004,16 @@
 ;;; (describe-connectivity-map)
 
 (defn establish-connectivity-propositions
-  []
+  [root]
   (-> (lvar-connectivity-map)
       (list-of-connected-objects)
-      (add-connectivity-propositions)))
+      (add-connectivity-propositions root)))
 
 (defn establish-unidirectional-connectivity-propositions
-  []
+  [root]
   (-> (lvar-connectivity-map)
       (list-of-connected-objects)
-      (add-connectivity-propositions-unidirectional)))
+      (add-connectivity-propositions-unidirectional root)))
 
 ;;; :is-Part-of propositions
 
@@ -1025,18 +1043,19 @@
 (def som (subordinate-object-map))
 
 (defn add-part-of-propositions
-  [som]
+  [som root]
   (doseq [[obj subs] som]
     (let [objname (.variable obj)]
       (doseq [asub subs]
-        (let [subname (.variable asub)]
-          ;; (println subname "is-part-of " objname)
-          (bs/add-binary-proposition :is-part-of subname objname))))))
+        (let [subname (.variable asub)
+              proposition (if (= (str (.type obj)) root) :has-root :is-part-of)]
+          ;; (println "In add-part-of-propositions: " root (.type obj) subname proposition objname)
+          (bs/add-binary-proposition proposition subname objname))))))
 
 (defn establish-part-of-propositions
-  []
+  [root]
   (-> (subordinate-object-map)
-      (add-part-of-propositions)))
+      (add-part-of-propositions root)))
 
 (defn describe-connectivity-subordinate-object-map
   []
@@ -1047,14 +1066,6 @@
         (println [object-name subnames])))))
 
 ;;; (describe-connectivity-subordinate-object-map)
-
-(defn find-objects-of-type
-  "Find all instantiated objects of a given type"
-  [typename]
-  (let [objects @(.objects *current-model*)]
-    (remove nil? (map (fn [obj]
-                        (if (= (.type obj) typename) obj))
-                      (seq objects)))))
 
 (defn find-type-of-field
   [object-type field]

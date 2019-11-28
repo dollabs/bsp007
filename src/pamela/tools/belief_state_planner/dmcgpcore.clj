@@ -356,10 +356,11 @@
     :otherwise nil))
 
 (defn make-args-map-and-args
-  [formals actuals]
+  [formals actuals wrtobject]
   (if (not (= (count formals) (count actuals)))
     (irx/error  "Wrong Number of Arguments in: make-args-map-and-args formals=" formals " actuals=" actuals))
-  (let [argsmap (into {} (map (fn [f a] [f a]) formals actuals))]
+  (let [- (println "*** make-args-map-and-args: " actuals "wrtobject=" wrtobject)
+        argsmap (into {} (map (fn [f a] [f a #_(rtm/evaluate wrtobject a nil nil nil nil)]) formals actuals))]
     (println "argsmap=" argsmap)
     [actuals argsmap]))
 
@@ -375,6 +376,19 @@
 (defn get-goal-reference
   [query goal]
   (find-query-in-goal (second query) goal))
+
+(defn describe-goal
+  [agoal]
+  (if (= (first agoal) :thunk)
+    (pprint [:thunk (second agoal) (.variable (nth agoal 2))])
+    (pprint agoal)))
+
+(defn describe-goals
+  [goals]
+  (println)
+  (println "***Current outstanding goals:")
+  (doseq [agoal goals]
+    (describe-goal agoal)))
 
 ;;; A call comes 'from' the root 'to' the controllable.
 (defn compile-arglist
@@ -392,10 +406,10 @@
           ;; Handle arglist by query type
           (= query [:any [:arg-mode]])
           ;; Here we are looking to provide the object being affected
-          (make-args-map-and-args argnames (map irx/compile-reference (get-references-from-condition goal)))
+          (make-args-map-and-args argnames (map irx/compile-reference (get-references-from-condition goal)) wrtobject)
 
           :otherwise
-          (make-args-map-and-args argnames [(irx/compile-reference (get-goal-reference query goal))]) ;+++ why only one?
+          (make-args-map-and-args argnames [(irx/compile-reference (get-goal-reference query goal))] wrtobject) ;+++ why only one?
 
           #_(let [amap (match-goal-query? goal query)]
               (make-args-map-and-args argnames (map (fn [arg]
@@ -437,22 +451,22 @@
 (defn compile-call
   "Given a call, construct the IR for the call and return also the prerequisites
    and the bindings, as a vector [ir-call vector-of-prerequisites vector-of-bindings]."
-  [action goal query root-objects]
+  [action goal query root-objects wrtobject]
   #_(println "action=" action " query=" query " and goal:")
   (describe-goal goal)
-  (let [[args argmap] (compile-arglist action goal (second query) (first root-objects))  ;+++ kludge "second" +++
+  (let [[args argmap] (compile-arglist action goal (second query) wrtobject)  ;+++ kludge "second" +++ was (first root-objects)
         object (compile-controllable-object action goal (second query))] ;+++ kludge "second" +++
     [(ir-method-call (ir-field-ref [object (irx/.mname (.methodsig action))]) args)
      (replace-args-with-bindings (irx/.prec (.methodsig action)) argmap)]))
 
 (defn compile-calls
-  [actions goal queries root-objects]
+  [actions goal queries root-objects rtos]
   (let [compiled-calls
-        (remove nil? (map (fn [query action]
+        (remove nil? (map (fn [query action rto]
                             (if action
-                              (compile-call action goal query root-objects)
+                              (compile-call action goal query root-objects rto)
                               (do (println "Missing action in compile-call") nil)))
-                          queries actions))]
+                          queries actions rtos))]
     compiled-calls))
 
 (defn scompile-call-sequence
@@ -639,19 +653,6 @@
 
     (irx/error "(condition-satisfied? " condit ")")))
 
-(defn describe-goal
-  [agoal]
-  (if (= (first agoal) :thunk)
-    (pprint [:thunk (second agoal) (.variable (nth agoal 2))])
-    (pprint agoal)))
-
-(defn describe-goals
-  [goals]
-  (println)
-  (println "***Current outstanding goals:")
-  (doseq [agoal goals]
-    (describe-goal agoal)))
-
 (defn plan-generate
   [root-objects controllable-objects pclass list-of-goals max-depth]
   (loop [goals list-of-goals        ; List of things to accomplish
@@ -688,9 +689,9 @@
                 ;; - (do (println "good candidates=") (pprint candidates))
                 ;; Now select a method if no match, generate a gap filler
                 selected (select-candidate candidates)] ;+++ generate a gap filler if necessary +++
-            (if selected                                ; If we have fond an action to try prepare it, otherwise we fail
+            (if selected                                ; If we have found an action to try prepare it, otherwise we fail
               (let [rtos (map (fn [anmq] (.rto anmq)) selected)
-                    actions (compile-calls selected this-goal queries root-objects)
+                    actions (compile-calls selected this-goal queries root-objects rtos) ;
                     ;; - (println "actions=" actions)
                     subgoals (apply concat (map (fn [[call prec] rto]
                                                   (map (fn [conj] [:thunk conj rto])

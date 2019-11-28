@@ -566,11 +566,12 @@
 ;;; (get-proposition-type 'spousex)
 ;;; (get-proposition-type :is-a)
 
-;;; Build-in proposition types
+;;; Built-in proposition types
 
 (def-proposition-type :is-a)
 (def-proposition-type :connects-with)
 (def-proposition-type :is-part-of)
+(def-proposition-type :has-root)
 (def-proposition-type :transitive-closure-of-is-part-of)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
