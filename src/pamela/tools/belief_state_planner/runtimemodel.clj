@@ -32,7 +32,15 @@
 ;;; was (defrecord RuntimeModel [lvars objects plantmap])
 (defrecord RTobject [variable type fields id])
 
+(defn RTobject?
+  [x]
+  (instance? RTobject x))
+
 (defrecord LVar [name binding boundp])
+
+(defn LVar??
+  [x]
+  (instance? LVar x))
 
 ;;(def ^:dynamic *printdebug* true)
 (def ^:dynamic *printdebug* false)
@@ -539,7 +547,7 @@
   (case expn
     :true true
     :false false
-    (if (or (string? expn) (number? expn))
+    (if (or (string? expn) (number? expn) (symbol? expn) (keyword? expn))
       expn
       (if (not (or (seq? expn) (vector? expn)))
         (if (map? expn)
@@ -558,7 +566,7 @@
 
               (do (irx/error "Unknown form in Evaluate: " expn)
                   expn)))
-          nil) ;+++ we shouldn't get here
+          (irx/error "In evaluate: unexpected expression found: " expn))
         (case (first expn)
           :make-instance ; (:make-instance pname plant-id ... args)
           (let [cname (second expn)
@@ -588,7 +596,13 @@
              class-args ;(rest (rest expn))
              plant-id ;(last expn)
              plant-part)) ;+++ plant-part not implemented +++
-          :value (second expn)
+          :value (let [val (second expn)]
+                   (if (not (instance? RTobject val))
+                     val
+                     (let [variable (.variable val) ; +++ avoid duplication of this idiom
+                           pdf (bs/get-belief-distribution-in-variable variable)]
+                       (get-likely-value pdf 0.8))))
+          :thunk (evaluate (nth expn 2) (second expn) class-bindings method-bindings cspam spam)
           :or (some #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
           :and (every? #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
           ;; :or (if (= (count (rest expn)) 1)
@@ -608,7 +622,10 @@
                        (get-likely-value pdf 0.8))))  ; +++ where did 0.8 come from!!!
 
           :arg-field (let [[object & field] (rest expn)
-                           obj (deref-field (rest object) #_wrtobject (second (first (get-root-objects)))) ; Force caller to be root+++?
+                           - (println ":arg-field object= " object "field=" field "expn=" expn)
+                           obj (if (= (first object) :value)
+                                 (second object)
+                                 (deref-field (rest object) #_wrtobject (second (first (get-root-objects))))) ; Force caller to be root+++?
                            - (println ":arg-field obj= " obj)
                            value (deref-field field obj)] ; +++ handle multilevel case
                          (if (not (instance? RTobject value))
@@ -627,6 +644,60 @@
             (irx/error "Unknown case: " expn)
             nil))))))                               ; unrecognised defaults to nil
 
+(defn evaluate-reference
+  "evaluate an expression in the current belief state with args as provided to provide a reference."
+  [wrtobject expn class-bindings method-bindings cspam spam]
+  #_(println "\nIn evaluate-reference with expn=" expn
+             " class-bindings=" class-bindings
+             " method-bindings=" method-bindings)
+  ;; (pprint spam)
+  (case expn
+    :true [:value true]
+    :false [:value false]
+    (if (or (string? expn) (number? expn))
+      [:value expn]
+      (if (not (or (seq? expn) (vector? expn)))
+        (if (map? expn)
+          (let [vtype (get expn :type)]
+            (case vtype
+              :lvar (irx/error "evaluate-reference: lvar constructor found where it wasn't expected: " expn)
+              :mode-ref expn
+              (do (irx/error "evaluate-reference: Unknown form in Evaluate: " expn)
+                  expn)))
+          (irx/error "evaluate-reference: unexpected expression: expn"))
+        (case (first expn)
+          :thunk (evaluate-reference (nth expn 2) (second expn) class-bindings method-bindings cspam spam)
+          :make-instance (irx/error "evaluate-reference: constructor found where it wasn't expected: expn")
+
+          ;; :or (some #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
+
+          ;; :and (every? #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
+
+          :class-arg (let [res (get class-bindings (second expn))]
+                       (if (and (not (symbol? res)) (not (keyword? res)) (empty? res))
+                         (irx/error "In evaluate-reference with " expn "class-bindings=" class-bindings "res=" res))
+                       res)
+
+          :field (let [value (deref-field (rest expn) wrtobject)]
+                   (if (not (instance? RTobject value))
+                     value
+                     [:value value]))
+
+          :arg-field (let [[object & field] (rest expn)
+                           - (println ":arg-field object= " object "field=" field "expn=" expn)
+                           obj (if (= (first object) :value)
+                                 (second object)
+                                 (deref-field (rest object) (second (first (get-root-objects))))) ; Force caller to be root+++?
+                           - (println ":arg-field obj= " obj)
+                           value (deref-field field obj)] ; +++ handle multilevel case
+                         (if (not (instance? RTobject value))
+                           value
+                           [:value value]))
+
+          :mode-of [:value (last expn)]
+
+          :function-call (irx/error "Unknown case: " expn))))))
+
 (defn maybe-deref
   [thing]
   (let [derefedthing
@@ -642,30 +713,36 @@
 (defn deref-field
   [namelist wrtobject]
   (println "deref-field: " namelist (.variable wrtobject))
-  (if (vector? wrtobject)
-    (do (irx/error "dereference failed on bad wrtobject=" wrtobject)
-        [:not-found namelist])
-    (if (empty? wrtobject)
-      (do
-        (irx/error "trying to dereference " namelist "with null wrtobject!")
-        [:not-found namelist])
-      (let [fields (.fields wrtobject)
-            ;; - (println "***!!! fields = " @fields)
-            match (get @fields (first namelist) )
-            ;; - (println "***!!! found match for" (first namelist)  " = " match)
-            remaining (rest namelist)]
-        (if (empty? remaining)
-          (do
-            (println "***!!! dereferenced " (first namelist) "=" match) ;(maybe-deref match))
-            (if (= match nil)
-              (irx/error "DEREF ERROR: [:not-found" namelist ":in" wrtobject "]")
-              (maybe-deref match)))
-          (do
-            (if (not (= match nil))
-              (do
-                ;; (println "***!!! recursive dereference with object=" @match)
-                (deref-field remaining @match))
-              [:not-found namelist :in wrtobject])))))))
+  (cond (RTobject? (first namelist))
+        (first namelist)
+
+        (vector? wrtobject)
+        (do (irx/error "dereference failed on bad wrtobject=" wrtobject)
+            [:not-found namelist])
+
+        (empty? wrtobject)
+        (do
+          (irx/error "trying to dereference " namelist "with null wrtobject!")
+          [:not-found namelist])
+
+        :otherwise
+        (let [fields (.fields wrtobject)
+              ;; - (println "***!!! fields = " @fields)
+              match (get @fields (first namelist) )
+              ;; - (println "***!!! found match for" (first namelist)  " = " match)
+              remaining (rest namelist)]
+          (if (empty? remaining)
+            (do
+              (println "***!!! dereferenced " (first namelist) "=" match) ;(maybe-deref match))
+              (if (= match nil)
+                (irx/error "DEREF ERROR: [:not-found" namelist ":in" wrtobject "]")
+                (maybe-deref match)))
+            (do
+              (if (not (= match nil))
+                (do
+                  ;; (println "***!!! recursive dereference with object=" @match)
+                  (deref-field remaining @match))
+                [:not-found namelist :in wrtobject]))))))
 
 (defn field-exists
   [names wrtobject]
@@ -1045,10 +1122,11 @@
 (defn add-part-of-propositions
   [som root]
   (doseq [[obj subs] som]
-    (let [objname (.variable obj)]
+    (let [objname (.variable obj)
+          rootobj (symbol root)]
       (doseq [asub subs]
         (let [subname (.variable asub)
-              proposition (if (= (str (.type obj)) root) :has-root :is-part-of)]
+              proposition (if (= (.type obj) rootobj) :has-root :is-part-of)]
           ;; (println "In add-part-of-propositions: " root (.type obj) subname proposition objname)
           (bs/add-binary-proposition proposition subname objname))))))
 

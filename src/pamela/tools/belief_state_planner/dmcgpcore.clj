@@ -155,26 +155,47 @@
     ;;[action-subgoal-pairs evaluation]
     nil))
 
+(defn value?
+  [v]
+  (and (sequential? v) (= (first v) :value)))
+
 (defn generate-lookup-from-condition
   "Translate a goal condition into lookups for the inverse influence table."
   [pclass condition]
+  (println "In generate-lookup-from-condition: pclass/condition=" pclass condition)
   (if (vector? condition)               ;atomic conditions = no influence
     (case (first condition)
       :thunk (let [[cond rto] (rest condition)] (generate-lookup-from-condition pclass cond))
-      :equal (cond (or (and (= (first (nth condition 1)) :field)
-                            (= (first (nth condition 2)) :mode-of))
-                       (and (= (first (nth condition 2)) :field)
-                            (= (first (nth condition 1)) :mode-of)))
-                   (list [condition [:any [:arg-mode]]])
-                   (and (= (first (nth condition 1)) :field))
-                   (list [condition [pclass [:field (second (nth condition 1))]]]) ;+++ surely we want to get both cases
-                   (and (= (first (nth condition 2)) :field))
-                   (list [condition [pclass [:field (second (nth condition 2))]]])
-                   (and (= (first (nth condition 1)) :arg-field))
-                   (list [condition [pclass [:arg-field (second (nth condition 1))]]])
-                   (and (= (first (nth condition 2)) :arg-field))
-                   (list [condition [pclass [:arg-field (second (nth condition 2))]]])
-                   :else nil #_(list [pclass (extract-referents condition)])) ; NYI+++
+      :equal (let [[arg1 arg2] (rest condition)
+                   arg1 (if (value? arg1) (second arg1) arg1)
+                   arg2 (if (value? arg2) (second arg2) arg2)]
+               (cond (or (and
+                          (or (rtm/RTobject? arg1) (= (first arg1) :field))
+                          (or (keyword? arg2) (= (first arg2) :mode-of)))
+                         (and
+                          (or (rtm/RTobject? arg2) (= (first arg2) :field))
+                          (or (keyword? arg1) (= (first arg1) :mode-of))))
+                     (list [condition [:any [:arg-mode]]])
+
+                     (rtm/RTobject? arg1)
+                     (list [condition [:object arg1]]) ;+++ surely we want to get both cases
+
+                     (rtm/RTobject? arg2)
+                     (list [condition [:object arg2]])
+
+                     (and (= (first arg1) :field))
+                     (list [condition [pclass [:field (second arg1)]]]) ;+++ surely we want to get both cases
+
+                     (and (= (first arg2) :field))
+                     (list [condition [pclass [:field (second arg2)]]])
+
+                     (and (= (first arg1) :arg-field))
+                     (list [condition [pclass [:arg-field (second arg1)]]])
+
+                     (and (= (first arg2) :arg-field))
+                     (list [condition [pclass [:arg-field (second arg2)]]])
+
+                     :else nil #_(list [pclass (extract-referents condition)]))) ; NYI+++
       ;; NYI +++ :and (apply concat (map (fn [arg] (compile-influence arg)) (rest condition)))
       :not (list [:not]) ;+++
       nil)
@@ -187,6 +208,9 @@
 
         (= (first goal) :mode-of)
         (nth goal 2)
+
+        (and (= (first goal) :value) (keyword? (nth goal 1)))
+        (nth goal 1)
 
         :otherwise nil))                ; +++ handle harder cases +++
 
@@ -249,7 +273,7 @@
   [postconds]
   (if (not (= (first (nth postconds 1)) :arg))
     (nth postconds 1)
-    (if (not (= (first (nth postconds 2)) :arg) (nth postconds 2)) nil)))
+    (if (not (= (first (nth postconds 2)) :arg)) (nth postconds 2) nil)))
 
 ;;; +++ we need to handle all of the cases here especially multiple precondition case+++
 (defn match-goal-query-aux
@@ -300,7 +324,7 @@
                                                 (MethodQuery. pclass pmethod rootobj rtobj))
                                               nil))
                                           methods))
-        ;; - (do (println "matchingmethods1:") (pprint matchingmethods))
+        - (do (println "matchingmethods1:") (pprint matchingmethods))
         desired-mode (if (mode-signature signature) (get-desired-mode goal) nil)
         - (if desired-mode (println "matchingmethods1b - desired-mode=" desired-mode))
 
@@ -333,34 +357,43 @@
   [cands]
   (if (not (empty? cands)) (list (rand-nth cands)) nil))
 
+(defn get-references-from-value
+  [val]
+  (cond (keyword? val) nil
+        (rtm/RTobject? val) [[:foo val]])) ; unfinished
+
 (defn get-references-from-expression
   "Generate the ir for the expression and the mapping from the argument name to the expression and its IR."
   ;; +++ currently only produces the IR and not the mapping.
   [expn]
   ;; (println "In get-references-from-expression, expn=" expn)
   (cond (= (first expn) :field) [(ir-field-ref [(second expn)])]
+        (= (first expn) :value) (get-references-from-value (second expn))
         (= (first expn) :arg) [[:arg-ref (first expn) (second expn)]] ; +++ placeholder
         (= (first expn) :mode-of) nil
         :otherwise nil))
 
 (defn get-references-from-condition
   [condition]
-  ;; (println "in get-references-from-condition, condition=" condition)
-  (cond
-    (= (first condition) :thunk)
-    (get-references-from-condition (second condition))
+  (let [result (cond
+                 (= (first condition) :thunk)
+                 (into [] (map (fn [ref] ref)
+                               (get-references-from-condition (second condition))))
 
-    (= (first condition) :equal)
-    (into [] (apply concat (map (fn [expn] (get-references-from-expression expn)) (rest condition))))
+                 (= (first condition) :equal)
+                 (into [] (apply concat (map (fn [expn] (get-references-from-expression expn)) (rest condition))))
 
-    :otherwise nil))
+                 :otherwise (do (irx/error "Unhandled case in get-references-from-condition: " condition) nil))]
+    (println "in get-references-from-condition, condition=" condition "=" result)
+    result))
 
+;;; Args are evaluated from the standpoint of the root
 (defn make-args-map-and-args
   [formals actuals wrtobject]
   (if (not (= (count formals) (count actuals)))
     (irx/error  "Wrong Number of Arguments in: make-args-map-and-args formals=" formals " actuals=" actuals))
   (let [- (println "*** make-args-map-and-args: " actuals "wrtobject=" wrtobject)
-        argsmap (into {} (map (fn [f a] [f a #_(rtm/evaluate wrtobject a nil nil nil nil)]) formals actuals))]
+        argsmap (into {} (map (fn [f a] [f a #_(rtm/evaluate-reference wrtobject #_(second (first (rtm/get-root-objects))) a nil nil nil nil)]) formals actuals))]
     (println "argsmap=" argsmap)
     [actuals argsmap]))
 
@@ -400,8 +433,8 @@
         msig (.methodsig action)
         argnames (.arglist msig)
         mname (.mname msig)
+        -     (println "class/method/argnames=" pcls mname argnames)
         returnvals
-    ;; (println "class/method/argnames=" pcls mname argnames)
         (cond
           ;; Handle arglist by query type
           (= query [:any [:arg-mode]])
@@ -436,7 +469,7 @@
                                         (replace-args-with-bindings subexp argmap))
                                       (rest (rest (rest condit)))))
                      :arg (get argmap (second condit))
-                     :arg-field [:arg-field ;+++ should we thunkify the root caller?
+                     :arg-field [:arg-field
                                  (get argmap (nth condit 1))
                                  (nth condit 2)]
                      (:and :or :not :equal) (into [(first condit)]
@@ -455,7 +488,7 @@
   #_(println "action=" action " query=" query " and goal:")
   (describe-goal goal)
   (let [[args argmap] (compile-arglist action goal (second query) wrtobject)  ;+++ kludge "second" +++ was (first root-objects)
-        object (compile-controllable-object action goal (second query))] ;+++ kludge "second" +++
+        object nil #_(compile-controllable-object action goal (second query))] ;+++ kludge "second" +++ uncomment!!!
     [(ir-method-call (ir-field-ref [object (irx/.mname (.methodsig action))]) args)
      (replace-args-with-bindings (irx/.prec (.methodsig action)) argmap)]))
 
@@ -521,6 +554,12 @@
   (if (not (or (list? condit) (vector? condit)))
     (list condit)
     (let [result (case (first condit)
+                   :thunk (simplify-condition (nth condit 1) (nth condit 2))
+
+                   :equal (list
+                           [:equal
+                            (rtm/evaluate-reference wrtobject (nth condit 1) nil nil nil nil)
+                            (rtm/evaluate-reference wrtobject (nth condit 2) nil nil nil nil)])
                    ;; NOT negate the simplified subexpression
                    :not (conjunctive-list (simplify-negate (second condit) wrtobject))
                    ;; AND return the simplified parts as a list.
@@ -631,15 +670,20 @@
     :or (some (fn [condit] (condition-satisfied? condit wrtobject)) (rest condit))
     ;; EQUAL -
     :equal ;(y-or-n? (str "(condition-satisfied? " (with-out-str (print condit)) ")"))
-    (let [first-expn (rtm/evaluate  wrtobject (nth condit 1) nil nil nil nil)
-          first-expn (if (rtm/is-lvar? first-expn) (rtm/deref-lvar first-expn) first-expn)
-          second-expn (rtm/evaluate wrtobject (nth condit 2) nil nil nil nil)
-          second-expn (if (rtm/is-lvar? second-expn) (rtm/deref-lvar second-expn) second-expn)]
-      (println "(= "
-               (with-out-str (print (nth condit 1))) "=" first-expn
-               (with-out-str (print (nth condit 2))) "=" second-expn
+    (do
+      (println "In condition-satisfied? with (= "
+               (with-out-str (print (nth condit 1)))
+               (with-out-str (print (nth condit 2)))
                ")")
-      (= first-expn second-expn))
+      (let [first-expn (rtm/evaluate  wrtobject (nth condit 1) nil nil nil nil)
+            first-expn (if (rtm/is-lvar? first-expn) (rtm/deref-lvar first-expn) first-expn)
+            second-expn (rtm/evaluate wrtobject (nth condit 2) nil nil nil nil)
+            second-expn (if (rtm/is-lvar? second-expn) (rtm/deref-lvar second-expn) second-expn)]
+        (println "(= "
+                 (with-out-str (print (nth condit 1))) "=" first-expn
+                 (with-out-str (print (nth condit 2))) "=" second-expn
+                 ")")
+        (= first-expn second-expn)))
     :call
     (let [plant (nth condit 1)
           names (nth condit 2)
@@ -676,19 +720,22 @@
             (recur outstanding-goals complete-plan depth)) ; Continue until we reach an unsatisfied goal
           ;; Now we have a goal that requires effort to solve.
           (let [queries (generate-lookup-from-condition pclass this-goal)
-                ;; - (do (println "Root query=") (pprint queries))
+                 - (do (println "Root query=") (pprint queries))
                 iitab (rtm/inverted-influence-table)
-                ;; - (do (println "iitab=") (pprint iitab))
+                 - (do (println "iitab=") (pprint iitab))
                 candidates (apply concat (map (fn [[agoal aquery]]
                                                 (map (fn [[coid ctrlobj]]
                                                        [agoal aquery (get iitab aquery) rootobject ctrlobj])
                                                      controllable-objects))
                                               queries))    ;+++ need to handle nested queries+++
-                ;; - (do (println "candidates=") (pprint candidates))
+                 - (do (println "candidates=") (pprint candidates))
                 candidates (apply concat (map (fn [cand] (verify-candidate cand)) candidates))
-                ;; - (do (println "good candidates=") (pprint candidates))
+                 - (do (println "good candidates=") (pprint candidates))
                 ;; Now select a method if no match, generate a gap filler
                 selected (select-candidate candidates)] ;+++ generate a gap filler if necessary +++
+
+            (rtm/start-plan-bind-set)
+
             (if selected                                ; If we have found an action to try prepare it, otherwise we fail
               (let [rtos (map (fn [anmq] (.rto anmq)) selected)
                     actions (compile-calls selected this-goal queries root-objects rtos) ;
@@ -699,6 +746,9 @@
                                                 actions rtos))
                     ;;subgoals (apply concat (map (fn [[call prec]] (simplify-cond-top-level prec)) actions))
                     outstanding-goals  (remove nil? (concat subgoals outstanding-goals))]
+
+                (rtm/stop-plan-bind-set)
+
                 ;;(println "selected=" selected)
                 ;;(println "actions=" actions)
                 ;;(println "subgoals=" subgoals)
@@ -713,9 +763,9 @@
 
 (defn plan
   [root-objects controllable-objects pclass list-of-goals & {:keys [max-depth] :or {max-depth 10}}]
-  (rtm/start-plan-bind-set)
+  ;;(rtm/start-plan-bind-set)
   (let [completed-plan (plan-generate root-objects controllable-objects pclass list-of-goals max-depth)]
-    (rtm/stop-plan-bind-set)
+    ;;(rtm/stop-plan-bind-set)
     completed-plan))
 
 
