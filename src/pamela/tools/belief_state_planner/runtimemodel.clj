@@ -38,7 +38,7 @@
 
 (defrecord LVar [name binding boundp])
 
-(defn LVar??
+(defn LVar?
   [x]
   (instance? LVar x))
 
@@ -294,14 +294,18 @@
   (if planbindset
     (do
       (doseq [lvar @planbindset]
+        (println "Unbinding LVAR " (.name lvar))
         (unbind-lvar lvar)))))
 
 (defn start-plan-bind-set
   []
+  (println "Starting to collect LVAR bindings")
+  (if (not (= planbindset nil)) (unbind-planbind-set))
   (def planbindset (atom #{})))
 
 (defn stop-plan-bind-set
   []
+  (println "Stopping collecting LVAR bindings")
   (unbind-planbind-set)
   (def planbindset nil))
 
@@ -614,7 +618,7 @@
                          (irx/error "In evaluate with " expn "class-bindings=" class-bindings "res=" res))
                        res)
           :field-ref (do (irx/error "UNEXPECTED: Found a field ref: " expn) nil)
-          :field (let [value (deref-field (rest expn) wrtobject)]
+          :field (let [value (deref-field (rest expn) wrtobject :normal)]
                    (if (not (instance? RTobject value))
                      value
                      (let [variable (.variable value)
@@ -625,9 +629,9 @@
                            - (println ":arg-field object= " object "field=" field "expn=" expn)
                            obj (if (= (first object) :value)
                                  (second object)
-                                 (deref-field (rest object) #_wrtobject (second (first (get-root-objects))))) ; Force caller to be root+++?
+                                 (deref-field (rest object) #_wrtobject (second (first (get-root-objects))) :normal)) ; Force caller to be root+++?
                            - (println ":arg-field obj= " obj)
-                           value (deref-field field obj)] ; +++ handle multilevel case
+                           value (deref-field field obj :normal)] ; +++ handle multilevel case
                          (if (not (instance? RTobject value))
                            value
                            (let [variable (.variable value) ; +++ avoid duplication of this idiom
@@ -678,7 +682,7 @@
                          (irx/error "In evaluate-reference with " expn "class-bindings=" class-bindings "res=" res))
                        res)
 
-          :field (let [value (deref-field (rest expn) wrtobject)]
+          :field (let [value (deref-field (rest expn) wrtobject :reference)]
                    (if (not (instance? RTobject value))
                      value
                      [:value value]))
@@ -687,9 +691,9 @@
                            - (println ":arg-field object= " object "field=" field "expn=" expn)
                            obj (if (= (first object) :value)
                                  (second object)
-                                 (deref-field (rest object) (second (first (get-root-objects))))) ; Force caller to be root+++?
+                                 (deref-field (rest object) (second (first (get-root-objects))) :reference)) ; Force caller to be root+++?
                            - (println ":arg-field obj= " obj)
-                           value (deref-field field obj)] ; +++ handle multilevel case
+                           value (deref-field field obj :reference)] ; +++ handle multilevel case
                          (if (not (instance? RTobject value))
                            value
                            [:value value]))
@@ -699,22 +703,25 @@
           :function-call (irx/error "Unknown case: " expn))))))
 
 (defn maybe-deref
-  [thing]
+  [thing mode]
   (let [derefedthing
         (if (= (type thing) clojure.lang.Atom)
           @thing
           thing)
         deboundthing
-        (if (and (is-lvar? derefedthing) (is-bound-lvar? derefedthing))
+        (if (and (not (= mode :reference)) (is-lvar? derefedthing) (is-bound-lvar? derefedthing))
           (deref-lvar derefedthing)
           derefedthing)]
     deboundthing))
 
 (defn deref-field
-  [namelist wrtobject]
-  (println "deref-field: " namelist (.variable wrtobject))
-  (cond (RTobject? (first namelist))
-        (first namelist)
+  [namelist wrtobject mode]
+  (println "deref-field: " namelist (if (instance? RTobject wrtobject) (.variable wrtobject) [:oops wrtobject]))
+  (cond ;;RTobject? (first namelist)) ; Obsolete
+        ;;(first namelist)
+
+        (and (vector? (first namelist)) (= (first (first namelist)) :value))
+        (second (first namelist))
 
         (vector? wrtobject)
         (do (irx/error "dereference failed on bad wrtobject=" wrtobject)
@@ -733,20 +740,20 @@
               remaining (rest namelist)]
           (if (empty? remaining)
             (do
-              (println "***!!! dereferenced " (first namelist) "=" match) ;(maybe-deref match))
+              ;; (println "***!!! dereferenced " (first namelist) "=" match)
               (if (= match nil)
                 (irx/error "DEREF ERROR: [:not-found" namelist ":in" wrtobject "]")
-                (maybe-deref match)))
+                (maybe-deref match mode)))
             (do
               (if (not (= match nil))
                 (do
                   ;; (println "***!!! recursive dereference with object=" @match)
-                  (deref-field remaining @match))
+                  (deref-field remaining @match mode))
                 [:not-found namelist :in wrtobject]))))))
 
 (defn field-exists
   [names wrtobject]
-  (let [result (deref-field names wrtobject)]
+  (let [result (deref-field names wrtobject :normal)]
     (not (and (vector? result) (= (count result) 2) (= (first result) :not-found)))))
 
 (defn lookup-class
@@ -758,7 +765,7 @@
   [names wrtobject]
   (let [object (if (= (count names) 1)
                  wrtobject
-                 (deref-field (take (- (count names) 1) names) wrtobject))]
+                 (deref-field (take (- (count names) 1) names) wrtobject :normal))]
     (if (not (instance? RTobject object))
       [:not-found names]
       (let [classname (:type object)
@@ -783,7 +790,7 @@
   [arg wrtobject class-args]
   ;; (println "In evaluate-arg with arg=" arg "class-args=" class-args)
   (case (:type arg)
-    :field-ref (deref-field (:names arg) wrtobject)
+    :field-ref (deref-field (:names arg) wrtobject :normal)
     :pclass-arg-ref
     (let [names (get arg :names)
           argument (get class-args (first names))]
