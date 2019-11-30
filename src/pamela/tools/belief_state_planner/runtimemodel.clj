@@ -61,6 +61,7 @@
                                               (atom nil))) ;rootclass
 ;;; was (def ^:dynamic *current-model* (RuntimeModel. (atom nil) (atom nil) (atom {})))
 
+
 (defn unload-model
   "Delete the current model if any."
   []
@@ -80,6 +81,13 @@
   (reset! (.pre-and-post-conditions *current-model*) {})
   (reset! (.invertedinfluencehashtable *current-model*) {})
   (reset! (.rootclass *current-model*) nil))
+
+(defn resetall
+  "Unload everything."
+  []
+  (unload-model)
+  (bs/clear-belief-state)
+  nil)
 
 (defn goal-post-conditions
   []
@@ -1181,72 +1189,6 @@
 (defn nyi
   [msg]
   (throw (Exception. msg)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn resetall
-  "Unload everything."
-  []
-  (unload-model)
-  (bs/clear-belief-state)
-  nil)
-
-(def maxplandepth 10)
-(def numsamples 100)
-(def accept-gap-fillers false)
-
-(defn generate-attack-plans
-  [ooi attack-surface]
-  ;; (if (and (empty? (find-objects-of-type 'TypicalAttacker))
-  ;;          (empty? (find-objects-of-type 'TypicalAttacker_Impl)))
-  ;;   (do (println "TypicalAttacker not found in model - can't proceed.")
-  ;;       nil)
-  (let [aap (cond
-              (nil? attack-surface) []
-              (vector? attack-surface) attack-surface
-              (string? attack-surface) (read-string attack-surface))]
-    (if (or (= aap nil) (= (count aap) 0))
-      (println "Error: No attack access point specified.")
-      (let [;;attackers (if (empty? (find-objects-of-type 'TypicalAttacker))
-            ;;            (find-objects-of-type 'TypicalAttacker_Impl)
-            ;;            (find-objects-of-type 'TypicalAttacker))
-            ;;attacker (first attackers)
-            ;;attackerobjname (.variable attacker)
-            rootobject (second (first (get-root-objects)))
-            rootobjectname (.variable rootobject)
-            rootobjecttype (.type rootobject)
-            attacksurfacename (let [asname (first aap)]
-                                (if (string? asname)
-                                  (symbol asname)
-                                  asname))
-            attackobjname (find-name-of-field-object rootobjecttype attacksurfacename)
-            ]
-        (if (> (count aap) 1)
-          (println "Warning: Multiple attack access points " aap " were provided but at present only the first will be used."))
-        ;; (println "Attack-point name" attacksurfacename "Attack surface" attackobjname "rootobjectname=" rootobjectname)
-        (if (not attackobjname)
-          (println "Attack-point " rootobjecttype "." attacksurfacename "not found.")
-          (bs/monte-carlo-plan-attacks attackobjname ooi numsamples accept-gap-fillers #{rootobjectname} maxplandepth))
-        ))))
-
-;;; (def dps (load-desired-properties "/Users/paulr/checkouts/bitbucket/CASE-Vanderbilt-DOLL/data/missile-guidance/missile-guidance.dp.json"))
-;;; (def ooi (objects-of-interest dps))
-
-;;; (def attackers (find-objects-of-type 'TypicalAttacker))
-;;; (def attacker (.variable (first attackers)))
-
-;;; (println ref " = " (deref-method name rootobject) (if (method-exists name rootobject) "Exists" "Not found"))
-
-;;; (def rootobject (second (first (get-root-objects))))
-;;; (def rootobjectname (.variable rootobject))
-;;; (validate-desirable-properties dps)
-;;; (bs/monte-carlo-plan-attacks attacker ooi 1 #{rootobjectname} maxplandepth)
-;;; (generate-attack-plans ooi)
-
-
-
-
-
-
 
 
 ;;; Fin

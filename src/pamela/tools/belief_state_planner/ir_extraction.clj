@@ -61,7 +61,8 @@
   (println "(type y to continue anyway, ^C ^C to abort)")
   (case (let [answer (read) - (println answer)] answer)
     y true
-    (clojure.stacktrace/print-stack-trace (Exception. "Error"))))
+    #_(clojure.stacktrace/print-stack-trace (Exception. "Error"))
+    (recur message)))
 
 ;;; (error "This is a test" 42 "error message")
 

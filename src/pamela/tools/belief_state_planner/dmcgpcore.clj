@@ -31,7 +31,7 @@
 
 (def ^:dynamic available-actions nil)
 (def ^:dynamic plan-fragment-library nil)
-(def ^:dynamic verbosity 0)
+(def ^:dynamic verbosity 1)
 
 (def ^:dynamic *printdebug* false)
 
@@ -520,9 +520,19 @@
                           queries actions rtos))]
     compiled-calls))
 
+;; (defn sanitize-calls
+;;   [calls]
+;;   (map (fn [acall]
+;;          (map (fn [term] ...)
+;;          (acall)
+;;        calls)) ..))
+
 (defn scompile-call-sequence
   [calls]
-  (let [sequence (ir-sequence (into [] calls))
+  ;; (println "**** In scompile-call-sequence calls:")
+  (pprint calls)
+  (let [;; scalls (sanitize-calls calls)
+        sequence (ir-sequence (into [] calls))
         - (if (> verbosity 2) (do (println "sequence:") (pprint sequence)))
         code-source-fragment
         (with-out-str
@@ -827,13 +837,15 @@
 (defn solveit
   "Generate a plan for the goals specified in the model."
   [& {:keys [samples max-depth] :or {samples 10 max-depth 10}}]
-  (if (> verbosity 2) (println "DMCP: solving with " samples "samples, max-depth=" max-depth))
+  (if (> verbosity 0) (println "DMCP: solving with " samples "samples, max-depth=" max-depth))
   (loop [solutions ()
          sampled 0]
-    (if (> verbosity 2) (println "DMCP: " (count solutions) "found so far out of " sampled " samples."))
+    (if (> verbosity 1) (println "DMCP: " (count solutions) "found so far out of " sampled " samples."))
     (if (>= sampled samples)
       (if (not (empty? solutions))                         ; We have done enough, return what we have
-        solutions
+        (do
+          (if (> verbosity 0) (println "DMCP: " (count solutions) "found out of " sampled " samples."))
+          solutions)
         nil)      ; And it turns out that we didn't find any solutions. nil result signifies failure
       (let [root-objects (rtm/get-root-objects)
             ;; - (println "root-objects=" root-objects)

@@ -824,33 +824,4 @@
           (if *print-debugging* (println "Moving to:" moveto "via:" method "newpath:" newpath "visited:" newvisited "depth=" newdepth))
           (mcplanner moveto to dpset newvisited newpath ron newdepth accept-gap-fillers)))))) ;++++
 
-(defn translate-attack-plan
-  [attackplans]
-  attackplans
-  #_(let [translation (atom #{})]
-    (doseq [aplan attack-plans]
-      ********)))
-
-(defn monte-carlo-plan-attacks
-  [attacker ooi samples accept-gap-fillers ron maxdepth]
-  (if *print-debugging* (println "in monte-carlo-plan-attacks with attacker=" attacker " ooi=" ooi" root=" ron))
-  (let [[objects-of-interest ooidpmap] ooi]
-    (if *print-debugging* (println "ooi=" objects-of-interest "ooidpmap=" ooidpmap))
-    (let [solutions (atom #{})]
-      (doseq [anooi (seq objects-of-interest)]
-        (if *print-debugging* (println "Solving for attack on: " anooi "samples=" samples))
-        (dotimes [i samples]
-          (let [dp (get ooidpmap anooi)
-                fromtype (:object (first (find-binary-propositions-matching #{anooi} nil #{:is-a} nil nil nil)))
-                asample (mcplanner anooi attacker dp #{anooi} [[:at anooi dp fromtype]] ron (- maxdepth 1) accept-gap-fillers)]
-            (if asample
-              (do
-                (if *print-debugging* (println "Found a sample: " asample))
-                (reset! solutions (conj @solutions asample)))))))
-        (if *print-debugging* (println "Solutions found: "))
-        (pprint @solutions)
-      (json/write-str (translate-attack-plan (into [] @solutions))))))
-
-
-
 ;;; Fin
