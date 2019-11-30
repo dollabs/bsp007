@@ -44,6 +44,7 @@
 
 ;;(def ^:dynamic *printdebug* true)
 (def ^:dynamic *printdebug* false)
+(def ^:dynamic verbosity 0)
 
 ;;; A model is a map with a list of instantiated objects that constitute the model
 ;;; and a list of structural lvars.
@@ -216,7 +217,7 @@
   "Add an pclasses from a loaded model file."
   [pcs]
   (if *printdebug*
-    (do (println "adding spam:\n")
+    (do (if (> verbosity 1) (println "adding spam:\n"))
         (pprint pcs)))
   (reset! (.pclasses *current-model*) pcs)) ;+++ unfinished, thsi needs to merge with whats already there
 
@@ -225,7 +226,7 @@
   [ppcs]
   (if *printdebug*
     (do
-      (println "adding pre-and-post-conditions:\n")
+      (if (> verbosity 1) (println "adding pre-and-post-conditions:\n"))
       (pprint ppcs)))
   (reset! (.pre-and-post-conditions *current-model*) ppcs))
 
@@ -294,18 +295,18 @@
   (if planbindset
     (do
       (doseq [lvar @planbindset]
-        (println "Unbinding LVAR " (.name lvar))
+        (if (> verbosity 1) (println "Unbinding LVAR " (.name lvar)))
         (unbind-lvar lvar)))))
 
 (defn start-plan-bind-set
   []
-  (println "Starting to collect LVAR bindings")
+  (if (> verbosity 1) (println "Starting to collect LVAR bindings"))
   (if (not (= planbindset nil)) (unbind-planbind-set))
   (def planbindset (atom #{})))
 
 (defn stop-plan-bind-set
   []
-  (println "Stopping collecting LVAR bindings")
+  (if (> verbosity 1) (println "Stopping collecting LVAR bindings"))
   (unbind-planbind-set)
   (def planbindset nil))
 
@@ -626,11 +627,11 @@
                        (get-likely-value pdf 0.8))))  ; +++ where did 0.8 come from!!!
 
           :arg-field (let [[object & field] (rest expn)
-                           - (println ":arg-field object= " object "field=" field "expn=" expn)
+                           - (if (> verbosity 2) (println ":arg-field object= " object "field=" field "expn=" expn))
                            obj (if (= (first object) :value)
                                  (second object)
                                  (deref-field (rest object) #_wrtobject (second (first (get-root-objects))) :normal)) ; Force caller to be root+++?
-                           - (println ":arg-field obj= " obj)
+                           - (if (> verbosity 2) (println ":arg-field obj= " obj))
                            value (deref-field field obj :normal)] ; +++ handle multilevel case
                          (if (not (instance? RTobject value))
                            value
@@ -688,11 +689,11 @@
                      [:value value]))
 
           :arg-field (let [[object & field] (rest expn)
-                           - (println ":arg-field object= " object "field=" field "expn=" expn)
+                           - (if (> verbosity 2) (println ":arg-field object= " object "field=" field "expn=" expn))
                            obj (if (= (first object) :value)
                                  (second object)
                                  (deref-field (rest object) (second (first (get-root-objects))) :reference)) ; Force caller to be root+++?
-                           - (println ":arg-field obj= " obj)
+                           - (if (> verbosity 2) (println ":arg-field obj= " obj))
                            value (deref-field field obj :reference)] ; +++ handle multilevel case
                          (if (not (instance? RTobject value))
                            value
@@ -716,7 +717,8 @@
 
 (defn deref-field
   [namelist wrtobject mode]
-  (println "deref-field: " namelist (if (instance? RTobject wrtobject) (.variable wrtobject) [:oops wrtobject]))
+  (if (> verbosity 2)
+    (println "deref-field: " namelist (if (instance? RTobject wrtobject) (.variable wrtobject) [:oops wrtobject])))
   (cond ;;RTobject? (first namelist)) ; Obsolete
         ;;(first namelist)
 
