@@ -33,7 +33,7 @@
 (def ^:dynamic plan-fragment-library nil)
 (def ^:dynamic verbosity 1)
 
-(def ^:dynamic *printdebug* false)
+(def ^:dynamic *printdebug* true) ; false
 
 (defn nyi
   [text]
@@ -709,44 +709,46 @@
 
 (defn condition-satisfied?
   [condit wrtobject]
-  (case (first condit)
-    :thunk
-    (let [[acondit wrtobj] (rest condit)]
-      (condition-satisfied? acondit wrtobj))
-    ;; NOT negate the recursive result
-    :not (not (condition-satisfied? (second condit) wrtobject))
-    ;; AND - check that all subextressions are satisfied
-    :and (every? (fn [condit] (condition-satisfied? condit wrtobject)) (rest condit))
-    ;; OR - true if at least one subexpression is satisfied
-    :or (some (fn [condit] (condition-satisfied? condit wrtobject)) (rest condit))
-    ;; EQUAL -
-    :equal ;(y-or-n? (str "(condition-satisfied? " (with-out-str (print condit)) ")"))
-    (do
-      (if (> verbosity 2) (println "In condition-satisfied? with (= "
-                                   (with-out-str (print (nth condit 1)))
-                                   (with-out-str (print (nth condit 2)))
-                                   ")"))
-      (let [first-expn (rtm/evaluate  wrtobject (nth condit 1) nil nil nil nil)
-            first-expn (if (rtm/is-lvar? first-expn) (rtm/deref-lvar first-expn) first-expn)
-            second-expn (rtm/evaluate wrtobject (nth condit 2) nil nil nil nil)
-            second-expn (if (rtm/is-lvar? second-expn) (rtm/deref-lvar second-expn) second-expn)]
-        (if (> verbosity 2) (println "(= "
-                                     (with-out-str (print (nth condit 1))) "=" first-expn
-                                     (with-out-str (print (nth condit 2))) "=" second-expn
+  (if (not (sequential? condit))
+    condit ; (irx/error "In condition-satisfied? condit = " condit)
+    (case (first condit)
+      :thunk
+      (let [[acondit wrtobj] (rest condit)]
+        (condition-satisfied? acondit wrtobj))
+      ;; NOT negate the recursive result
+      :not (not (condition-satisfied? (second condit) wrtobject))
+      ;; AND - check that all subextressions are satisfied
+      :and (every? (fn [condit] (condition-satisfied? condit wrtobject)) (rest condit))
+      ;; OR - true if at least one subexpression is satisfied
+      :or (some (fn [condit] (condition-satisfied? condit wrtobject)) (rest condit))
+      ;; EQUAL -
+      :equal ;(y-or-n? (str "(condition-satisfied? " (with-out-str (print condit)) ")"))
+      (do
+        (if (> verbosity 2) (println "In condition-satisfied? with (= "
+                                     (with-out-str (print (nth condit 1)))
+                                     (with-out-str (print (nth condit 2)))
                                      ")"))
-        (= first-expn second-expn)))
-    :call
-    (let [plant (nth condit 1)
-          names (nth condit 2)
-          args (doall (map (fn [arg]
-                             (rtm/evaluate wrtobject arg nil nil nil nil))
-                           (rest (rest (rest condit)))))]
-      (cond (= plant 'dmcp) ;+++ dmcp handled specially
-            (internal-condition-call plant (first names) args)
+        (let [first-expn (rtm/evaluate  wrtobject (nth condit 1) nil nil nil nil)
+              first-expn (if (rtm/is-lvar? first-expn) (rtm/deref-lvar first-expn) first-expn)
+              second-expn (rtm/evaluate wrtobject (nth condit 2) nil nil nil nil)
+              second-expn (if (rtm/is-lvar? second-expn) (rtm/deref-lvar second-expn) second-expn)]
+          (if (> verbosity 2) (println "(= "
+                                       (with-out-str (print (nth condit 1))) "=" first-expn
+                                       (with-out-str (print (nth condit 2))) "=" second-expn
+                                       ")"))
+          (= first-expn second-expn)))
+      :call
+      (let [plant (nth condit 1)
+            names (nth condit 2)
+            args (doall (map (fn [arg]
+                               (rtm/evaluate wrtobject arg nil nil nil nil))
+                             (rest (rest (rest condit)))))]
+        (cond (= plant 'dmcp) ;+++ dmcp handled specially
+              (internal-condition-call plant (first names) args)
 
-            :otherwise (do (irx/break "CALL: plant=" plant " names=" names " args=" args) true)))
+              :otherwise (do (irx/break "CALL: plant=" plant " names=" names " args=" args) true)))
 
-    (irx/error "(condition-satisfied? " condit ")")))
+      (irx/error "(condition-satisfied? " condit ")"))))
 
 (defn plan-generate
   [root-objects controllable-objects pclass list-of-goals max-depth]

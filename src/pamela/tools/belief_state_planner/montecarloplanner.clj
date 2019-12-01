@@ -22,7 +22,7 @@
 
 (def ^:dynamic *print-warnings* true)
 
-(def ^:dynamic *print-debugging* false)
+(def ^:dynamic *print-debugging* true) ; false
 
 ;;;    "Defines the basic belief state class that represents the domains
 ;;;     proposition-types propositions and variables of the belief state."
