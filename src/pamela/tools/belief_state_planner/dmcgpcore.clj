@@ -33,7 +33,7 @@
 (def ^:dynamic plan-fragment-library nil)
 (def ^:dynamic verbosity 1)
 
-(def ^:dynamic *printdebug* true) ; false
+(def ^:dynamic *printdebug* false) ; false
 
 (defn nyi
   [text]

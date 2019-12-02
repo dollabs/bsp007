@@ -44,7 +44,7 @@
 
 ;;(def ^:dynamic *printdebug* true)
 (def ^:dynamic *printdebug* false)
-(def ^:dynamic verbosity 3) ; 0
+(def ^:dynamic verbosity 0) ; 0
 
 ;;; A model is a map with a list of instantiated objects that constitute the model
 ;;; and a list of structural lvars.
