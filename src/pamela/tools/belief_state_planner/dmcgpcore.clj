@@ -838,7 +838,7 @@
 
 (defn solveit
   "Generate a plan for the goals specified in the model."
-  [& {:keys [samples max-depth] :or {samples 10 max-depth 10}}]
+  [& {:keys [samples max-depth rawp] :or {samples 10 max-depth 10 rawp false}}]
   (if (> verbosity 0) (println "DMCP: solving with " samples "samples, max-depth=" max-depth))
   (loop [solutions ()
          sampled 0]
@@ -847,7 +847,7 @@
       (if (not (empty? solutions))                         ; We have done enough, return what we have
         (do
           (if (> verbosity 0) (println "DMCP: " (count solutions) "found out of " sampled " samples."))
-          solutions)
+          (doall solutions))
         nil)      ; And it turns out that we didn't find any solutions. nil result signifies failure
       (let [root-objects (rtm/get-root-objects)
             ;; - (println "root-objects=" root-objects)
@@ -862,12 +862,61 @@
                                (simplify-cond-top-level goal-conds (second (first root-objects))))
                           :max-depth max-depth)
             ;; +++ Now put the call into the solution
-            compiled-calls (if actions (scompile-call-sequence (seq (map first actions))) nil)]
+            compiled-calls (if actions (if rawp
+                                         actions
+                                         (scompile-call-sequence (seq (map first actions)))))]
         ;;(pprint actions)
         (recur (if compiled-calls (cons compiled-calls solutions) solutions) (+ 1 sampled))))))
 
 ;;; (solveit)
 
+(defn mcplanner-old
+  "from=object-of-interest, to=attack-access-point, dpset=desirable-properties-map, visited=obsolete,
+   path=where-we-started, ron=root-object-name, depth=max-depth, accept-gap-fillers=true/false"
+  [from to dpset visited path ron depth accept-gap-fillers]
+  (if (> verbosity 1) (println "mcplanner: from=" from "to=" to "visited=" visited "path=" path))
+  (let [fromprops (bs/find-binary-propositions-matching #{from} nil nil #{:is-a} nil ron) ; all :is-part-of or :connects-with from 'from'
+        downprops (bs/find-binary-propositions-matching nil nil #{:is-part-of} nil #{from} ron) ; all is-part-of to 'from'
+        winners (concat
+                 (map
+                  (fn [{pt :ptype, sj :subject, obj :object}]
+                    [(if (= pt :connects-with) :lateral :up) obj])
+                  (bs/filter-binary-propositions nil nil #{:connects-with :is-part-of} nil #{to} nil fromprops)) ; goes to 'to'
+                 (map
+                  (fn [{pt :ptype, sj :subject, obj :object}]
+                    [:down sj])
+                  (bs/filter-binary-propositions #{to} nil #{:is-part-of} nil nil nil downprops))) ; came from 'to'
+        - (if (> verbosity 1) (println "mcplanner("from","to","visited","path","ron","depth") fromprops:"))
+        - (if (> verbosity 1)
+            (if (empty? fromprops)
+              (println "Nothing found")
+              (doseq [p fromprops] (bs/print-proposition p))))
+        options (concat
+                 (map
+                  (fn [{pt :ptype, sj :subject, obj :object}]
+                    (let [totype (:object (first (bs/find-binary-propositions-matching #{obj} nil #{:is-a} nil nil nil)))]
+                      [(if (= pt :connects-with) :lateral :up) obj dpset totype]))
+                  (bs/filter-binary-propositions nil nil #{:connects-with :is-part-of} nil nil visited fromprops)) ; avoid already visited
+                 (map
+                  (fn [{pt :ptype, sj :subject, obj :object}] ;; pt is necessarily :is-part-of
+                    (let [totype (:object (first (bs/find-binary-propositions-matching #{sj} nil #{:is-a} nil nil nil)))]
+                      [:down sj dpset totype]))
+                  (bs/filter-binary-propositions nil visited #{:is-part-of} nil nil nil downprops)))
+        selected (if (not (empty? winners))
+                   (rand-nth winners)
+                   (if (not (empty? options))
+                     (rand-nth options)))]
+    (if (> verbosity 1) (println "winners=" winners "Options=" options "selected=" selected))
+    (if (not (empty? winners))
+      (concat [selected] path)
+      (if (or (= depth 0) (empty? selected))
+        (if accept-gap-fillers (concat [[:gap-filler to]] path) nil)
+        (let [[method moveto dpset type] selected
+              newpath (concat [selected] path)
+              newvisited (conj visited moveto)
+              newdepth 8 #_(- depth 1)]
+          (if (> verbosity 1) (println "Moving to:" moveto "via:" method "newpath:" newpath "visited:" newvisited "depth=" newdepth))
+          (mcplanner moveto to dpset newvisited newpath ron newdepth accept-gap-fillers))))))
 
 
 
