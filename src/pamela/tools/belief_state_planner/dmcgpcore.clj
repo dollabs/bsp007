@@ -870,7 +870,7 @@
 
 ;;; (solveit)
 
-(defn mcplanner-old
+#_(defn mcplanner-old
   "from=object-of-interest, to=attack-access-point, dpset=desirable-properties-map, visited=obsolete,
    path=where-we-started, ron=root-object-name, depth=max-depth, accept-gap-fillers=true/false"
   [from to dpset visited path ron depth accept-gap-fillers]
