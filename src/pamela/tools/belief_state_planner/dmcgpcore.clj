@@ -870,54 +870,5 @@
 
 ;;; (solveit)
 
-#_(defn mcplanner-old
-  "from=object-of-interest, to=attack-access-point, dpset=desirable-properties-map, visited=obsolete,
-   path=where-we-started, ron=root-object-name, depth=max-depth, accept-gap-fillers=true/false"
-  [from to dpset visited path ron depth accept-gap-fillers]
-  (if (> verbosity 1) (println "mcplanner: from=" from "to=" to "visited=" visited "path=" path))
-  (let [fromprops (bs/find-binary-propositions-matching #{from} nil nil #{:is-a} nil ron) ; all :is-part-of or :connects-with from 'from'
-        downprops (bs/find-binary-propositions-matching nil nil #{:is-part-of} nil #{from} ron) ; all is-part-of to 'from'
-        winners (concat
-                 (map
-                  (fn [{pt :ptype, sj :subject, obj :object}]
-                    [(if (= pt :connects-with) :lateral :up) obj])
-                  (bs/filter-binary-propositions nil nil #{:connects-with :is-part-of} nil #{to} nil fromprops)) ; goes to 'to'
-                 (map
-                  (fn [{pt :ptype, sj :subject, obj :object}]
-                    [:down sj])
-                  (bs/filter-binary-propositions #{to} nil #{:is-part-of} nil nil nil downprops))) ; came from 'to'
-        - (if (> verbosity 1) (println "mcplanner("from","to","visited","path","ron","depth") fromprops:"))
-        - (if (> verbosity 1)
-            (if (empty? fromprops)
-              (println "Nothing found")
-              (doseq [p fromprops] (bs/print-proposition p))))
-        options (concat
-                 (map
-                  (fn [{pt :ptype, sj :subject, obj :object}]
-                    (let [totype (:object (first (bs/find-binary-propositions-matching #{obj} nil #{:is-a} nil nil nil)))]
-                      [(if (= pt :connects-with) :lateral :up) obj dpset totype]))
-                  (bs/filter-binary-propositions nil nil #{:connects-with :is-part-of} nil nil visited fromprops)) ; avoid already visited
-                 (map
-                  (fn [{pt :ptype, sj :subject, obj :object}] ;; pt is necessarily :is-part-of
-                    (let [totype (:object (first (bs/find-binary-propositions-matching #{sj} nil #{:is-a} nil nil nil)))]
-                      [:down sj dpset totype]))
-                  (bs/filter-binary-propositions nil visited #{:is-part-of} nil nil nil downprops)))
-        selected (if (not (empty? winners))
-                   (rand-nth winners)
-                   (if (not (empty? options))
-                     (rand-nth options)))]
-    (if (> verbosity 1) (println "winners=" winners "Options=" options "selected=" selected))
-    (if (not (empty? winners))
-      (concat [selected] path)
-      (if (or (= depth 0) (empty? selected))
-        (if accept-gap-fillers (concat [[:gap-filler to]] path) nil)
-        (let [[method moveto dpset type] selected
-              newpath (concat [selected] path)
-              newvisited (conj visited moveto)
-              newdepth 8 #_(- depth 1)]
-          (if (> verbosity 1) (println "Moving to:" moveto "via:" method "newpath:" newpath "visited:" newvisited "depth=" newdepth))
-          (mcplanner moveto to dpset newvisited newpath ron newdepth accept-gap-fillers))))))
-
-
 
 ;;; Fin
