@@ -584,7 +584,7 @@
           :make-instance ; (:make-instance pname plant-id ... args)
           (let [cname (second expn)
                 plant-id (nth expn 2)
-                ;; - (println "in evaluage :make-instance with expn=" expn)
+                ;; - (println "in evaluate :make-instance with expn=" expn)
                 class-spam (get (into {} spam) cname)
                 classargs (get class-spam :args)
                 numargs (count classargs)
