@@ -27,11 +27,13 @@
 
 ;;;(in-ns 'pamela.tools.belief-state-planner.dmcgpcore)
 
-(defrecord MethodQuery [pclass methodsig])
+(defrecord MethodQuery [pclass methodsig rootobject rto])
 
 (def ^:dynamic available-actions nil)
 (def ^:dynamic plan-fragment-library nil)
-(def ^:dynamic verbosity 0)
+(def ^:dynamic verbosity 1)
+
+(def ^:dynamic *printdebug* false) ; false
 
 (defn nyi
   [text]
@@ -155,25 +157,60 @@
     ;;[action-subgoal-pairs evaluation]
     nil))
 
+(defn value?
+  [v]
+  (and (sequential? v) (= (first v) :value)))
+
+(defn print-condition-tersely
+  [condition]
+  (if (= (first condition) :thunk)
+    (do
+      (print "[:thunk ")
+      (pprint (second condition))
+      (println (.variable (nth condition 2)) "]"))
+    (pprint condition))
+  nil)
+
 (defn generate-lookup-from-condition
   "Translate a goal condition into lookups for the inverse influence table."
   [pclass condition]
-  (if (vector? condition)               ;atomic conditions = no influence
+
+  (if (> verbosity 2) (println "In generate-lookup-from-condition: pclass=" pclass "condition: "))
+  (if (> verbosity 2) (print-condition-tersely condition))
+
+  (if (sequential? condition)               ;atomic conditions = no influence
     (case (first condition)
-      :equal (cond (or (and (= (first (nth condition 1)) :field)
-                            (= (first (nth condition 2)) :mode-of))
-                       (and (= (first (nth condition 2)) :field)
-                            (= (first (nth condition 1)) :mode-of)))
-                   (list [condition [:any [:arg-mode]]])
-                   (and (= (first (nth condition 1)) :field))
-                   (list [condition [pclass [:field (second (nth condition 1))]]]) ;+++ surely we want to get both cases
-                   (and (= (first (nth condition 2)) :field))
-                   (list [condition [pclass [:field (second (nth condition 2))]]])
-                   (and (= (first (nth condition 1)) :arg-field))
-                   (list [condition [pclass [:arg-field (second (nth condition 1))]]])
-                   (and (= (first (nth condition 2)) :arg-field))
-                   (list [condition [pclass [:arg-field (second (nth condition 2))]]])
-                   :else nil #_(list [pclass (extract-referents condition)])) ; NYI+++
+      :thunk (let [[cond rto] (rest condition)] (generate-lookup-from-condition pclass cond))
+      :equal (let [[arg1 arg2] (rest condition)
+                   arg1 (if (value? arg1) (second arg1) arg1)
+                   arg2 (if (value? arg2) (second arg2) arg2)]
+               (cond (or (and
+                          (or (rtm/RTobject? arg1) (= (first arg1) :field))
+                          (or (keyword? arg2) (= (first arg2) :mode-of)))
+                         (and
+                          (or (rtm/RTobject? arg2) (= (first arg2) :field))
+                          (or (keyword? arg1) (= (first arg1) :mode-of))))
+                     (list [condition [:any [:arg-mode]]])
+
+                     (rtm/RTobject? arg1)
+                     (list [condition [:object arg1]]) ;+++ surely we want to get both cases
+
+                     (rtm/RTobject? arg2)
+                     (list [condition [:object arg2]])
+
+                     (and (= (first arg1) :field))
+                     (list [condition [pclass [:field (second arg1)]]]) ;+++ surely we want to get both cases
+
+                     (and (= (first arg2) :field))
+                     (list [condition [pclass [:field (second arg2)]]])
+
+                     (and (= (first arg1) :arg-field))
+                     (list [condition [pclass [:arg-field (second arg1)]]])
+
+                     (and (= (first arg2) :arg-field))
+                     (list [condition [pclass [:arg-field (second arg2)]]])
+
+                     :else nil #_(list [pclass (extract-referents condition)]))) ; NYI+++
       ;; NYI +++ :and (apply concat (map (fn [arg] (compile-influence arg)) (rest condition)))
       :not (list [:not]) ;+++
       nil)
@@ -186,6 +223,9 @@
 
         (= (first goal) :mode-of)
         (nth goal 2)
+
+        (and (= (first goal) :value) (keyword? (nth goal 1)))
+        (nth goal 1)
 
         :otherwise nil))                ; +++ handle harder cases +++
 
@@ -208,7 +248,7 @@
 (defn guaranteed-modes
   [anmq]
   (let [pclass (.pclass anmq)]
-    (println ".methodsig=" (.methodsig anmq) " .postc=" (irx/.postc (.methodsig anmq)))
+    #_(println ".methodsig=" (.methodsig anmq) " .postc=" (irx/.postc (.methodsig anmq)))
     (guaranteed-modes-aux (irx/.postc (.methodsig anmq)))))
 
 #_(guaranteed-modes (MethodQuery.
@@ -248,28 +288,30 @@
   [postconds]
   (if (not (= (first (nth postconds 1)) :arg))
     (nth postconds 1)
-    (if (not (= (first (nth postconds 2)) :arg) (nth postconds 2)) nil)))
+    (if (not (= (first (nth postconds 2)) :arg)) (nth postconds 2) nil)))
 
 ;;; +++ we need to handle all of the cases here especially multiple precondition case+++
 (defn match-goal-query-aux
   [goal postconds]
-  (println "in match-goal-query-aux with (" goal "," postconds ")")
+   (if (> verbosity 2) (println "in match-goal-query-aux with (" goal "," postconds ")"))
   (if (= (first goal) (first postconds))
     (case (first goal)
       :equal (let [argcondpart (argpart postconds)
-                   - (println "argcondpart=" argcondpart)
+                   -  (if (> verbosity 2) (println "argcondpart=" argcondpart))
                    matchcondpart (nonargpart postconds)
-                   - (println "matchcondpart=" matchcondpart)
+                   - (if (> verbosity 2) (println "matchcondpart=" matchcondpart))
                    matchresult (if (and argcondpart matchcondpart)
                                  (if (= matchcondpart (nth goal 1))
                                    (into {} (list [(second argcondpart) (nth goal 2)]))
                                    (if (= matchcondpart (nth goal 2))
                                      (into {} (list [(second argcondpart) (nth goal 1)]))
                                      nil)))]
-               (println "match " matchcondpart " with " goal " goal =" matchresult)
+               (if (> verbosity 2) (println "match " matchcondpart " with " goal " goal =" matchresult))
                matchresult)
-      (do (println "match-goal-query-aux unhandled case: goal=" goal " posts=" postconds) nil))
-    (do (println "match-goal-query-aux unhandled case: goal=" goal " posts=" postconds) nil)))
+      (do (if (> verbosity 2) (println "match-goal-query-aux unhandled case: goal=" goal " posts=" postconds))
+          nil))
+    (do (if (> verbosity 2) (println "match-goal-query-aux unhandled case: goal=" goal " posts=" postconds))
+        nil)))
 
 (defn match-goal-query?
   [goal query]
@@ -282,23 +324,26 @@
 
 (defn verify-candidate
   [acand]
-  (let [[goal signature cmethods] acand
-        - (println "goal=" goal " sign=" signature " methods=" cmethods)
+  (let [[goal signature cmethods rootobj rtobj] acand
+        rtotype (get rtobj :type)
+        - (if (> verbosity 2) (println "goal=" goal " sign=" signature " methods=" cmethods))
         methods (rtm/get-controllable-methods) ; Cache this, no need to recompute all the time.+++
         ;;- (do (println "Controllable-methods:") (pprint methods))
         ;; Step 1: Filter out methods that dont match either by pclass or by name
         matchingmethods (remove nil? (map (fn [[pclass pmethod rtobj]]
-                                            (println "pc= " pclass " pm=" pmethod)
-                                            (if (and (or (= (first signature) :any)
+                                            (if (and (= pclass rtotype)
+                                                     (or (= (first signature) :any)
                                                          ;;(= (first signature) (irx/.mname pmethod))
                                                          (= (first signature) (rtm/get-root-class-name)))
                                                      (some #{(irx/.mname pmethod)} cmethods))
-                                              (MethodQuery. pclass pmethod)
+                                              (do
+                                                (if (> verbosity 2) (println "pc= " pclass " pm=" (.mname pmethod)))
+                                                (MethodQuery. pclass pmethod rootobj rtobj))
                                               nil))
                                           methods))
-        - (do (println "matchingmethods1:") (pprint matchingmethods))
+        ;; - (do (println "matchingmethods1:") (pprint matchingmethods))
         desired-mode (if (mode-signature signature) (get-desired-mode goal) nil)
-        - (do (println "matchingmethods1b:") (pprint desired-mode))
+        ;; - (if desired-mode (println "matchingmethods1b - desired-mode=" desired-mode))
 
         ;; Step 2: for mode comparisons filter out cases that don't guarantee the desired mode
         matchingmethods (if (not (nil? desired-mode))
@@ -310,24 +355,29 @@
                                                 nil))
                                             matchingmethods))
                           ;; Otherwise handle case where an argument reference matches our goal
-                          ;; influence is a weak filter, some matches will not help. It is here where we
+                          ;; influence is a weak runfilter, some matches will not help. It is here where we
                           ;; weed out the unhelpful matches.
                           (remove nil? (map (fn [query]
-                                              (println "query=" query)
-                                              (println ".methodsig=" (.methodsig query)
+                                              #_(println "query=" query)
+                                              #_(println ".methodsig=" (.methodsig query)
                                                        " .postc=" (irx/.postc (.methodsig query)))
                                               (if (match-goal-query? goal query)
                                                 query
                                                 nil))
                                             matchingmethods)))
-        - (do (println "matchingmethods2:") (pprint matchingmethods))
+        ;; - (do (println "matchingmethods2:") (pprint matchingmethods))
         ]
     matchingmethods))
 
+;;; Non learning version +++ replace with learning version when fixed!
 (defn select-candidate
   [cands]
-  ;; +++ move  montecarlo calculation and selection into here +++
-  (list (first cands)))
+  (if (not (empty? cands)) (list (rand-nth cands)) nil))
+
+(defn get-references-from-value
+  [val]
+  (cond (keyword? val) nil
+        (rtm/RTobject? val) [[:foo val]])) ; unfinished
 
 (defn get-references-from-expression
   "Generate the ir for the expression and the mapping from the argument name to the expression and its IR."
@@ -335,57 +385,91 @@
   [expn]
   ;; (println "In get-references-from-expression, expn=" expn)
   (cond (= (first expn) :field) [(ir-field-ref [(second expn)])]
+        (= (first expn) :value) (get-references-from-value (second expn))
         (= (first expn) :arg) [[:arg-ref (first expn) (second expn)]] ; +++ placeholder
         (= (first expn) :mode-of) nil
         :otherwise nil))
 
 (defn get-references-from-condition
   [condition]
-  ;; (println "in get-references-from-condition, condition=" condition)
-  (cond (= (first condition) :equal)
-        (into [] (apply concat (map (fn [expn] (get-references-from-expression expn)) (rest condition))))
+  (let [result (cond
+                 (= (first condition) :thunk)
+                 (into [] (map (fn [ref] ref)
+                               (get-references-from-condition (second condition))))
 
-        :otherwise nil))
+                 (= (first condition) :equal)
+                 (into [] (apply concat (map (fn [expn] (get-references-from-expression expn)) (rest condition))))
 
+                 :otherwise (do (irx/error "Unhandled case in get-references-from-condition: " condition) nil))]
+    (if (> verbosity 2) (println "in get-references-from-condition, condition=" condition "=" result))
+    result))
+
+;;; Args are evaluated from the standpoint of the root
 (defn make-args-map-and-args
-  [formals actuals]
-  (let [argsmap (into {} (map (fn [f a] [f a]) formals actuals))]
-    (println "argsmap=" argsmap)
+  [formals actuals wrtobject]
+  (if (not (= (count formals) (count actuals)))
+    (irx/error  "Wrong Number of Arguments in: make-args-map-and-args formals=" formals " actuals=" actuals))
+  (let [- (if (> verbosity 2) (println "*** make-args-map-and-args: " actuals "wrtobject=" wrtobject))
+        argsmap (into {} (map (fn [f a] [f a]) formals actuals))]
+    (if (> verbosity 2) (println "argsmap=" argsmap))
     [actuals argsmap]))
 
 (defn find-query-in-goal
   [querypart goal]
   (case (first goal)
+    :thunk (find-query-in-goal querypart (second goal))
     :equal (cond (= querypart (nth goal 1)) (nth goal 2)
                  (= querypart (nth goal 2)) (nth goal 1)
-                 :otherwise nil)))
+                 :otherwise nil)
+    [:unhandled-case-in-find-query-in-goal goal]))
 
 (defn get-goal-reference
   [query goal]
   (find-query-in-goal (second query) goal))
 
+(defn describe-goal
+  [agoal]
+  ;; (println "In describe-goal with agoal=" agoal)
+  (if (= (first agoal) :thunk)
+    (pprint [:thunk (second agoal) (.variable (nth agoal 2))])
+    (pprint agoal)))
+
+(defn describe-goals
+  [goals]
+  (if (> verbosity 2) (println))
+  (if (> verbosity 2) (println "***Current outstanding goals:"))
+  (if (> verbosity 2)
+    (doseq [agoal goals]
+      (describe-goal agoal))))
+
+;;; A call comes 'from' the root 'to' the controllable.
 (defn compile-arglist
   "Returns [argsmap actuals]."
-  [action goal query]
-  (println "compile-arglist action=" action " goal=" goal " query=" query)
+  [action goal query wrtobject]
+  (if (> verbosity 2) (println "compile-arglist action=" (.mname (.methodsig action)) " query=" query " and goal:"))
+  (if (> verbosity 2) (describe-goal goal))
   (let [pcls (.pclass action)
         msig (.methodsig action)
         argnames (.arglist msig)
-        mname (.mname msig)]
-    ;; (println "class/method/argnames=" pcls mname argnames)
-    (cond
-      ;; Handle arglist by query type
-      (= query [:any [:arg-mode]])
-      ;; Here we are looking to provide the object being affected
-      (make-args-map-and-args argnames (map irx/compile-reference (get-references-from-condition goal)))
+        mname (.mname msig)
+        -     (if (> verbosity 2) (println "class/method/argnames=" pcls mname argnames))
+        returnvals
+        (cond
+          ;; Handle arglist by query type
+          (= query [:any [:arg-mode]])
+          ;; Here we are looking to provide the object being affected
+          (make-args-map-and-args argnames (map irx/compile-reference (get-references-from-condition goal)) wrtobject)
 
-      :otherwise (make-args-map-and-args argnames [(irx/compile-reference (get-goal-reference query goal))]) ;+++ why only one?
+          :otherwise
+          (make-args-map-and-args argnames [(irx/compile-reference (get-goal-reference query goal))] wrtobject) ;+++ why only one?
 
-      #_(let [amap (match-goal-query? goal query)]
-                   (make-args-map-and-args argnames (map (fn [arg]
-                                                           (irx/compile-reference (get amap arg)))
-                                                         argnames)))
-      #_(make-args-map-and-args argnames (map irx/compile-reference (get-references-from-condition goal))))))
+          #_(let [amap (match-goal-query? goal query)]
+              (make-args-map-and-args argnames (map (fn [arg]
+                                                      (irx/compile-reference (get amap arg)))
+                                                    argnames)))
+          #_(make-args-map-and-args argnames (map irx/compile-reference (get-references-from-condition goal))))]
+    (if (> verbosity 2) (println "compile-arglist returns:" returnvals))
+    returnvals))
 
 (defn compile-controllable-object
   [action goal query]
@@ -398,6 +482,10 @@
   (let [replaced (if (not (vector? condit))
                    condit
                    (case (first condit)
+                     :call (into [(nth condit 0) (nth condit 1) (nth condit 2)]
+                                 (map (fn [subexp]
+                                        (replace-args-with-bindings subexp argmap))
+                                      (rest (rest (rest condit)))))
                      :arg (get argmap (second condit))
                      :arg-field [:arg-field
                                  (get argmap (nth condit 1))
@@ -407,86 +495,147 @@
                                                          (replace-args-with-bindings subexp argmap))
                                                        (rest condit)))
                      condit))]
-    (println "replace-args-with-bindings - condit=" condit " argmap=" argmap " replaced=" replaced)
+    (if (> verbosity 2) (println "replace-args-with-bindings - condit=" condit " argmap=" argmap " replaced=" replaced))
     replaced))
 
 ;;; Format of an action is: [pclass (method-name [preconditions][postconditions] (probability) (list-of-args))]
 (defn compile-call
   "Given a call, construct the IR for the call and return also the prerequisites
    and the bindings, as a vector [ir-call vector-of-prerequisites vector-of-bindings]."
-  [action goal query]
-  (println "action=" action " goal=" goal " query=" query)
-  (let [[args argmap] (compile-arglist action goal (second query))  ;+++ kludge "second" +++
-        object (compile-controllable-object action goal (second query))] ;+++ kludge "second" +++
+  [action goal query root-objects wrtobject]
+  #_(println "action=" action " query=" query " and goal:")
+  (if (> verbosity 2) (describe-goal goal))
+  (let [[args argmap] (compile-arglist action goal (second query) wrtobject)  ;+++ kludge "second" +++ was (first root-objects)
+        object (compile-controllable-object action goal (second query))] ;+++ kludge "second"
     [(ir-method-call (ir-field-ref [object (irx/.mname (.methodsig action))]) args)
      (replace-args-with-bindings (irx/.prec (.methodsig action)) argmap)]))
 
 (defn compile-calls
-  [actions goal queries]
+  [actions goal queries root-objects rtos]
   (let [compiled-calls
-        (remove nil? (map (fn [query action]
+        (remove nil? (map (fn [query action rto]
                             (if action
-                              (compile-call action goal query)
-                              (do (println "Missing action in compile-call") nil)))
-                          queries actions))]
+                              (compile-call action goal query root-objects rto)
+                              (do (irx/error "Missing action in compile-call") nil)))
+                          queries actions rtos))]
     compiled-calls))
+
+;; (defn sanitize-calls
+;;   [calls]
+;;   (map (fn [acall]
+;;          (map (fn [term] ...)
+;;          (acall)
+;;        calls)) ..))
 
 (defn scompile-call-sequence
   [calls]
-  (let [sequence (ir-sequence (into [] calls))
-        - (do (println "sequence:") (pprint sequence))
+  ;; (println "**** In scompile-call-sequence calls:")
+  (pprint calls)
+  (let [;; scalls (sanitize-calls calls)
+        sequence (ir-sequence (into [] calls))
+        - (if (> verbosity 2) (do (println "sequence:") (pprint sequence)))
         code-source-fragment
         (with-out-str
             (println (pup/unparse-fn sequence)))]
     code-source-fragment))
 
 ;;; simplify condition always returns a list representing a conjunction.
-(defn simplify-condition [condit])
+(defn simplify-condition [condit wrtobject])
 
 ;;; simplify-negate always returns an individual expression
 (defn simplify-negate
   "maniulate the condition into conjunctive normal form and return a list of conjunctions."
-  [condit]
+  [condit wrtobject]
   ;; (println "in simplify-negate with: condit=" condit)
   (if (not (or (seq? condit) (vector? condit)))
     condit
     (case (first condit)
-      ;; NOT nots cancel, return the simplified subexpression
-      :not (let [exps (simplify-condition (second condit))]
+      ;; NOT NOT cancels, return the simplified subexpression
+      :not (let [exps (simplify-condition (second condit) wrtobject)]
              ;; Handle case where expression of not simplifies to a conjunction.
              (case (count exps)
                0 :true
                1 (first exps)
                (into [:and] exps)))
       ;; OR ~(Happy OR Sad) = ~Happy AND ~Sad
-      :or (into [:and] (map simplify-negate (rest condit)))
+      :or (into [:and] (map (fn [sc] (simplify-negate sc wrtobject)) (rest condit)))
       ;; AND - ~(Happy AND Sad) = ~(~Happy OR ~Sad)
-      :and (simplify-negate (into [:or] (map simplify-negate (rest condit))))
+      :and (simplify-negate (into [:or] (map (fn [sc] (simplify-negate sc wrtobject))
+                                             (rest condit)))
+                            wrtobject)
       [:not condit])))
 
 ;;; [:and [:equal [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]]
 
 (defn conjunctive-list
-  [condit]
+  [condit wrtobject]
   (case (first condit)
     :and (rest condit)
     :or [condit]
     :not [condit]
     [condit]))
 
+;; In un-lvar-expression with exprn= [:field p3]
+;; In un-lvar-expression with exprn= [:mode-of (TargetStates) :attacked]
+;; In un-lvar-expression with exprn= [:arg-field [:field atarget] location]
+
+(defn un-lvar-expression
+  [exprn wrtobject]
+  (let [evaluated (rtm/evaluate-reference wrtobject exprn nil nil nil nil)
+        bound-value (if (and (rtm/is-lvar? evaluated) (rtm/is-bound-lvar? evaluated)) (rtm/deref-lvar evaluated) false)
+        - (if (> verbosity 2) (println "In un-lvar-expression with exprn=" exprn "evaluates to " evaluated))
+        - (if (> verbosity 2) (if bound-value (println "****" (.name evaluated) "=" bound-value)))
+        result (if (sequential? exprn)
+                 (case (first exprn)
+                   :field (if bound-value [:field [:value bound-value]] exprn)
+                   :mode-of exprn                    ; Perhaps allow the class and the value to be lvared?+++
+                   :arg-field exprn
+                   exprn)
+                 exprn)]
+    (if (not (= exprn result)) (if (> verbosity 2) (println "LVAR binding applied: was: " exprn "now: result")))
+    result))
+
 (defn simplify-condition
   "maniulate the condition into conjunctive normal form and return a list of conjunctions."
-  [condit]
+  [condit wrtobject]
+  ;; (println "In simplify condition with: " condit)
   (if (not (or (list? condit) (vector? condit)))
-    condit
-    (case (first condit)
-      ;; NOT negate the simplified subexpression
-      :not (conjunctive-list (simplify-negate (second condit)))
-      ;; AND return the simplified parts as a list.
-      :and (apply concat (map simplify-condition (rest condit)))
-      ;; OR - Happy OR Sad = ~(~Happy AND ~Sad)
-      :or (conjunctive-list (simplify-negate (into [:and] (map simplify-negate (rest condit)))))
-      (list condit))))
+    (list condit)
+    (let [result (case (first condit)
+                   :thunk (list
+                           (into [:thunk] (into (into [] (simplify-condition (nth condit 1) (nth condit 2))) [(nth condit 2)])))
+
+                   :equal (list
+                           [:equal
+                            (un-lvar-expression (nth condit 1) wrtobject)
+                            (un-lvar-expression (nth condit 2) wrtobject)])
+                   ;; NOT negate the simplified subexpression
+                   :not (conjunctive-list (simplify-negate (second condit) wrtobject) wrtobject)
+                   ;; AND return the simplified parts as a list.
+                   :and (apply concat (map (fn [sc] (simplify-condition sc wrtobject)) (rest condit)))
+                   ;; OR - Happy OR Sad = ~(~Happy AND ~Sad)
+                   :or (conjunctive-list (simplify-negate (into [:and]
+                                                                (map (fn [sc]
+                                                                       (simplify-negate sc wrtobject))
+                                                                     (rest condit)))
+                                                          wrtobject)
+                                         wrtobject)
+                   :field [:value (un-lvar-expression condit wrtobject)]
+                   [condit])
+          simpres (remove (fn [x] (= x true)) result)]
+      ;; (println "simplified=" result "simpres=" simpres)
+      (if (> verbosity 2) (println "In simplify-condition: simpres: "))
+      (if (> verbosity 2) (print-condition-tersely simpres))
+      simpres)))
+
+(defn simplify-cond-top-level
+  [condit wrtobject]
+  (if (> verbosity 2) (println "In Simplify with wrtobject=" (.variable wrtobject)))
+  (let [simplified (simplify-condition condit wrtobject)
+        terms (count simplified)]
+    (if (> terms 1)
+      simplified ;(list (into [:and] simplified))
+      simplified)))
 
 ;;; (simplify-condition '[:and [:equal [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]])
 ;;; (simplify-condition '[:or [:equal [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]])
@@ -495,69 +644,189 @@
   [condit bindings]
   ;; This call is no longer needed since we do substitution earlier.
   ;(println "in substitute-bindings with: " condit)
-  condit)
+    condit)
+
+;;; This is the non-learning version to begin with - learning version still needs debugging
+(defn mcselect
+  [choices]
+  (rand-nth choices))
+
+;;; Always return true or false, if true, may bind lvars
+(defn select-and-bind2
+  [arg1 arg2 matches]
+  (let [num-matches (count matches)]
+    (if (> verbosity 2) (println "In select-and-bind2: num-matches=" num-matches "here: " matches))
+    (if (empty? matches)
+      false                           ; Nothing found, no variables bound : FAIL
+      (let [selection (mcselect matches)
+            {ptype :ptype, subj :subject, obj :object} selection]
+        (if (rtm/is-lvar? arg1)
+          (do
+            (if (> verbosity 2) (println "*** Binding LVAR"))
+            (rtm/bind-lvar arg1 subj)
+            (if (> verbosity 2) (rtm/describe-lvar arg1))))
+        (if (rtm/is-lvar? arg2)
+          (do
+            (if (> verbosity 2) (println "*** Binding LVAR"))
+            (rtm/bind-lvar arg2 obj)
+            (if (> verbosity 2) (rtm/describe-lvar arg2))))
+        true))))
+
+(defn internal-condition-call
+  [plant name args]
+  (case plant
+    'dmcp
+    (case name
+      'find-binary-proposition
+      (let [[pname arg1 arg2] args ; Presently pname must be supplied allow lvar for pname later ? +++
+            arg1-unbound-lvar (and (rtm/is-lvar? arg1) (not (rtm/is-bound-lvar? arg1)))
+            arg2-unbound-lvar (and (rtm/is-lvar? arg2) (not (rtm/is-bound-lvar? arg2)))
+            ;; Dereference bound LVARS
+            arg1 (if (and (rtm/is-lvar? arg1) (rtm/is-bound-lvar? arg1)) (rtm/deref-lvar arg1) arg1)
+            arg2 (if (and (rtm/is-lvar? arg2) (rtm/is-bound-lvar? arg2)) (rtm/deref-lvar arg2) arg2)]
+        (if (> verbosity 2) (println "in internal-condition-call with pname=" pname
+                                     " arg1=" (if arg1-unbound-lvar :unbound arg1)
+                                     " arg2=" (if arg2-unbound-lvar :unbound arg2)))
+        (cond ;; There are 4 cases, one bound, the other bound, both bound, neither bound
+          (not (or arg1-unbound-lvar arg2-unbound-lvar)) ; both bound
+          (select-and-bind2 arg1 arg2 (bs/find-binary-propositions-matching #{arg1} nil #{pname} nil #{arg2} nil))
+
+          (and arg1-unbound-lvar (not arg2-unbound-lvar)) ; arg2 bound
+          (select-and-bind2 arg1 arg2 (bs/find-binary-propositions-matching nil nil #{pname} nil #{arg2} nil))
+
+          (and (not arg1-unbound-lvar) arg2-unbound-lvar) ; arg1 bound
+          (select-and-bind2 arg1 arg2 (bs/find-binary-propositions-matching #{arg1} nil #{pname} nil nil nil))
+
+          (and arg1-unbound-lvar arg2-unbound-lvar) ; This is a strange request, but not illegal
+          (select-and-bind2 arg1 arg2 (bs/find-binary-propositions-matching nil nil #{pname} nil nil nil))
+
+          :otherwise (irx/error "internal-condition-call: can't get here, arg1=" arg1 " arg2=" arg2)))
+
+      (irx/error "Internal-condition-call: Unknown function: " name))
+
+    (irx/error "Internal-condition-call: Can't get here, plant =" plant)))
+
+;;; Why not just push all of this into rtm/evaluate?
 
 (defn condition-satisfied?
   [condit wrtobject]
-  (case (first condit)
-    ;; NOT negate the recursive result
-    :not (not (condition-satisfied? (second condit)))
-    ;; AND - check that all subextressions are satisfied
-    :and (every? condition-satisfied? (rest condit))
-    ;; OR - true if at least one subexpression is satisfied
-    :or (some condition-satisfied? (rest condit))
-    ;; EQUAL -
-    :equal ;(y-or-n? (str "(condition-satisfied? " (with-out-str (print condit)) ")"))
-    (let [first-expn (rtm/evaluate  wrtobject (nth condit 1) nil nil nil nil)
-          second-expn (rtm/evaluate wrtobject (nth condit 2) nil nil nil nil)]
-      (println "(= "
-               (with-out-str (print (nth condit 1))) "=" first-expn
-               (with-out-str (print (nth condit 2))) "=" second-expn
-               ")")
-      (= first-expn second-expn))
-    (do (println "(condition-satisfied? " condit ")") true)))
+  (if (not (sequential? condit))
+    condit ; (irx/error "In condition-satisfied? condit = " condit)
+    (case (first condit)
+      :thunk
+      (let [[acondit wrtobj] (rest condit)]
+        (condition-satisfied? acondit wrtobj))
+      ;; NOT negate the recursive result
+      :not (not (condition-satisfied? (second condit) wrtobject))
+      ;; AND - check that all subextressions are satisfied
+      :and (every? (fn [condit] (condition-satisfied? condit wrtobject)) (rest condit))
+      ;; OR - true if at least one subexpression is satisfied
+      :or (some (fn [condit] (condition-satisfied? condit wrtobject)) (rest condit))
+      ;; EQUAL -
+      :equal ;(y-or-n? (str "(condition-satisfied? " (with-out-str (print condit)) ")"))
+      (do
+        (if (> verbosity 2) (println "In condition-satisfied? with (= "
+                                     (with-out-str (print (nth condit 1)))
+                                     (with-out-str (print (nth condit 2)))
+                                     ")"))
+        (let [first-expn (rtm/evaluate  wrtobject (nth condit 1) nil nil nil nil)
+              first-expn (if (rtm/is-lvar? first-expn) (rtm/deref-lvar first-expn) first-expn)
+              second-expn (rtm/evaluate wrtobject (nth condit 2) nil nil nil nil)
+              second-expn (if (rtm/is-lvar? second-expn) (rtm/deref-lvar second-expn) second-expn)]
+          (if (> verbosity 2) (println "(= "
+                                       (with-out-str (print (nth condit 1))) "=" first-expn
+                                       (with-out-str (print (nth condit 2))) "=" second-expn
+                                       ")"))
+          (= first-expn second-expn)))
+      :call
+      (let [plant (nth condit 1)
+            names (nth condit 2)
+            args (doall (map (fn [arg]
+                               (rtm/evaluate wrtobject arg nil nil nil nil))
+                             (rest (rest (rest condit)))))]
+        (cond (= plant 'dmcp) ;+++ dmcp handled specially
+              (internal-condition-call plant (first names) args)
+
+              :otherwise (do (irx/break "CALL: plant=" plant " names=" names " args=" args) true)))
+
+      (irx/error "(condition-satisfied? " condit ")"))))
+
+(defn plan-generate
+  [root-objects controllable-objects pclass list-of-goals max-depth]
+  (loop [goals list-of-goals        ; List of things to accomplish
+         ;; wrtobject (second (first root-objects))
+         complete-plan []           ; List of actions collected so far
+         depth 0]
+    (if (>= depth max-depth)
+      (if (> verbosity 2) (do (println "DMCP: Aborting sample because maximum depth of " max-depth " has been reached.")
+                              (println "************************************************************************")
+                              nil))
+      (let [goals (apply concat (map (fn [agoal] (simplify-cond-top-level agoal (second (first root-objects)))) goals))
+            - (if (> verbosity 2) (describe-goals goals))
+            this-goal (first goals)        ; We will solve this goal first
+            rootobject (second (first root-objects))
+            - (if (> verbosity 2) (println "Solving for:"))
+            - (if (> verbosity 2) (describe-goal this-goal))
+            outstanding-goals (rest goals)] ; Afterwards we will solve the rest
+
+        (rtm/start-plan-bind-set)
+
+        (if (condition-satisfied? this-goal rootobject)
+          (if (empty? outstanding-goals)
+            (do (if (> verbosity 2) (println "***Solution found:"))
+                (pprint complete-plan)
+                (if (> verbosity 2) (println "************************************************************************"))
+                complete-plan)                 ; The last outstanding goal was satisfied, return the completed plan SUCCESS
+            (recur outstanding-goals complete-plan depth)) ; Continue until we reach an unsatisfied goal
+          ;; Now we have a goal that requires effort to solve.
+
+          (do
+            (rtm/stop-plan-bind-set)
+
+            (let [queries (generate-lookup-from-condition pclass this-goal)
+                  - (if (> verbosity 2) (println "Root query=" queries))
+                  iitab (rtm/inverted-influence-table)
+                  - (if (> verbosity 2) (println "iitab=" iitab))
+                        candidates (apply concat (map (fn [[agoal aquery]]
+                                                        (map (fn [[coid ctrlobj]]
+                                                               [agoal aquery (get iitab aquery) rootobject ctrlobj])
+                                                             controllable-objects))
+                                                      queries))    ;+++ need to handle nested queries+++
+                        ;; - (do (println "candidates=") (pprint candidates))
+                        candidates (apply concat (map (fn [cand] (verify-candidate cand)) candidates))
+                        ;; - (do (println "good candidates=") (pprint candidates))
+                        ;; Now select a method if no match, generate a gap filler
+                        selected (select-candidate candidates)] ;+++ generate a gap filler if necessary +++
+                  (if selected                                ; If we have found an action to try prepare it, otherwise we fail
+                    (let [rtos (map (fn [anmq] (.rto anmq)) selected)
+                          actions (compile-calls selected this-goal queries root-objects rtos) ;
+                          ;; - (println "actions=" actions)
+                          subgoals (apply concat (map (fn [[call prec] rto]
+                                                        (if (not (rtm/RTobject? rto)) (irx/error "not an RTobject: " rto))
+                                                        (map (fn [conj] [:thunk conj rto])
+                                                             (simplify-cond-top-level prec rto)))
+                                                      actions rtos))
+                          ;;subgoals (apply concat (map (fn [[call prec]] (simplify-cond-top-level prec nil)) actions))
+                          outstanding-goals  (remove nil? (concat subgoals outstanding-goals))]
+
+                      ;;(println "selected=" selected)
+                      ;;(println "actions=" actions)
+                      ;;(println "subgoals=" subgoals)
+                      (let [plan-part (concat actions complete-plan)]
+                        (if (> verbosity 2) (println "ACTION-TAKEN: " actions))
+                        (if (empty? outstanding-goals)
+                          plan-part             ; Current action has no prerequisited (rare) and there are none outstanding SUCCESS
+                          (recur outstanding-goals plan-part (+ 1 depth)))))
+                    (do
+                      (if (> verbosity 2) (println "DMCP: sample failed"))
+                      (if (> verbosity 2) (println "************************************************************************"))
+                      nil)))))))))                     ; We failed to find a solution, return nil
 
 (defn plan
-  [root-objects controllable-objects pclass list-of-goals]
-  (loop [goals list-of-goals        ; List of things to accomplish
-         complete-plan []]          ; List of actions collected so far
-    (println "Current outstanding goals=" goals)
-    (let [this-goal (first goals)        ; We will solve this goal first
-          wrtobject (second (first root-objects))
-          - (println "Solving for =" this-goal)
-          outstanding-goals (rest goals)] ; Afterwards we will solve the rest
-      (if (condition-satisfied? this-goal wrtobject)
-        (if (empty? outstanding-goals)
-          complete-plan
-          (recur outstanding-goals complete-plan))
-        (let [queries (generate-lookup-from-condition pclass this-goal)
-              - (do (println "Root query=") (pprint queries))
-              iitab (rtm/inverted-influence-table)
-              ;; - (do (println "iitab=") (pprint iitab))
-              candidates (map (fn [[agoal aquery]] [agoal aquery (get iitab aquery)])
-                              queries)    ;+++ need to handle nested queries+++
-              ;; - (do (println "candidates=") (pprint candidates))
-              candidates (apply concat (map (fn [cand] (verify-candidate cand)) candidates))
-              - (do (println "good candidates=") (pprint candidates))
-              ;; Now select a method if no match, generate a gap filler
-              selected (select-candidate candidates) ;+++ generate a gap filler if necessary +++
-              ;; Next generate the correct call for the chosen methods
-              actions (compile-calls selected this-goal queries)
-              bindings nil
-              ;;- (println "actions=" actions)
-              subgoals (doall (apply concat (map (fn [[call prec]]
-                                            (let [simp (simplify-condition prec)]
-                                              (if (not (or (list? simp) (vector? simp)))
-                                                (list simp)
-                                                simp)))
-                                          actions)))
-              outstanding-goals  (remove nil? (concat subgoals outstanding-goals))]
-          (println "selected=" selected)
-          (println "actions=" actions)
-          (println "subgoals=" (str subgoals))
-          (if (empty? outstanding-goals)
-            (concat actions complete-plan)
-            (recur outstanding-goals (concat actions complete-plan))))))))
+  [root-objects controllable-objects pclass list-of-goals & {:keys [max-depth] :or {max-depth 10}}]
+  (let [completed-plan (plan-generate root-objects controllable-objects pclass list-of-goals max-depth)]
+    completed-plan))
+
 
 ;;; For each action, create a binding list for named argument to a value, then use that
 ;;; binding list to replace each occurrence of that argument in
@@ -570,23 +839,37 @@
 
 (defn solveit
   "Generate a plan for the goals specified in the model."
-  []
-  (let [root-objects (rtm/get-root-objects)
-        ;;- (println "root-objects=" root-objects)
-        controllable-objects (rtm/get-controllable-objects)
-        ;;- (println "controllable-objects=" root-objects)
-        [pclass goal-conds] (rtm/goal-post-conditions)
-        ;;- (do (println "Root PCLASS=" pclass "GOAL:")(pprint goal))
-        actions (plan root-objects controllable-objects pclass (simplify-condition goal-conds))
-        ;; +++ Now put the call into the solution
-        compiled-calls (scompile-call-sequence (seq (map first actions)))
-        ]
-    ;;(pprint actions)
-    compiled-calls))
+  [& {:keys [samples max-depth rawp] :or {samples 10 max-depth 10 rawp false}}]
+  (if (> verbosity 0) (println "DMCP: solving with " samples "samples, max-depth=" max-depth))
+  (loop [solutions ()
+         sampled 0]
+    (if (> verbosity 1) (println "DMCP: " (count solutions) "found so far out of " sampled " samples."))
+    (if (>= sampled samples)
+      (if (not (empty? solutions))                         ; We have done enough, return what we have
+        (do
+          (if (> verbosity 0) (println "DMCP: " (count solutions) "found out of " sampled " samples."))
+          (doall solutions))
+        nil)      ; And it turns out that we didn't find any solutions. nil result signifies failure
+      (let [root-objects (rtm/get-root-objects)
+            ;; - (println "root-objects=" root-objects)
+            controllable-objects (rtm/get-controllable-objects)
+            ;; - (println "controllable-objects=" controllable-objects)
+            [pclass goal-conds] (rtm/goal-post-conditions)
+            - (if (> verbosity 2) (do (println "Root PCLASS=" pclass "GOAL:")(pprint goal-conds)))
+            actions (plan root-objects controllable-objects pclass
+                          (map (fn [agoal]
+                                 [:thunk agoal (second (first root-objects))]
+                                 #_agoal)
+                               (simplify-cond-top-level goal-conds (second (first root-objects))))
+                          :max-depth max-depth)
+            ;; +++ Now put the call into the solution
+            compiled-calls (if actions (if rawp
+                                         actions
+                                         (scompile-call-sequence (seq (map first actions)))))]
+        ;;(pprint actions)
+        (recur (if compiled-calls (cons compiled-calls solutions) solutions) (+ 1 sampled))))))
 
 ;;; (solveit)
-
-
 
 
 ;;; Fin

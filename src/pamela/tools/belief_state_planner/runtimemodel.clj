@@ -32,10 +32,19 @@
 ;;; was (defrecord RuntimeModel [lvars objects plantmap])
 (defrecord RTobject [variable type fields id])
 
+(defn RTobject?
+  [x]
+  (instance? RTobject x))
+
 (defrecord LVar [name binding boundp])
+
+(defn LVar?
+  [x]
+  (instance? LVar x))
 
 ;;(def ^:dynamic *printdebug* true)
 (def ^:dynamic *printdebug* false)
+(def ^:dynamic verbosity 0) ; 0
 
 ;;; A model is a map with a list of instantiated objects that constitute the model
 ;;; and a list of structural lvars.
@@ -51,6 +60,7 @@
                                               (atom {})  ;invertedinfluencehashtable
                                               (atom nil))) ;rootclass
 ;;; was (def ^:dynamic *current-model* (RuntimeModel. (atom nil) (atom nil) (atom {})))
+
 
 (defn unload-model
   "Delete the current model if any."
@@ -71,6 +81,13 @@
   (reset! (.pre-and-post-conditions *current-model*) {})
   (reset! (.invertedinfluencehashtable *current-model*) {})
   (reset! (.rootclass *current-model*) nil))
+
+(defn resetall
+  "Unload everything."
+  []
+  (unload-model)
+  (bs/clear-belief-state)
+  nil)
 
 (defn goal-post-conditions
   []
@@ -208,7 +225,7 @@
   "Add an pclasses from a loaded model file."
   [pcs]
   (if *printdebug*
-    (do (println "adding spam:\n")
+    (do (if (> verbosity 1) (println "adding spam:\n"))
         (pprint pcs)))
   (reset! (.pclasses *current-model*) pcs)) ;+++ unfinished, thsi needs to merge with whats already there
 
@@ -217,7 +234,7 @@
   [ppcs]
   (if *printdebug*
     (do
-      (println "adding pre-and-post-conditions:\n")
+      (if (> verbosity 1) (println "adding pre-and-post-conditions:\n"))
       (pprint ppcs)))
   (reset! (.pre-and-post-conditions *current-model*) ppcs))
 
@@ -238,11 +255,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Lvar implementation
 
+(def planbindset nil)
+
 (defn make-lvar
   [name]
   (let [lv (LVar. name (atom nil) (atom :unbound))]
     (add-lvar lv)
     lv))
+
+(defn is-lvar?
+  [thing]
+  (instance? LVar thing))
+
+(defn is-bound-lvar?
+  [thing]
+  (not (= @(.boundp thing) :unbound)))
 
 (defn deref-lvar
   [something]
@@ -256,12 +283,51 @@
   [lv nval]
   (if (= @(.boundp lv) :unbound)
     (do
+      (if planbindset (reset! planbindset (conj @planbindset lv)))
       (reset! (.boundp lv) :bound)
       (reset! (.binding lv) (deref-lvar nval)))
     (let [boundto (deref-lvar lv)]
       (if (instance? LVar boundto)
         (bind-lvar boundto nval)
         (= boundto (deref-lvar nval))))))
+
+(defn unbind-lvar
+  [lv]
+  (reset! (.boundp lv) :unbound)
+  (reset! (.binding lv) nil))
+
+;;; Start tracking LV bind operations
+
+(defn unbind-planbind-set
+  []
+  (if planbindset
+    (do
+      (doseq [lvar @planbindset]
+        (if (> verbosity 1) (println "Unbinding LVAR " (.name lvar)))
+        (unbind-lvar lvar)))))
+
+(defn start-plan-bind-set
+  []
+  (if (> verbosity 1) (println "Starting to collect LVAR bindings"))
+  (if (not (= planbindset nil)) (unbind-planbind-set))
+  (def planbindset (atom #{})))
+
+(defn stop-plan-bind-set
+  []
+  (if (> verbosity 1) (println "Stopping collecting LVAR bindings"))
+  (unbind-planbind-set)
+  (def planbindset nil))
+
+;;; (def x (make-lvar "x"))
+;;; x
+;;; (start-plan-bind-set)
+;;; planbindset
+;;; (bind-lvar x 42)
+;;; x
+;;; planbindset
+;;; (stop-plan-bind-set)
+;;; x
+;;; planbindset
 
 (defn describe-lvar
   [lv]
@@ -473,6 +539,17 @@
   [astring]
   (throw (Throwable. (str "Instantiation error: " astring))))
 
+(defn get-likely-value
+  [pdf threshold]
+  (let [values (keys pdf)
+        numvals (count values)]
+    (if (= numvals 1)
+      (first values)
+      (let [best (apply max-key val pdf)]
+        (if (>= (second best) threshold)
+          (first best)
+          :unknown)))))
+
 (defn evaluate
   "Evaluate an expression in the current belief state with args as provided."
   [wrtobject expn class-bindings method-bindings cspam spam]
@@ -483,7 +560,7 @@
   (case expn
     :true true
     :false false
-    (if (or (string? expn) (number? expn))
+    (if (or (string? expn) (number? expn) (symbol? expn) (keyword? expn))
       expn
       (if (not (or (seq? expn) (vector? expn)))
         (if (map? expn)
@@ -497,14 +574,17 @@
               ;;   (if (empty? (rest names))
               ;;     argument
               ;;     (deref-field (rest names) argument))) ;handle case where an indirect reference is made through a class arg
-              (do (println "ERROR: Unknown form in Evaluate: " expn)
+              :mode-ref
+              (get expn :mode)
+
+              (do (irx/error "Unknown form in Evaluate: " expn)
                   expn)))
-          nil) ;+++ we shouldn't get here
+          (irx/error "In evaluate: unexpected expression found: " expn))
         (case (first expn)
           :make-instance ; (:make-instance pname plant-id ... args)
           (let [cname (second expn)
                 plant-id (nth expn 2)
-                ;; - (println "in evaluage :make-instance with expn=" expn)
+                ;; - (println "in evaluate :make-instance with expn=" expn)
                 class-spam (get (into {} spam) cname)
                 classargs (get class-spam :args)
                 numargs (count classargs)
@@ -529,6 +609,13 @@
              class-args ;(rest (rest expn))
              plant-id ;(last expn)
              plant-part)) ;+++ plant-part not implemented +++
+          :value (let [val (second expn)]
+                   (if (not (instance? RTobject val))
+                     val
+                     (let [variable (.variable val) ; +++ avoid duplication of this idiom
+                           pdf (bs/get-belief-distribution-in-variable variable)]
+                       (get-likely-value pdf 0.8))))
+          :thunk (evaluate (nth expn 2) (second expn) class-bindings method-bindings cspam spam)
           :or (some #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
           :and (every? #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
           ;; :or (if (= (count (rest expn)) 1)
@@ -537,10 +624,29 @@
           :arg nil                            ; method arg NYI
           :class-arg (let [res (get class-bindings (second expn))]
                        (if (and (not (symbol? res)) (not (keyword? res)) (empty? res))
-                         (println "ERROR: In evaluate with " expn "class-bindings=" class-bindings "res=" res))
+                         (irx/error "In evaluate with " expn "class-bindings=" class-bindings "res=" res))
                        res)
-          :field-ref (do (println "UNEXPECTED: Found a field ref: " expn) nil)
-          :field (deref-field (rest expn) wrtobject)
+          :field-ref (do (irx/error "UNEXPECTED: Found a field ref: " expn) nil)
+          :field (let [value (deref-field (rest expn) wrtobject :normal)]
+                   (if (not (instance? RTobject value))
+                     value
+                     (let [variable (.variable value)
+                           pdf (bs/get-belief-distribution-in-variable variable)]
+                       (get-likely-value pdf 0.8))))  ; +++ where did 0.8 come from!!!
+
+          :arg-field (let [[object & field] (rest expn)
+                           - (if (> verbosity 2) (println ":arg-field object= " object "field=" field "expn=" expn))
+                           obj (if (= (first object) :value)
+                                 (second object)
+                                 (deref-field (rest object) #_wrtobject (second (first (get-root-objects))) :normal)) ; Force caller to be root+++?
+                           - (if (> verbosity 2) (println ":arg-field obj= " obj))
+                           value (deref-field field obj :normal)] ; +++ handle multilevel case
+                         (if (not (instance? RTobject value))
+                           value
+                           (let [variable (.variable value) ; +++ avoid duplication of this idiom
+                                 pdf (bs/get-belief-distribution-in-variable variable)]
+                             (get-likely-value pdf 0.8))))
+
           :mode-of (last expn)
           :make-lvar (make-lvar (second expn))
           :function-call (do
@@ -548,45 +654,116 @@
                            (pprint expn)
                            true)
           (do
-            (println "ERROR: Unknown case: " expn)
+            (irx/error "Unknown case: " expn)
             nil))))))                               ; unrecognised defaults to nil
 
+(defn evaluate-reference
+  "evaluate an expression in the current belief state with args as provided to provide a reference."
+  [wrtobject expn class-bindings method-bindings cspam spam]
+  #_(println "\nIn evaluate-reference with expn=" expn
+             " class-bindings=" class-bindings
+             " method-bindings=" method-bindings)
+  ;; (pprint spam)
+  (case expn
+    :true [:value true]
+    :false [:value false]
+    (if (or (string? expn) (number? expn))
+      [:value expn]
+      (if (not (or (seq? expn) (vector? expn)))
+        (if (map? expn)
+          (let [vtype (get expn :type)]
+            (case vtype
+              :lvar (irx/error "evaluate-reference: lvar constructor found where it wasn't expected: " expn)
+              :mode-ref expn
+              (do (irx/error "evaluate-reference: Unknown form in Evaluate: " expn)
+                  expn)))
+          (irx/error "evaluate-reference: unexpected expression: expn"))
+        (case (first expn)
+          :thunk (evaluate-reference (nth expn 2) (second expn) class-bindings method-bindings cspam spam)
+          :make-instance (irx/error "evaluate-reference: constructor found where it wasn't expected: expn")
+
+          ;; :or (some #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
+
+          ;; :and (every? #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
+
+          :class-arg (let [res (get class-bindings (second expn))]
+                       (if (and (not (symbol? res)) (not (keyword? res)) (empty? res))
+                         (irx/error "In evaluate-reference with " expn "class-bindings=" class-bindings "res=" res))
+                       res)
+
+          :field (let [value (deref-field (rest expn) wrtobject :reference)]
+                   (if (not (instance? RTobject value))
+                     value
+                     [:value value]))
+
+          :arg-field (let [[object & field] (rest expn)
+                           - (if (> verbosity 2) (println ":arg-field object= " object "field=" field "expn=" expn))
+                           obj (if (= (first object) :value)
+                                 (second object)
+                                 (deref-field (rest object) (second (first (get-root-objects))) :reference)) ; Force caller to be root+++?
+                           - (if (> verbosity 2) (println ":arg-field obj= " obj))
+                           value (deref-field field obj :reference)] ; +++ handle multilevel case
+                         (if (not (instance? RTobject value))
+                           value
+                           [:value value]))
+
+          :mode-of [:value (last expn)]
+
+          :function-call (irx/error "Unknown case: " expn))))))
+
 (defn maybe-deref
-  [thing]
-  (if (= (type thing) clojure.lang.Atom)
-    @thing
-    thing))
+  [thing mode]
+  (let [derefedthing
+        (if (= (type thing) clojure.lang.Atom)
+          @thing
+          thing)
+        deboundthing
+        (if (and (not (= mode :reference)) (is-lvar? derefedthing) (is-bound-lvar? derefedthing))
+          (deref-lvar derefedthing)
+          derefedthing)]
+    deboundthing))
 
 (defn deref-field
-  [namelist wrtobject]
-  (if (vector? wrtobject)
-    (do (println "ERROR: dereference failed on bad wrtobject=" wrtobject)
-        [:not-found namelist])
-    (if (empty? wrtobject)
-      (do
-        (println "ERROR: trying to dereference " namelist "with null wrtobject!")
-        [:not-found namelist])
-      (let [fields (.fields wrtobject)
-            ;; - (println "***!!! fields = " @fields)
-            match (get @fields (first namelist) )
-            ;; - (println "***!!! found match for" (first namelist)  " = " match)
-            remaining (rest namelist)]
-        (if (empty? remaining)
-          (do
-            ;; (println "***!!! dereferenced " (first namelist) "=" (maybe-deref match))
-            (if (= match nil)
-              [:not-found namelist]
-              (maybe-deref match)))
-          (do
-            (if (not (= match nil))
-              (do
-                ;; (println "***!!! recursive dereference with object=" @match)
-                (deref-field remaining @match))
-              [:not-found namelist])))))))
+  [namelist wrtobject mode]
+  (if (> verbosity 2)
+    (println "deref-field: " namelist (if (instance? RTobject wrtobject) (.variable wrtobject) [:oops wrtobject])))
+  (cond ;;RTobject? (first namelist)) ; Obsolete
+        ;;(first namelist)
+
+        (and (vector? (first namelist)) (= (first (first namelist)) :value))
+        (second (first namelist))
+
+        (vector? wrtobject)
+        (do (irx/error "dereference failed on bad wrtobject=" wrtobject)
+            [:not-found namelist])
+
+        (empty? wrtobject)
+        (do
+          (irx/error "trying to dereference " namelist "with null wrtobject!")
+          [:not-found namelist])
+
+        :otherwise
+        (let [fields (.fields wrtobject)
+              ;; - (println "***!!! fields = " @fields)
+              match (get @fields (first namelist) )
+              ;; - (println "***!!! found match for" (first namelist)  " = " match)
+              remaining (rest namelist)]
+          (if (empty? remaining)
+            (do
+              ;; (println "***!!! dereferenced " (first namelist) "=" match)
+              (if (= match nil)
+                (irx/error "DEREF ERROR: [:not-found" namelist ":in" wrtobject "]")
+                (maybe-deref match mode)))
+            (do
+              (if (not (= match nil))
+                (do
+                  ;; (println "***!!! recursive dereference with object=" @match)
+                  (deref-field remaining @match mode))
+                [:not-found namelist :in wrtobject]))))))
 
 (defn field-exists
   [names wrtobject]
-  (let [result (deref-field names wrtobject)]
+  (let [result (deref-field names wrtobject :normal)]
     (not (and (vector? result) (= (count result) 2) (= (first result) :not-found)))))
 
 (defn lookup-class
@@ -598,7 +775,7 @@
   [names wrtobject]
   (let [object (if (= (count names) 1)
                  wrtobject
-                 (deref-field (take (- (count names) 1) names) wrtobject))]
+                 (deref-field (take (- (count names) 1) names) wrtobject :normal))]
     (if (not (instance? RTobject object))
       [:not-found names]
       (let [classname (:type object)
@@ -623,7 +800,7 @@
   [arg wrtobject class-args]
   ;; (println "In evaluate-arg with arg=" arg "class-args=" class-args)
   (case (:type arg)
-    :field-ref (deref-field (:names arg) wrtobject)
+    :field-ref (deref-field (:names arg) wrtobject :normal)
     :pclass-arg-ref
     (let [names (get arg :names)
           argument (get class-args (first names))]
@@ -822,6 +999,7 @@
 
 ;;; LVAR connectivity
 
+
 (defn lvars-in-object
   "Scan the fields of an object to find all lvar references."
   [object]
@@ -869,25 +1047,43 @@
 
 ;;; (def lco (list-of-connected-objects cm))
 
-(defn add-connectivity-propositions
-  [lco]
-  (doseq [interconnected lco]
-    (doseq [var interconnected]
-      (doseq [ovar interconnected]
-        (if (not (= var ovar))
-          (bs/add-binary-proposition :connects-with var ovar))))))
+(defn find-objects-of-type
+  "Find all instantiated objects of a given type"
+  [typename]
+  (let [objects @(.objects *current-model*)]
+    (remove nil? (map (fn [obj]
+                        (if (= (.type obj) typename) obj))
+                      (seq objects)))))
 
-(defn add-connectivity-propositions-unidirectional
-  [lco]
-  (let [done (atom #{})]
+(defn add-connectivity-propositions
+  [lco root]
+  (let [rootobj (if root (first (find-objects-of-type (symbol root))))
+        rootvar (if rootobj (.variable rootobj))]
+    ;; (println "rootvar=" rootvar "root=" root)
     (doseq [interconnected lco]
       (doseq [var interconnected]
         (doseq [ovar interconnected]
           (if (and (not (= var ovar))
+                   (not (= var  rootvar))
+                   (not (= ovar rootvar)))
+            (bs/add-binary-proposition :connects-with var ovar)))))))
+
+(defn add-connectivity-propositions-unidirectional
+  [lco root]
+  (let [done (atom #{})
+        rootobj (if root (first (find-objects-of-type (symbol root))))
+        rootvar (if rootobj (.variable rootobj))]
+    ;; (println "rootvar=" rootvar)
+    (doseq [interconnected lco]
+      (doseq [var interconnected]
+        (doseq [ovar interconnected]
+          (if (and (not (= var ovar))
+                   (not (= var  rootvar))
+                   (not (= ovar rootvar))
                    (empty? (set/intersection @done (set [[var ovar][ovar var]]))))
             (do
-                (bs/add-binary-proposition :connects-with var ovar)
-                (reset! done (set/union @done (set [[var ovar][ovar var]]))))))))))
+              (bs/add-binary-proposition :connects-with var ovar)
+              (reset! done (set/union @done (set [[var ovar][ovar var]]))))))))))
 
 ;;; (add-connectivity-propositions lco)
 
@@ -902,16 +1098,16 @@
 ;;; (describe-connectivity-map)
 
 (defn establish-connectivity-propositions
-  []
+  [root]
   (-> (lvar-connectivity-map)
       (list-of-connected-objects)
-      (add-connectivity-propositions)))
+      (add-connectivity-propositions root)))
 
 (defn establish-unidirectional-connectivity-propositions
-  []
+  [root]
   (-> (lvar-connectivity-map)
       (list-of-connected-objects)
-      (add-connectivity-propositions-unidirectional)))
+      (add-connectivity-propositions-unidirectional root)))
 
 ;;; :is-Part-of propositions
 
@@ -941,18 +1137,20 @@
 (def som (subordinate-object-map))
 
 (defn add-part-of-propositions
-  [som]
+  [som root]
   (doseq [[obj subs] som]
-    (let [objname (.variable obj)]
+    (let [objname (.variable obj)
+          rootobj (symbol root)]
       (doseq [asub subs]
-        (let [subname (.variable asub)]
-          ;; (println subname "is-part-of " objname)
-          (bs/add-binary-proposition :is-part-of subname objname))))))
+        (let [subname (.variable asub)
+              proposition (if (= (.type obj) rootobj) :has-root :is-part-of)]
+          ;; (println "In add-part-of-propositions: " root (.type obj) subname proposition objname)
+          (bs/add-binary-proposition proposition subname objname))))))
 
 (defn establish-part-of-propositions
-  []
+  [root]
   (-> (subordinate-object-map)
-      (add-part-of-propositions)))
+      (add-part-of-propositions root)))
 
 (defn describe-connectivity-subordinate-object-map
   []
@@ -963,14 +1161,6 @@
         (println [object-name subnames])))))
 
 ;;; (describe-connectivity-subordinate-object-map)
-
-(defn find-objects-of-type
-  "Find all instantiated objects of a given type"
-  [typename]
-  (let [objects @(.objects *current-model*)]
-    (remove nil? (map (fn [obj]
-                        (if (= (.type obj) typename) obj))
-                      (seq objects)))))
 
 (defn find-type-of-field
   [object-type field]
@@ -999,72 +1189,6 @@
 (defn nyi
   [msg]
   (throw (Exception. msg)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn resetall
-  "Unload everything."
-  []
-  (unload-model)
-  (bs/clear-belief-state)
-  nil)
-
-(def maxplandepth 10)
-(def numsamples 100)
-(def accept-gap-fillers false)
-
-(defn generate-attack-plans
-  [ooi attack-surface]
-  ;; (if (and (empty? (find-objects-of-type 'TypicalAttacker))
-  ;;          (empty? (find-objects-of-type 'TypicalAttacker_Impl)))
-  ;;   (do (println "TypicalAttacker not found in model - can't proceed.")
-  ;;       nil)
-  (let [aap (cond
-              (nil? attack-surface) []
-              (vector? attack-surface) attack-surface
-              (string? attack-surface) (read-string attack-surface))]
-    (if (or (= aap nil) (= (count aap) 0))
-      (println "Error: No attack access point specified.")
-      (let [;;attackers (if (empty? (find-objects-of-type 'TypicalAttacker))
-            ;;            (find-objects-of-type 'TypicalAttacker_Impl)
-            ;;            (find-objects-of-type 'TypicalAttacker))
-            ;;attacker (first attackers)
-            ;;attackerobjname (.variable attacker)
-            rootobject (second (first (get-root-objects)))
-            rootobjectname (.variable rootobject)
-            rootobjecttype (.type rootobject)
-            attacksurfacename (let [asname (first aap)]
-                                (if (string? asname)
-                                  (symbol asname)
-                                  asname))
-            attackobjname (find-name-of-field-object rootobjecttype attacksurfacename)
-            ]
-        (if (> (count aap) 1)
-          (println "Warning: Multiple attack access points " aap " were provided but at present onlt the first will be used."))
-        ;; (println "Attack-point name" attacksurfacename "Attack surface" attackobjname "rootobjectname=" rootobjectname)
-        (if (not attackobjname)
-          (println "Attack-point " rootobjecttype "." attacksurfacename "not found.")
-          (bs/monte-carlo-plan-attacks attackobjname ooi numsamples accept-gap-fillers #{rootobjectname} maxplandepth))
-        ))))
-
-;;; (def dps (load-desired-properties "/Users/paulr/checkouts/bitbucket/CASE-Vanderbilt-DOLL/data/missile-guidance/missile-guidance.dp.json"))
-;;; (def ooi (objects-of-interest dps))
-
-;;; (def attackers (find-objects-of-type 'TypicalAttacker))
-;;; (def attacker (.variable (first attackers)))
-
-;;; (println ref " = " (deref-method name rootobject) (if (method-exists name rootobject) "Exists" "Not found"))
-
-;;; (def rootobject (second (first (get-root-objects))))
-;;; (def rootobjectname (.variable rootobject))
-;;; (validate-desirable-properties dps)
-;;; (bs/monte-carlo-plan-attacks attacker ooi 1 #{rootobjectname} maxplandepth)
-;;; (generate-attack-plans ooi)
-
-
-
-
-
-
 
 
 ;;; Fin

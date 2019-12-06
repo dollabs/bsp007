@@ -22,7 +22,7 @@
 
 (def ^:dynamic *print-warnings* true)
 
-(def ^:dynamic *print-debugging* false)
+(def ^:dynamic *print-debugging* false) ; false
 
 ;;;    "Defines the basic belief state class that represents the domains
 ;;;     proposition-types propositions and variables of the belief state."
@@ -418,6 +418,17 @@
           0.0)
         (or (get @(get variable :value) vbel) 0.0)))))
 
+(defn get-belief-distribution-in-variable
+  "Returns the PDF for the variable"
+  [vname & [bs]]
+  (with-belief-state bs
+    (let [variable (get-variable vname)]
+      (if (nil? variable)
+        (do
+          (if *print-warnings* (printf "Warning: Unknown variable referenced: %s%n" vname))
+          ())
+        (or @(get variable :value) ())))))
+
 ;;; (get-belief-in-variable 'quux :E)
 ;;; (get-belief-in-variable 'quuxy :E)
 
@@ -555,11 +566,12 @@
 ;;; (get-proposition-type 'spousex)
 ;;; (get-proposition-type :is-a)
 
-;;; Build-in proposition types
+;;; Built-in proposition types
 
 (def-proposition-type :is-a)
 (def-proposition-type :connects-with)
 (def-proposition-type :is-part-of)
+(def-proposition-type :has-root)
 (def-proposition-type :transitive-closure-of-is-part-of)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -638,18 +650,21 @@
 
 (defn filter-binary-propositions ;; and not excluded, (or not restricted, matching)
   [a not-a relation not-relation b not-b props]
-  ;;(println "In filter-binary-propositions with:" [a not-a relation not-relation b not-b "props"])
-  (seq (remove nil? (map (fn [aprop]
-                      (let [{pt :ptype, sj :subject, obj :object} aprop]
-                        (if (and
-                             (and (or (empty? not-a) (not (get not-a sj))) ; not excluded
-                                  (or (empty? a) (get a sj)))
-                             (and (or (empty? not-b) (not (get not-b obj)))
-                                  (or (empty? b) (get b obj)))
-                             (and (or (empty? not-relation) (not (get not-relation pt)))
-                                  (or (empty? relation) (get relation pt))))
-                          aprop)))
-                    props))))
+  (if *print-debugging* (println "In filter-binary-propositions with:" a not-a relation not-relation b not-b "matching props="))
+
+  (let [matches (seq (remove nil? (map (fn [aprop]
+                                         (let [{pt :ptype, sj :subject, obj :object} aprop]
+                                           (if (and
+                                                (and (or (empty? not-a) (not (get not-a sj))) ; not excluded
+                                                     (or (empty? a) (get a sj)))
+                                                (and (or (empty? not-b) (not (get not-b obj)))
+                                                     (or (empty? b) (get b obj)))
+                                                (and (or (empty? not-relation) (not (get not-relation pt)))
+                                                     (or (empty? relation) (get relation pt))))
+                                             aprop)))
+                                       props)))]
+    (if *print-debugging* (pprint matches))
+    matches))
 
 (defn find-binary-propositions-matching
   [a not-a relation not-relation b not-b]
@@ -808,34 +823,5 @@
               newdepth 8 #_(- depth 1)]
           (if *print-debugging* (println "Moving to:" moveto "via:" method "newpath:" newpath "visited:" newvisited "depth=" newdepth))
           (mcplanner moveto to dpset newvisited newpath ron newdepth accept-gap-fillers)))))) ;++++
-
-(defn translate-attack-plan
-  [attackplans]
-  attackplans
-  #_(let [translation (atom #{})]
-    (doseq [aplan attack-plans]
-      ********)))
-
-(defn monte-carlo-plan-attacks
-  [attacker ooi samples accept-gap-fillers ron maxdepth]
-  (if *print-debugging* (println "in monte-carlo-plan-attacks with attacker=" attacker " ooi=" ooi" root=" ron))
-  (let [[objects-of-interest ooidpmap] ooi]
-    (if *print-debugging* (println "ooi=" objects-of-interest "ooidpmap=" ooidpmap))
-    (let [solutions (atom #{})]
-      (doseq [anooi (seq objects-of-interest)]
-        (if *print-debugging* (println "Solving for attack on: " anooi "samples=" samples))
-        (dotimes [i samples]
-          (let [dp (get ooidpmap anooi)
-                fromtype (:object (first (find-binary-propositions-matching #{anooi} nil #{:is-a} nil nil nil)))
-                asample (mcplanner anooi attacker dp #{anooi} [[:at anooi dp fromtype]] ron (- maxdepth 1) accept-gap-fillers)]
-            (if asample
-              (do
-                (if *print-debugging* (println "Found a sample: " asample))
-                (reset! solutions (conj @solutions asample)))))))
-        (if *print-debugging* (println "Solutions found: "))
-        (pprint @solutions)
-      (json/write-str (translate-attack-plan (into [] @solutions))))))
-
-
 
 ;;; Fin
