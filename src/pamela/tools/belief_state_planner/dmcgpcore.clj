@@ -131,7 +131,7 @@
   [anaction]
   (let [prerequisites (action-prerequisites anaction)]
     (remove nil? (map (fn [apre]
-                        (if (= (evaluate-prerequisite apre) :true)
+                        (if (= (evaluate-prerequisite apre) true)
                           nil           ; This prerequisit is already true
                           apre))
                       prerequisites))))
@@ -552,20 +552,20 @@
     (case (first condit)
       ;; NOT NOT cancels, return the simplified subexpression
       :not (let [exps (simplify-condition (second condit) wrtobject)]
-             ;; Handle case where expression of not simplifies to a conjunction.
+             ;; Handle case where expression of not simplified to a conjunction.
              (case (count exps)
-               0 :true
+               0 true
                1 (first exps)
                (into [:and] exps)))
       ;; OR ~(Happy OR Sad) = ~Happy AND ~Sad
       :or (into [:and] (map (fn [sc] (simplify-negate sc wrtobject)) (rest condit)))
-      ;; AND - ~(Happy AND Sad) = ~(~Happy OR ~Sad)
-      :and (simplify-negate (into [:or] (map (fn [sc] (simplify-negate sc wrtobject))
-                                             (rest condit)))
-                            wrtobject)
+      ;; AND - ~(Happy AND Sad) = ~Happy OR ~Sad
+      :and (into [:or] (map (fn [sc] (simplify-negate sc wrtobject)) (rest condit)))
       [:not condit])))
 
 ;;; [:and [:equal [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]]
+
+;;;+++ surely doesn't need the second argument
 
 (defn conjunctive-list
   [condit wrtobject]
@@ -595,6 +595,13 @@
     (if (not (= exprn result)) (if (> verbosity 2) (println "LVAR binding applied: was: " exprn "now: result")))
     result))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; simplify-condition
+;;;
+;;; Converts comdition to conjunctive normal form after simplifying the parts.
+;;;
+;;; Return s a conjunctive list
+
 (defn simplify-condition
   "maniulate the condition into conjunctive normal form and return a list of conjunctions."
   [condit wrtobject]
@@ -603,7 +610,8 @@
     (list condit)
     (let [result (case (first condit)
                    :thunk (list
-                           (into [:thunk] (into (into [] (simplify-condition (nth condit 1) (nth condit 2))) [(nth condit 2)])))
+                           (into [:thunk]
+                                 (into (into [] (simplify-condition (nth condit 1) (nth condit 2))) [(nth condit 2)])))
 
                    :equal (list
                            [:equal
@@ -620,12 +628,13 @@
                                                                      (rest condit)))
                                                           wrtobject)
                                          wrtobject)
-                   :field [:value (un-lvar-expression condit wrtobject)]
+                   :field (conjunctive-list [:value (un-lvar-expression condit wrtobject)])
                    [condit])
           simpres (remove (fn [x] (= x true)) result)]
       ;; (println "simplified=" result "simpres=" simpres)
-      (if (> verbosity 2) (println "In simplify-condition: simpres: "))
-      (if (> verbosity 2) (print-condition-tersely simpres))
+      (if (> verbosity 2) (do
+                            (println "In simplify-condition: simpres: ")
+                            (print-condition-tersely simpres)))
       simpres)))
 
 (defn simplify-cond-top-level
@@ -637,8 +646,8 @@
       simplified ;(list (into [:and] simplified))
       simplified)))
 
-;;; (simplify-condition '[:and [:equal [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]])
-;;; (simplify-condition '[:or [:equal [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]])
+;;; (simplify-condition '[:and [:equal [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]] nil)
+;;; (simplify-condition '[:or [:equal [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]] nil)
 
 #_(defn substitute-bindings
   [condit bindings]

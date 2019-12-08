@@ -200,7 +200,7 @@
       :equal          (if (= numargs 2) [:equal
                                          (compile-reference (first args))
                                          (compile-reference (second args))]
-                          cond)         ; +++ unfinished - how to compile equal with args != 2
+                          (error "compile-condition: Equal takes exactly two arguments: " cond))
       :and            (if (= numargs 1)
                         (compile-condition (first args))
                         (dxp/make-AND (map (fn [part] (compile-condition part)) args)))
@@ -209,13 +209,13 @@
                         (dxp/make-OR (map (fn [part] (compile-condition part)) args)))
       :implies        (if (= numargs 2) (dxp/make-IMPLIES (compile-condition (first args))
                                                           (compile-condition (second args)))
-                          cond) ; +++ unfinished - what do we want to do with a malformed implies
+                          (error "compile-condition: Implies takes exactly two arguments: " cond))
       :xor            (if (= numargs 2) (dxp/make-XOR (compile-condition (first args))
                                                       (compile-condition (second args)))
-                          cond) ; +++ unfinished - what do we want to do with a malformed xor
+                          (error "compile-condition: Xor takes exactly two arguments: " cond))
       :not            (if (= numargs 1)
                         (dxp/make-NOT (compile-condition (first args)))
-                        cond) ; +++ unfinished - what do we want to do with a malformed xor
+                        (error "compile-condition: Not takes exactly one argument: " cond))
       :function-call  (dxp/make-CALL (get (first args) :names)
                                      (map (fn [arg] (compile-reference arg)) (rest args)))
       'true)))

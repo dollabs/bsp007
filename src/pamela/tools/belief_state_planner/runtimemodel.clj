@@ -618,9 +618,6 @@
           :thunk (evaluate (nth expn 2) (second expn) class-bindings method-bindings cspam spam)
           :or (some #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
           :and (every? #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
-          ;; :or (if (= (count (rest expn)) 1)
-          ;;       (evaluate wrtobject (second expn) class-bindings method-bindings cspam spam)
-          ;;       :true) ;+++ this is not finished +++ only the trivial case is implemented
           :arg nil                            ; method arg NYI
           :class-arg (let [res (get class-bindings (second expn))]
                        (if (and (not (symbol? res)) (not (keyword? res)) (empty? res))
@@ -709,7 +706,9 @@
 
           :mode-of [:value (last expn)]
 
-          :function-call (irx/error "Unknown case: " expn))))))
+          :function-call (irx/error "In evaluate-reference: can't evaliuate-reference a :function-call: " expn)
+
+          (irx/error "Unknown case: " expn))))))
 
 (defn maybe-deref
   [thing mode]
@@ -734,12 +733,12 @@
         (second (first namelist))
 
         (vector? wrtobject)
-        (do (irx/error "dereference failed on bad wrtobject=" wrtobject)
+        (do (irx/error "deref-field: failed on bad wrtobject=" wrtobject)
             [:not-found namelist])
 
         (empty? wrtobject)
         (do
-          (irx/error "trying to dereference " namelist "with null wrtobject!")
+          (irx/error "deref-field: trying to dereference " namelist "with null wrtobject!")
           [:not-found namelist])
 
         :otherwise
