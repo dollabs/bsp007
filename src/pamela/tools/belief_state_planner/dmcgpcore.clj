@@ -31,7 +31,7 @@
 
 (def ^:dynamic available-actions nil)
 (def ^:dynamic plan-fragment-library nil)
-(def ^:dynamic verbosity 1)
+(def ^:dynamic verbosity 3)
 
 (def ^:dynamic *printdebug* false) ; false
 
@@ -568,7 +568,7 @@
 ;;;+++ surely doesn't need the second argument
 
 (defn conjunctive-list
-  [condit wrtobject]
+  [condit]
   (case (first condit)
     :and (rest condit)
     :or [condit]
@@ -618,7 +618,7 @@
                             (un-lvar-expression (nth condit 1) wrtobject)
                             (un-lvar-expression (nth condit 2) wrtobject)])
                    ;; NOT negate the simplified subexpression
-                   :not (conjunctive-list (simplify-negate (second condit) wrtobject) wrtobject)
+                   :not (conjunctive-list (simplify-negate (second condit) wrtobject))
                    ;; AND return the simplified parts as a list.
                    :and (apply concat (map (fn [sc] (simplify-condition sc wrtobject)) (rest condit)))
                    ;; OR - Happy OR Sad = ~(~Happy AND ~Sad)
@@ -626,8 +626,7 @@
                                                                 (map (fn [sc]
                                                                        (simplify-negate sc wrtobject))
                                                                      (rest condit)))
-                                                          wrtobject)
-                                         wrtobject)
+                                                          wrtobject))
                    :field (conjunctive-list [:value (un-lvar-expression condit wrtobject)])
                    [condit])
           simpres (remove (fn [x] (= x true)) result)]
@@ -642,6 +641,12 @@
   (if (> verbosity 2) (println "In Simplify with wrtobject=" (.variable wrtobject)))
   (let [simplified (simplify-condition condit wrtobject)
         terms (count simplified)]
+
+    ;; (print "*** SIMPLIFY ")
+    ;; (describe-goal condit)
+    ;; (print " = ")
+    ;; (describe-goal simplified)
+
     (if (> terms 1)
       simplified ;(list (into [:and] simplified))
       simplified)))
