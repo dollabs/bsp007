@@ -44,7 +44,7 @@
 
 ;;(def ^:dynamic *printdebug* true)
 (def ^:dynamic *printdebug* false)
-(def ^:dynamic verbosity 0) ; 0
+(def ^:dynamic verbosity 3) ; 0
 
 ;;; A model is a map with a list of instantiated objects that constitute the model
 ;;; and a list of structural lvars.
@@ -633,8 +633,12 @@
 
           :arg-field (let [[object & field] (rest expn)
                            - (if (> verbosity 2) (println ":arg-field object= " object "field=" field "expn=" expn))
-                           obj (if (= (first object) :value)
-                                 (second object)
+                           obj (case (first object)
+                                 :value (evaluate wrtobject object class-bindings method-bindings cspam spam) ; (second object)
+                                 :thunk (if (= (first (second object)) :field)
+                                          (deref-field (rest (second object)) (nth object 2) :reference)
+                                          (evaluate wrtobject object class-bindings method-bindings cspam spam))
+
                                  (deref-field (rest object) #_wrtobject (second (first (get-root-objects))) :normal)) ; Force caller to be root+++?
                            - (if (> verbosity 2) (println ":arg-field obj= " obj))
                            value (deref-field field obj :normal)] ; +++ handle multilevel case
@@ -695,8 +699,11 @@
 
           :arg-field (let [[object & field] (rest expn)
                            - (if (> verbosity 2) (println ":arg-field object= " object "field=" field "expn=" expn))
-                           obj (if (= (first object) :value)
-                                 (second object)
+                           obj (case (first object)
+                                 :value (second object)
+                                 :thunk (if (= (first (second object)) :field)
+                                          (deref-field (rest (second object)) (nth object 2) :reference)
+                                          [:oops :argfield= expn])
                                  (deref-field (rest object) (second (first (get-root-objects))) :reference)) ; Force caller to be root+++?
                            - (if (> verbosity 2) (println ":arg-field obj= " obj))
                            value (deref-field field obj :reference)] ; +++ handle multilevel case

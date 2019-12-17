@@ -28,7 +28,8 @@
             ;;[pamela.tools.belief-state-planner.recobs :as recobs]
             ;; [pamela.tools.belief-state-planner.casediagimpl :as cdiag]
             [pamela.tools.belief-state-planner.expressions :as dxp]
-            [pamela.tools.belief-state-planner.ir-extraction :as irx])
+            [pamela.tools.belief-state-planner.ir-extraction :as irx]
+            [pamela.tools.belief-state-planner.dmcgpcore :as :dmcp])
   (:import (java.text SimpleDateFormat)
            (java.util Date))
   (:gen-class))
@@ -167,58 +168,60 @@
           plantid (get m :plant-id)]
       (cond
         ;; Handle commands from the dispatcher to DMCP directly
-        (and (= rk dmcpid))     (condp = command
-                                 :get-field-value (get-field-value m)
-                                 ;; :set-field-value (set-field-value m)
-                                 (println "Unknown command received: " command m))
+        (and (= rk dmcpid))
+        (condp = command
+          :get-field-value (get-field-value m)
+          ;; :set-field-value (set-field-value m)
+          (println "Unknown command received: " command m))
 
         ;; Handle observations from everywhere
-        (= rk "observations")    (if (= plantid :plant) ;+++ we need a plant id to be unique to the camera +++
-                                   nil ;; +++(recobs/process-visual-observation m)
-                                   (doseq [anobs observations]
-                                     (let [field (get anobs :field)
-                                           value (get anobs :value)]
-                                       (cond (and field value)
-                                             (rtm/set-field-value! plantid field value)
-                                             :else
-                                             (do
-                                               (println "Received observation: " anobs))))))
+        (= rk "observations")
+        (if (= plantid :plant) ;+++ we need a plant id to be unique to the camera +++
+          nil ;; +++(recobs/process-visual-observation m)
+          (doseq [anobs observations]
+            (let [field (get anobs :field)
+                  value (get anobs :value)]
+              (cond (and field value)
+                    (rtm/set-field-value! plantid field value)
+                    :else
+                    (do
+                      (println "Received observation: " anobs))))))
 
         ;; Handle observations from the vision system
         ;;(= rk "cart-vision")   (recobs/process-visual-observation m)
 
         ;; Track activities started by the dispatcher
         (= rk watchedplant)
-                                 (let [id (get m :id)
-                                       plid (get m :plant-id)
-                                       partid (get m :plant-part)
-                                       state (get m :state)
-                                       fname (get m :function-name)
-                                       ts (get m :timestamp)]
-                                   (if fname
-                                     (if (= state :start)
-                                       (do
-                                         (println "function: " fname " id: " id " starting.")
-                                         ;; handle the startup
-                                         (let [startobj {:state "started",
-                                                         :id id,
-                                                         :plant-id plid }
-                                               obj {:state "finished",
-                                                    :plant-id plid,
-                                                    :id id,
-                                                    :reason {:finish-state "success"}}]
-                                           (println "About to publish: " startobj " to  observations, " rmq-channel ", " exchange)
-                                           (mq/publish-object startobj "observations" rmq-channel exchange)
-                                           (add-running-activity [plid
-                                                                  partid
-                                                                  fname
-                                                                  ts
-                                                                  (fn []
-                                                                    (println "About to publish: " obj " to  observations, " rmq-channel ", " exchange)
-                                                                    (mq/publish-object obj "observations" rmq-channel exchange))
-                                                                  nil ;; +++ (recobs/postcondition plid partid fname)
-                                                                  ])))
-                                       (println "function: " fname " id: " id " state: " state)))))
+        (let [id (get m :id)
+              plid (get m :plant-id)
+              partid (get m :plant-part)
+              state (get m :state)
+              fname (get m :function-name)
+              ts (get m :timestamp)]
+          (if fname
+            (if (= state :start)
+              (do
+                (println "function: " fname " id: " id " starting.")
+                ;; handle the startup
+                (let [startobj {:state "started",
+                                :id id,
+                                :plant-id plid }
+                      obj {:state "finished",
+                           :plant-id plid,
+                           :id id,
+                           :reason {:finish-state "success"}}]
+                  (println "About to publish: " startobj " to  observations, " rmq-channel ", " exchange)
+                  (mq/publish-object startobj "observations" rmq-channel exchange)
+                  (add-running-activity [plid
+                                         partid
+                                         fname
+                                         ts
+                                         (fn []
+                                           (println "About to publish: " obj " to  observations, " rmq-channel ", " exchange)
+                                           (mq/publish-object obj "observations" rmq-channel exchange))
+                                         nil ;; +++ (recobs/postcondition plid partid fname)
+                                         ])))
+              (println "function: " fname " id: " id " state: " state)))))
       (check-for-satisfied-activities))))
 
 (defn observe-plant

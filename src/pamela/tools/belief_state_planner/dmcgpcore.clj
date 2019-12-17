@@ -379,12 +379,23 @@
   (cond (keyword? val) nil
         (rtm/RTobject? val) [[:foo val]])) ; unfinished
 
+(defn get-ir-references-from-expression
+  "Generate the ir for the expression and the mapping from the argument name to the expression and its IR."
+  ;; +++ currently only produces the IR and not the mapping.
+  [expn]
+  ;; (println "In get-references-from-expression, expn=" expn)
+  (cond (= (first expn) :field) [(ir-field-ref [(second expn)])]             ;+++ here is wher IR leaks into conditions +++
+        (= (first expn) :value) (get-references-from-value (second expn))
+        (= (first expn) :arg) [[:arg-ref (first expn) (second expn)]] ; +++ placeholder
+        (= (first expn) :mode-of) nil
+        :otherwise nil))
+
 (defn get-references-from-expression
   "Generate the ir for the expression and the mapping from the argument name to the expression and its IR."
   ;; +++ currently only produces the IR and not the mapping.
   [expn]
   ;; (println "In get-references-from-expression, expn=" expn)
-  (cond (= (first expn) :field) [(ir-field-ref [(second expn)])]
+  (cond (= (first expn) :field) [expn] ;[(ir-field-ref [(second expn)])]
         (= (first expn) :value) (get-references-from-value (second expn))
         (= (first expn) :arg) [[:arg-ref (first expn) (second expn)]] ; +++ placeholder
         (= (first expn) :mode-of) nil
@@ -394,7 +405,7 @@
   [condition]
   (let [result (cond
                  (= (first condition) :thunk)
-                 (into [] (map (fn [ref] ref)
+                 (into [] (map (fn [ref] [:thunk ref (nth condition 2)])
                                (get-references-from-condition (second condition))))
 
                  (= (first condition) :equal)
@@ -565,8 +576,6 @@
 
 ;;; [:and [:equal [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]]
 
-;;;+++ surely doesn't need the second argument
-
 (defn conjunctive-list
   [condit]
   (case (first condit)
@@ -592,7 +601,7 @@
                    :arg-field exprn
                    exprn)
                  exprn)]
-    (if (not (= exprn result)) (if (> verbosity 2) (println "LVAR binding applied: was: " exprn "now: result")))
+    (if (not (= exprn result)) (if (> verbosity 2) (println "LVAR binding applied: was: " exprn "now:" result)))
     result))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
