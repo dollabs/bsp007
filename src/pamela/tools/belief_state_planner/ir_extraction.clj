@@ -26,6 +26,8 @@
 (def ^:dynamic pamela-model nil)
 (def ^:dynamic outfile nil)
 (def ^:dynamic verbosity 0)
+(def ^:dynamic inrepl false)
+;;;(def ^:dynamic inrepl true)
 
 (defn read-ir-file [pathstring]
   (read-string (slurp pathstring)))
@@ -49,20 +51,24 @@
   [& message]
   (print "BREAK: ")
   (apply println message)
-  (println "(type y to continue, ^C ^C to abort)")
-  (case (let [answer (read) - (println answer)] answer)
-    y true
-    (recur message)))
+  (if inrepl
+    (do
+      (println "(type y to continue, ^C ^C to abort)")
+      (case (let [answer (read) - (println answer)] answer)
+        y true
+        (recur message)))))
 
 (defn error
   [& message]
   (print "ERROR: ")
   (apply println message)
-  (println "(type y to continue anyway, ^C ^C to abort)")
-  (case (let [answer (read) - (println answer)] answer)
-    y true
-    #_(clojure.stacktrace/print-stack-trace (Exception. "Error"))
-    (recur message)))
+  (if inrepl
+    (do
+      (println "(type y to continue anyway, ^C ^C to abort)")
+      (case (let [answer (read) - (println answer)] answer)
+        y true
+        #_(clojure.stacktrace/print-stack-trace (Exception. "Error"))
+        (recur message)))))
 
 ;;; (error "This is a test" 42 "error message")
 
