@@ -1061,8 +1061,8 @@
   (let [typeset (set typenames)
         objects @(.objects *current-model*)]
     (remove nil? (map (fn [obj]
-                        (if (some typeset (.type obj)) obj))
-                      (seq objects)))))
+                        (if (some typeset [(.type obj)]) obj))
+                      objects))))
 
 (defn add-connectivity-propositions
   [lco root]

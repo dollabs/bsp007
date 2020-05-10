@@ -569,6 +569,7 @@
 ;;; Built-in proposition types
 
 (def-proposition-type :is-a)
+(def-proposition-type :is-contained-within)
 (def-proposition-type :connects-with)
 (def-proposition-type :is-part-of)
 (def-proposition-type :has-root)
