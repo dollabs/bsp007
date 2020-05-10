@@ -623,7 +623,7 @@
           ;;       :true) ;+++ this is not finished +++ only the trivial case is implemented
           :arg nil                            ; method arg NYI
           :class-arg (let [res (get class-bindings (second expn))]
-                       (if (and (not (symbol? res)) (not (keyword? res)) (empty? res))
+                       (if (and (not (number? res)) (not (symbol? res)) (not (keyword? res)) (empty? res))
                          (irx/error "In evaluate with " expn "class-bindings=" class-bindings "res=" res))
                        res)
           :field-ref (do (irx/error "UNEXPECTED: Found a field ref: " expn) nil)
@@ -1053,6 +1053,15 @@
   (let [objects @(.objects *current-model*)]
     (remove nil? (map (fn [obj]
                         (if (= (.type obj) typename) obj))
+                      (seq objects)))))
+
+(defn find-objects-of-types
+  "Find all instantiated objects belong to any of a seq of types"
+  [typenames]
+  (let [typeset (set typenames)
+        objects @(.objects *current-model*)]
+    (remove nil? (map (fn [obj]
+                        (if (some typeset (.type obj)) obj))
                       (seq objects)))))
 
 (defn add-connectivity-propositions
