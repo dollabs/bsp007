@@ -42,8 +42,8 @@
   [x]
   (instance? LVar x))
 
-;;(def ^:dynamic *printdebug* true)
-(def ^:dynamic *printdebug* false)
+(def ^:dynamic *printdebug* true)
+;;(def ^:dynamic *printdebug* false)
 (def ^:dynamic verbosity 0) ; 0
 
 ;;; A model is a map with a list of instantiated objects that constitute the model
