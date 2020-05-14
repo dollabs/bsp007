@@ -36,6 +36,22 @@
   [x]
   (instance? RTobject x))
 
+(defn RTobject-type
+  [rto]
+  (.type rto))
+
+(defn RTobject-variable
+  [rto]
+  (.variable rto))
+
+(defn RTobject-id
+  [rto]
+  (.id rto))
+
+(defn RTobject-fields
+  [rto]
+  (.fields rto))
+
 (defrecord LVar [name binding boundp])
 
 (defn LVar?
