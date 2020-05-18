@@ -247,6 +247,7 @@
 ;;; 1. a probability
 ;;; 2. a set of supports.
 
+
 (defn make-bs-variable
   "A variable is the basic unit of a belief and about which observations
      directly provide evidence for.Variables:
@@ -258,8 +259,8 @@
   [vname vtype vval]
   { :name vname, :vtype vtype, :value (atom vval), :type :bs-variable})
 
-(defn vname [avar] (get avar :name))
-(defn vtype [avar] (get avar :vtype))
+(defn vname [avar]  (get avar :name))
+(defn vtype [avar]  (get avar :vtype))
 (defn vvalue [avar] (get avar :value))
 
 (defn total-distribution [map-dist]
