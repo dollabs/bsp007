@@ -29,7 +29,6 @@
                          invertedinfluencehashtable
                          rootclass])
 
-;;; was (defrecord RuntimeModel [lvars objects plantmap])
 (defrecord RTobject [variable type fields id])
 
 (defn RTobject?
@@ -1062,6 +1061,15 @@
     (seq (map (fn [[var connects]] connects) ocm))))
 
 ;;; (def lco (list-of-connected-objects cm))
+
+;;; Should have made objects a map
+(defn find-objects-of-name
+  "Find all instantiated objects of a given type"
+  [vname]
+  (let [objects @(.objects *current-model*)]
+    (remove nil? (map (fn [obj]
+                        (if (= (.variable obj) vname) obj))
+                      (seq objects)))))
 
 (defn find-objects-of-type
   "Find all instantiated objects of a given type"
