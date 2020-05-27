@@ -672,6 +672,13 @@
   [a not-a relation not-relation b not-b]
   (filter-binary-propositions a not-a relation not-relation b not-b @(c-propositions)))
 
+(defn remove-propositions-matching
+  [a not-a relation not-relation b not-b]
+  (let [matches (filter-binary-propositions a not-a relation not-relation b not-b @(c-propositions))]
+    (doseq [aproposition matches]
+      (reset! (c-propositions)
+              (remove (fn [aprop] (= aproposition aprop)) @(c-propositions))))))
+
 ;;; (print-propositions)
 
 ;+++(defmethod get-variables ((pr proposition)) nil)
