@@ -567,8 +567,9 @@
 
 (defn evaluate
   "Evaluate an expression in the current belief state with args as provided."
-  [wrtobject expn class-bindings method-bindings cspam spam]
+  [wrtobject path expn class-bindings method-bindings cspam spam]
   #_(println "\nIn evaluate with expn=" expn
+             " path=" path
              " class-bindings=" class-bindings
              " method-bindings=" method-bindings)
   ;; (pprint spam)
@@ -617,6 +618,7 @@
                (str "missing arguments for pclass (" cname ") : " (str spam))))
             (instantiate-pclass
              wrtobject
+             path
              cname
              spam
              class-spam
@@ -630,11 +632,11 @@
                      (let [variable (.variable val) ; +++ avoid duplication of this idiom
                            pdf (bs/get-belief-distribution-in-variable variable)]
                        (get-likely-value pdf 0.8))))
-          :thunk (evaluate (nth expn 2) (second expn) class-bindings method-bindings cspam spam)
-          :or (some #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
-          :and (every? #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
+          :thunk (evaluate (nth expn 2) path (second expn) class-bindings method-bindings cspam spam)
+          :or (some #(evaluate wrtobject path % class-bindings method-bindings cspam spam) (rest expn))
+          :and (every? #(evaluate wrtobject path % class-bindings method-bindings cspam spam) (rest expn))
           ;; :or (if (= (count (rest expn)) 1)
-          ;;       (evaluate wrtobject (second expn) class-bindings method-bindings cspam spam)
+          ;;       (evaluate wrtobject path (second expn) class-bindings method-bindings cspam spam)
           ;;       :true) ;+++ this is not finished +++ only the trivial case is implemented
           :arg nil                            ; method arg NYI
           :class-arg (let [res (get class-bindings (second expn))]
@@ -697,9 +699,9 @@
           :thunk (evaluate-reference (nth expn 2) (second expn) class-bindings method-bindings cspam spam)
           :make-instance (irx/error "evaluate-reference: constructor found where it wasn't expected: expn")
 
-          ;; :or (some #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
+          ;; :or (some #(evaluate wrtobject "???" % class-bindings method-bindings cspam spam) (rest expn))
 
-          ;; :and (every? #(evaluate wrtobject % class-bindings method-bindings cspam spam) (rest expn))
+          ;; :and (every? #(evaluate wrtobject "???" % class-bindings method-bindings cspam spam) (rest expn))
 
           :class-arg (let [res (get class-bindings (second expn))]
                        (if (and (not (symbol? res)) (not (keyword? res)) (empty? res))
@@ -853,7 +855,7 @@
 
 (defn instantiate-pclass
   "Create an instance of a model class."
-  [wrtobject cname spam class-spam class-bindings args id plant-part]
+  [wrtobject path cname spam class-spam class-bindings args id plant-part]
   ;; (println "****** in instantiate-pclass with args=" args)
   ;; (pprint class-spam)
   (let [classargs (get class-spam :args)
@@ -863,7 +865,9 @@
         ;; - (println "***!!! argmap=" argmap)
         cfields (seq (map (fn [[fname fdef]] [fname fdef]) (get class-spam :fields)))
         modes (seq (get class-spam :modes))
-        instance-name (or (gensym cname) nil)
+        ;; The instance name captures the hierarchy of the object in nested structures
+        ;; Non embedded objects are at the root level and are named after their class with a proceeding "/"
+        instance-name path
         newObject (RTobject. instance-name cname (atom nil) id)]
     (if *printdebug*
       (.write *out* (format "%nInstantiating class %s%n  args=%s%n  id=%s%n  fields=%s%n  modes=%s%n"
@@ -904,7 +908,7 @@
                   ;; (println "Evaluating field: " fname)
                   (reset! touched true)
                   (reset! satisfied (conj @satisfied fname))
-                  (reset! valatom (evaluate newObject initial argmap nil class-spam spam)))))))
+                  (reset! valatom (evaluate newObject (str instance-name "." fname) initial argmap nil class-spam spam)))))))
         ;; (println "Satisfied=" @satisfied "touched=" @touched "field-vector:")
         ;; (pprint field-vector)
         )
@@ -955,7 +959,7 @@
                   (add-preandpost pre-and-post)
                   #_(.write *out* (format "%nRoot class %s, found %s" sroot
                                           (with-out-str (pprint root-class))))
-                  (instantiate-pclass nil (first sroot) spam root-class nil args "root" "root-part")
+                  (instantiate-pclass nil (str "/" (first sroot)) (first sroot) spam root-class nil args "root" "root-part")
                   ;; Now establish the inverse influence table in the model.
                   (reset! (.invertedinfluencehashtable *current-model*) (inverted-method-influence-table)))
                 (println "root-class" root "not found in model - can't proceed.")))))))))
