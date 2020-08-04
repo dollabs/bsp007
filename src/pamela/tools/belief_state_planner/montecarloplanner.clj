@@ -13,9 +13,11 @@
             [clojure.tools.logging :as log]
             [environ.core :refer [env]]
             [clojure.data.json :as json]
+            [random-seed.core :refer :all]
             ; [avenir.utils :as au :refer [as-boolean]]
             ; [montecarloplanner.observe :as observe]
             )
+  (:refer-clojure :exclude [rand rand-int rand-nth])
   (:gen-class))
 
 ;(in-ns 'pamela.tools.belief-state-planner.montecarloplanner)

@@ -16,6 +16,7 @@
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojure.data.json :as json]
+            [random-seed.core :refer :all]
             [pamela.tools.belief-state-planner.runtimemodel :as rtm]
             [pamela.tools.belief-state-planner.montecarloplanner :as bs]
             [pamela.tools.belief-state-planner.expressions :as dxp]
@@ -23,6 +24,7 @@
             [pamela.cli :as pcli]
             [pamela.unparser :as pup]
             )
+  (:refer-clojure :exclude [rand rand-int rand-nth])
   (:gen-class))
 
 ;;;(in-ns 'pamela.tools.belief-state-planner.dmcgpcore)
