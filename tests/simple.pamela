@@ -1,0 +1,204 @@
+;;; Monkey and banana problem: Version 1
+
+;;; Objects:
+;;;   Banana
+;;;   Chair
+;;;   Monkey
+
+;;; Goal state  Monkey eats banana
+
+;;; (defpclass Edible [] :modes [:edible :inedible])
+(defpclass General [] :modes [:initial :nothing])
+
+(defpclass Height [] :modes [:ground :high :very-high])
+
+(defpclass Support [] :modes [:unknown :ground :chair1 :banana1])
+
+(defpclass Foodstate [] :modes [:ripe :young :spoiled :eaten])
+
+(defpclass Banana [pos hgt onwhat]
+  :modes {:ripe (or (mode-of General :initial)) :young true :spoiled true :eaten true} ; crappy way of specifying initial
+  :fields {position pos
+           height hgt
+           on onwhat
+           edible :true}
+  :methods [(defpmethod be-eaten
+              {:doc "take an object by hand. Change state to eaten.  Perhaps should cease to exist+++"
+               :pre (not (and :eaten))
+               :post :eaten
+               }
+              [])
+            (defpmethod reposition
+              {:doc "Change position"
+               :post (= position nupos)}
+               [nupos]
+              )])
+
+(defpclass Chair [pos hgt onwhat]
+  :modes [ :available :in-use ]
+  :fields {position pos
+           height hgt
+           on onwhat
+           edible :false}
+  :methods [(defpmethod reposition
+              {:doc "Change position"
+               :post (= position nupos)}
+              [nupos]
+              )])
+
+(defpclass Robot [pos hgt onwhat]
+  :modes [ :ready ]
+  :fields {position pos
+           height hgt
+           handholds (mode-of General :nothing)
+           on onwhat}
+  :methods [(defpmethod take
+              {:doc "take an object by hand"
+               :pre (and (= handholds (mode-of General :nothing))
+                         (= position object.position)
+                         (= height object.height))
+               :post (= handholds object)
+               :primitive true}
+              [object])
+            ;; ;; Not needed in the initial demo
+            ;; (defpmethod drop
+            ;;   {:doc "drop an object held by hand"
+            ;;    :pre (= handholds object)
+            ;;    :post (= handholds (mode-of General :nothing))
+            ;;    :primitive true}
+            ;;   [object])
+            (defpmethod eat
+              {:doc "eat an edible object"
+               :pre (and (= handholds object)
+                         (not (= object (mode-of Foodstate :eaten))))
+               :post (and (= object (mode-of Foodstate :eaten))
+                          (= handholds (mode-of General :nothing)))
+               :primitive true}
+              [object])
+            (defpmethod goto
+              {:doc "goto specified position"
+               :pre (not (= position nupos))
+               :post (= position nupos)
+               :primitive true}
+              [nupos])
+            (defpmethod push
+              {:doc "push an object to the designated position"
+               :pre (and (not (= position toposition))
+                         (= position object.position))
+               :post (and (= object.position toposition)
+                          (= position toposition))
+               :primitive true}
+              [object toposition])
+            (defpmethod climb-on
+              {:doc "climb on to the object"
+               :pre (and (= position object.position)
+                         (not (= on object)))
+               :post (and (= on object)
+                          (= height (mode-of Height :high)))
+               :primitive true}
+              [object])
+            ;; ;; Not needed in the initial demo
+            ;; (defpmethod jump-down-from
+            ;;   {:doc "jump off of an object"
+            ;;    :pre (= on object)
+            ;;    :post (= on (mode-of Support :ground))
+            ;;    :primitive true}
+            ;;   [object])
+            ])
+
+;; ??? Why do the mode-of constructs not parse here? ??? +++
+;; (defpclass world []
+;;   :fields {abanana (Banana "10,10" (mode-of Height :high)   :unknown                  :id "banana1")
+;;            achair  (Chair  "0,5"   (mode-of Height :ground) (mode-of Support :ground) :id "chair1")
+;;            arobot  (Robot  "5,0"   (mode-of Height :ground) (mode-of Support :ground) :id "robot1")}
+;;   :methods [(defpmethod main
+;;               {:doc "eat the banana"}
+;;               :pre (= abanana (mode-of Banana :eaten))
+;;               [])])
+
+(defpclass world []
+  :modes [ :root ]
+  :fields {abanana (Banana "10,10" :ground :ground  :id "banana1")
+           achair  (Chair  "0,5"   :ground :ground  :id "chair1")
+           arobot  (Robot  "5,0"   :ground :ground  :id "Robot1")}
+  :methods [(defpmethod goal
+              {:doc "eat the banana"
+               :post (= abanana (mode-of Banana :eaten))}
+              []
+              ;; This is what should be generated
+              (sequence
+               (arobot.goto "0,5")
+               (arobot.push achair "10,10")
+               (arobot.climb-on achair)
+               (arobot.take abanana)
+               (arobot.eat abanana))
+              )])
+
+;;; Analysis:
+;;;  "abanana" starts out :ripe, at position 10,10 and :high for some unknown reason.
+;;;  For the banana to become ":eaten" the robot must apply the "eat" method.
+;;;  The eat method requires that the robot be holding the banana, which at the start, it is not.
+;;;  In order to hold the banana, the robot must take the banana, which requires that the robot:
+;;;    1. be in the same position, 2. not be holding anything, and be at the same height as the banana (which is :high)
+;;;    of these, #2 is already satisfied, #1 and #3 are not.
+;;;  In order to get the the right position, it can go to where the
+;;;  banana is.  In order to get to the right height, it can climb up
+;;;  on the chair.  Only if the chair is in the right position will
+;;;  the monkey be able to reach the banana.  Going to the banana
+;;;  first leads to a wasted move, because it has to leave that
+;;;  position in order to get the chair.  What works is to climb on the chair when the chair is at at the right position.
+;;;  for this it must move the chair to where it is needed and to do that it must go to the chair to resolve the prerequisie for the push method.
+;;;  climb-on requires that the monkey be at the chair, so going to the chair allows two actions, climb on the chair, and push the chair.
+;;;
+;;; Heirarchy:
+;;;   1. eat banana (but have to hold it in order to eat it)
+;;;     1.1 take banana (but have to be able to reach it to take it)
+;;;     1.1.1 climb on on chair (but chair needs to be in the right place)
+;;;       1.1.1.1 Push chair to positiopn of banana (but have to be at the chair position in order to push it.
+;;;         1.1.1.1 go to chair (Already satisfied prerequisites)
+;;;
+;;;  TPN generated: sequentiql{ robot1.goto("0,5"); robot1.push("chair1","10,10"); robot1.climb-on("chair1"); robot1.take("banana1"); robot1.eat("banana1") }
+;;;
+;;;  Starting state:
+;;;  abanana.position="10,10", abanana.height=:high, abanana.on=:unknown, abanana.mode=:ripe
+;;;  achair.position="0,5", achair.height=:ground, achair.on=:ground
+;;;  arobot.position="5,0", arobot.height=:ground, arobot.on=:ground, handholds="nothing"
+;;;
+;;; After goto("0,5"):
+;;;  abanana.position="10,10", abanana.height=:high, abanana.on=:unknown, abanana.mode=:ripe
+;;;  achair.position="0,5", achair.height=:ground, achair.on=:ground
+;;;  arobot.position="0,5", arobot.height=:ground, arobot.on=:ground, handholds="nothing"
+
+;;; After push("10,10"):
+;;;  abanana.position="10,10", abanana.height=:high, abanana.on=:unknown, abanana.mode=:ripe
+;;;  achair.position="10,10", achair.height=:ground, achair.on=:ground
+;;;  arobot.position="10,10", arobot.height=:ground, arobot.on=:ground, handholds="nothing"
+
+;;; After climb-on("chair1"):
+;;;  abanana.position="10,10", abanana.height=:high, abanana.on=:unknown, abanana.mode=:ripe
+;;;  achair.position="10,10", achair.height=:ground, achair.on=:ground
+;;;  arobot.position="10,10", arobot.height=:ground, arobot.on="chair1", handholds="nothing"
+
+;;; After take("banana1"):
+;;;  abanana.position="10,10", abanana.height=:high, abanana.on=:unknown, abanana.mode=:ripe
+;;;  achair.position="10,10", achair.height=:ground, achair.on=:ground
+;;;  arobot.position="10,10", arobot.height=:ground, arobot.on="chair1", handholds="banana1"
+
+;;; After eat("banana1"):
+;;;  abanana.position="10,10", abanana.height=:high, abanana.on=:unknown, abanana.mode=:eaten
+;;;  achair.position="10,10", achair.height=:ground, achair.on=:ground
+;;;  arobot.position="10,10", arobot.height=:ground, arobot.on="chair1", handholds=:nothing
+
+;;; All of the above is in the virtual belief space, the plan has been generated, and the above tells us what to expect when we run the plan.
+;;; We have not included any timing information, but if we had, we could estimate how long it would all take.  We could also have given a
+;;; time limit for the robot in which to eat the banana and the plan would tell us that the plan would or would not meet the constraint.
+;;; We can also generate countless other plans that result in the eating of the banana within a time constraint, and many others that would
+;;; take too long.
+
+;;; So this plan leaves the monkey on the chair and the chair not where it was originally.  No reason to do otherwise.  We could have explicitely,
+;;; specified that the robot leave the world as it found it and return to its starting position, but that would make the goal and the planning problem
+;;; unnecessarily complicated.
+
+;;; Learning
+
+;;; Fin
