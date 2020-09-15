@@ -41,19 +41,17 @@
 (def repl true)
 (defonce last-ctag nil)
 
-(def cli-options [["-m" "--model pm" "pamela model of system" :default nil]
-                  ["-a" "--attack ap" "attack plan analysis" :default nil]
-                  ["-d" "--desired" "Desired properties" :default nil]
-                  ["-o" "--output file" "output" :default "spamela.txt"]
+(def cli-options [["-m" "--model pm" "pamela model, in ir-json, of system" :default nil]
+                  ["-r" "--root name" "Root pClass" :default "main"]
+                  ["-g" "--goals gm" "goal definitions and support, in, ir-json" :default nil]
+                  ["-G" "--groot name" "Root pClass of the goal" :default "main"]
+                  ["-o" "--output file" "output" :default "solution.pamela"]
                   ["-h" "--host rmqhost" "RMQ Host" :default "localhost"]
                   ["-p" "--port rmqport" "RMQ Port" :default 5672 :parse-fn #(Integer/parseInt %)]
                   ["-e" "--exchange name" "RMQ Exchange Name" :default "tpn-updates"]
-                  ;["-m" "--model ir" "Model IR" :default nil]
-                  ["-r" "--root name" "Root pClass" :default "main"]
                   ["-b" "--dmcpid id" "DMCP ID" :default "dmcp1"]
                   ["-w" "--watchedplant id" "WATCHEDPLANT ID" :default nil]
                   ["-t" "--tracefile file" " Trace filename" :default nil]
-                  ["-f" "--fromfile val" "Observations from file" :default 0]
                   ["-v" "--verbose level" "Verbose mode" :default "0"]
                   ["-?" "--help"]
                   ])
@@ -188,37 +186,36 @@
         ;;(= rk "cart-vision")   (recobs/process-visual-observation m)
 
         ;; Track activities started by the dispatcher
-        (= rk watchedplant)
-                                 (let [id (get m :id)
-                                       plid (get m :plant-id)
-                                       partid (get m :plant-part)
-                                       state (get m :state)
-                                       fname (get m :function-name)
-                                       ts (get m :timestamp)]
-                                   (if fname
-                                     (if (= state :start)
-                                       (do
-                                         (println "function: " fname " id: " id " starting.")
-                                         ;; handle the startup
-                                         (let [startobj {:state "started",
-                                                         :id id,
-                                                         :plant-id plid }
-                                               obj {:state "finished",
-                                                    :plant-id plid,
-                                                    :id id,
-                                                    :reason {:finish-state "success"}}]
-                                           (println "About to publish: " startobj " to  observations, " rmq-channel ", " exchange)
-                                           (mq/publish-object startobj "observations" rmq-channel exchange)
-                                           (add-running-activity [plid
-                                                                  partid
-                                                                  fname
-                                                                  ts
-                                                                  (fn []
-                                                                    (println "About to publish: " obj " to  observations, " rmq-channel ", " exchange)
-                                                                    (mq/publish-object obj "observations" rmq-channel exchange))
-                                                                  nil ;; +++ (recobs/postcondition plid partid fname)
-                                                                  ])))
-                                       (println "function: " fname " id: " id " state: " state)))))
+        (= rk watchedplant)        (let [id (get m :id)
+                                         plid (get m :plant-id)
+                                         partid (get m :plant-part)
+                                         state (get m :state)
+                                         fname (get m :function-name)
+                                         ts (get m :timestamp)]
+                                     (if fname
+                                       (if (= state :start)
+                                         (do
+                                           (println "function: " fname " id: " id " starting.")
+                                           ;; handle the startup
+                                           (let [startobj {:state "started",
+                                                           :id id,
+                                                           :plant-id plid }
+                                                 obj {:state "finished",
+                                                      :plant-id plid,
+                                                      :id id,
+                                                      :reason {:finish-state "success"}}]
+                                             (println "About to publish: " startobj " to  observations, " rmq-channel ", " exchange)
+                                             (mq/publish-object startobj "observations" rmq-channel exchange)
+                                             (add-running-activity [plid
+                                                                    partid
+                                                                    fname
+                                                                    ts
+                                                                    (fn []
+                                                                      (println "About to publish: " obj " to  observations, " rmq-channel ", " exchange)
+                                                                      (mq/publish-object obj "observations" rmq-channel exchange))
+                                                                    nil ;; +++ (recobs/postcondition plid partid fname)
+                                                                    ])))
+                                         (println "function: " fname " id: " id " state: " state)))))
       (check-for-satisfied-activities))))
 
 (defn observe-plant
@@ -226,10 +223,16 @@
   [& args]
   (.write *out* (format "%nIn observe-plant with: %s%n" args)))
 
+(defn make-offline-plan
+  "Track the the belief state of the currently oaded model"
+  [& args]
+  (.write *out* (format "%nIn observe-plant with: %s%n" args)))
+
 (def #^{:added "0.1.0"}
   actions
   "Valid dmcp command line actions"
-  {"observe" (var observe-plant)})
+  {"observe" (var observe-plant)
+   "make-plan" (var make-offline-plan)})
 
 (defn usage
   "Print dmcp command line help."
@@ -248,19 +251,24 @@
              "Actions:"])
     (string/join \newline)))
 
-#_(defn montecarloplanner
+(defn montecarloplanner
   "DOLL Monte-Carlo Planner"
   [& args]
   (println args)
   (println cli-options)
   (let [parsed (cli/parse-opts args cli-options)
+        {:keys [options arguments error summary]} parsed
+        {:keys [help version verbose observe connect make-plan] } options
+        cmd (first arguments)
         verbosity (read-string (get-in parsed [:options :verbose]))
         _ (if (> verbosity 1) (println parsed))
-        attack (get-in parsed [:options :attack])
+        goals (get-in parsed [:options :goals])
         model (get-in parsed [:options :model])
-        desired (get-in parsed [:options :desired])
+        root (symbol (get-in parsed [:options :root]))
+        groo (symbol (get-in parsed [:options :groot]))
         outfile (get-in parsed [:options :output])
 
+        ;; For connectivity with another RMQ system
         ch-name (get-in parsed [:options :exchange])
         _ (if (> verbosity 0) (println [ "ch-name = " ch-name]))
         host (get-in parsed [:options :host])
@@ -269,12 +277,10 @@
         myid (get-in parsed [:options :dmcpid])
         wpid (get-in parsed [:options :watchedplant])
         trfn (get-in parsed [:options :tracefile])
-        frfi (get-in parsed [:options :fromfile])
         port (get-in parsed [:options :port])
         _ (if (> verbosity 0) (println ["port = " port]))
         help (get-in parsed [:options :help])
         _ (if (> verbosity 0) (println ["help = " help]))
-        root (symbol (get-in parsed [:options :root]))
         _ (println ["root = " root])
         ;; importfilestem (if desired (strip-extn model) nil) ; not clear that we need that.
         ;; model (get-in parsed [:options :model])
@@ -286,12 +292,8 @@
               (when-not repl
                 (System/exit 0))))
 
-        _ (if (> verbosity 0) (println "DOLL Monte-Carlo Planner" (:options parsed)))
-        ;_ (if (> verbosity 0) (println "Case Requirements Generator: " (:options parsed)))
+        _ (if (> verbosity 0) (println "DOLL Monte-Carlo Generative Planner" (:options parsed)))
         ]
-
-    ;; (recobs/set-running-from-files frfi)
-
 
     ;; Establish initial belief state
     ;; Start off in a clean state
@@ -299,50 +301,27 @@
     (bs/bs-complete-reset)
     (bs/clear-belief-state)
 
-    (bs/describe-belief-state)
+    (cond (>= (count arguments) 1)
+          (case (keyword (first arguments))
+            :observe
+            :NYI
 
-    (if model
-      (do
-        (pamela.tools.belief-state-planner.ir-extraction/make-spamela {
-                                          :model model
-                                          :outfile outfile
-                                          :verbose verbosity
-                                          })
-          (println ""))
-      (if attack ;; If this is specified it means that we are file based.
-        (do
-          (pamela.tools.belief-state-planner.casediagimpl/make-requirements {
-                                                :attack-plan attack
-                                                :model model
-                                                :outfile outfile
-                                                :dps-from desired
-                                                :verbose verbosity
-                                                })
-          (println ""))
-        (let [connection (rmq/connect {:host host :port port})
-              channel (lch/open connection)
-              _ (le/declare channel ch-name "topic")
-              queue (lq/declare channel)
-              qname (.getQueue queue)
-              _ (lq/bind channel qname ch-name {:routing-key "#"})
-              ctag (lc/subscribe channel qname incoming-msgs {:auto-ack true})]
+            :connect
+            (let [connection (rmq/connect {:host host :port port})
+                  channel (lch/open connection)
+                  _ (le/declare channel ch-name "topic")
+                  queue (lq/declare channel)
+                  qname (.getQueue queue)
+                  _ (lq/bind channel qname ch-name {:routing-key "#"})
+                  ctag (lc/subscribe channel qname incoming-msgs {:auto-ack true})]
 
-          (def rmq-channel channel)
-          (def exchange exch)
-          (def dmcpid myid)
-          (def watchedplant wpid)
-          (def tracefilename trfn)
-          (println "RabbitMQ connection Established")
-
-          (if model
-            (do
-              ;;(dmcp.runtimemodel/load-model model root) ;temporarily disabled due to changes in the IR +++
-              (pamela.tools.belief-state-planner.runtimemodel/describe-current-model)
-              (bs/describe-belief-state)
-              (println "")
-              (println "model loaded: " model)))
-
-          ;; If no model was specified, we assume that a command will provide the model to load  later.
+              (def rmq-channel channel)
+              (def exchange exch)
+              (def dmcpid myid)
+              (def watchedplant wpid)
+              (def tracefilename trfn)
+              (println "RabbitMQ connection Established")
+              ;; Then what !!!*****
           (when last-ctag
             (mq/cancel-subscription (first last-ctag) (second last-ctag)))
           ;; conj for list pushes to the front, so we push channel then ctag.
@@ -353,12 +332,32 @@
             (with-open [ostrm (clojure.java.io/writer tracefilename)]
               ;; (recobs/set-trace-stream ostrm)
               (while (not exitmainprogram) (Thread/sleep 1000))))
+          ctag)
 
-          ctag)))))
+
+            :make-plan
+
+            (if model
+              (do
+                (rtm/load-model model root) ; no args
+                (pamela.tools.belief-state-planner.runtimemodel/describe-current-model)
+                (bs/describe-belief-state)
+                (println "")
+                (println "model loaded: " model)))
+            (if goals
+              (do
+                (rtm/load-model goals groo) ; no args
+                (pamela.tools.belief-state-planner.runtimemodel/describe-current-model)
+                (bs/describe-belief-state)
+                (println "")
+                (println "model loaded: " goals)))
+
+            ;; Then what!
+            )
+          )))
 
 (defn  -main
   "dmcp"
   {:added "0.1.0"}
   [& args]
-  #_(apply montecarloplanner args)
-  nil)
+  (apply montecarloplanner args))
