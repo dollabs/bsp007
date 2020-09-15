@@ -8,6 +8,7 @@
   "DOLL Monte Carlo Planner (DMCP)"
   (:require [clojure.tools.cli :as cli]
             [clojure.java.io :refer [output-stream]]
+            [clojure.java.io :as io]
             [mbroker.rabbitmq :as mq]
             [langohr.core :as rmq]
             [langohr.exchange :as le]
@@ -22,11 +23,12 @@
             [clojure.data.json :as json]
             [environ.core :refer [env]]
             [avenir.utils :as au :refer [as-boolean]]
+            [pamela.unparser :as pup]
+            ;;[dcrypps.common.core :as dc :refer :all]
+            ;;[dcrypps.attack-model-generator.desirable-properties :as dp :refer :all]
             [pamela.tools.belief-state-planner.runtimemodel :as rtm]
             [pamela.tools.belief-state-planner.montecarloplanner :as bs]
-            ;;[pamela.tools.belief-state-planner.kfb :as kfb]
-            ;;[pamela.tools.belief-state-planner.recobs :as recobs]
-            ;; [pamela.tools.belief-state-planner.casediagimpl :as cdiag]
+            [pamela.tools.belief-state-planner.dmcgpcore :as core]
             [pamela.tools.belief-state-planner.expressions :as dxp]
             [pamela.tools.belief-state-planner.ir-extraction :as irx])
   (:import (java.text SimpleDateFormat)
@@ -42,12 +44,15 @@
 (defonce last-ctag nil)
 
 (def cli-options [["-m" "--model pm" "pamela model, in ir-json, of system" :default nil]
-                  ["-r" "--root name" "Root pClass" :default "main"]
+                  ["-R" "--root name" "Root pClass" :default "main"]
                   ["-g" "--goals gm" "goal definitions and support, in, ir-json" :default nil]
                   ["-G" "--groot name" "Root pClass of the goal" :default "main"]
+                  ["-s" "--samples n" "Number of samples" :default "1000"]
+                  ["-d" "--maxdepth n" "Maximum search depth" :default "20"]
+                  ["-r" "--rawp bool" "raw solutions? (otherwise) compiled)" :default false]
                   ["-o" "--output file" "output" :default "solution.pamela"]
                   ["-h" "--host rmqhost" "RMQ Host" :default "localhost"]
-                  ["-p" "--port rmqport" "RMQ Port" :default 5672 :parse-fn #(Integer/parseInt %)]
+                  ["-p" "--port rmqport" "RMQ Port" :default 5672]
                   ["-e" "--exchange name" "RMQ Exchange Name" :default "tpn-updates"]
                   ["-b" "--dmcpid id" "DMCP ID" :default "dmcp1"]
                   ["-w" "--watchedplant id" "WATCHEDPLANT ID" :default nil]
@@ -254,37 +259,40 @@
 (defn montecarloplanner
   "DOLL Monte-Carlo Planner"
   [& args]
-  (println args)
-  (println cli-options)
+  ;;(println args)
+  ;;(println cli-options)
   (let [parsed (cli/parse-opts args cli-options)
         {:keys [options arguments error summary]} parsed
         {:keys [help version verbose observe connect make-plan] } options
         cmd (first arguments)
         verbosity (read-string (get-in parsed [:options :verbose]))
-        _ (if (> verbosity 1) (println parsed))
+        _ (if (> verbosity 2) (println parsed))
         goals (get-in parsed [:options :goals])
         model (get-in parsed [:options :model])
         root (symbol (get-in parsed [:options :root]))
         groo (symbol (get-in parsed [:options :groot]))
+        samp (read-string (get-in parsed [:options :samples]))
+        maxd (read-string (get-in parsed [:options :maxdepth]))
+        rawp (read-string (get-in parsed [:options :rawp]))
         outfile (get-in parsed [:options :output])
 
         ;; For connectivity with another RMQ system
         ch-name (get-in parsed [:options :exchange])
-        _ (if (> verbosity 0) (println [ "ch-name = " ch-name]))
+        ;;_ (if (> verbosity 0) (println [ "ch-name = " ch-name]))
         host (get-in parsed [:options :host])
-        _ (if (> verbosity 0) (println ["host = " host]))
+        ;;_ (if (> verbosity 0) (println ["host = " host]))
         exch (get-in parsed [:options :exchange])
         myid (get-in parsed [:options :dmcpid])
         wpid (get-in parsed [:options :watchedplant])
         trfn (get-in parsed [:options :tracefile])
         port (get-in parsed [:options :port])
-        _ (if (> verbosity 0) (println ["port = " port]))
+        ;;_ (if (> verbosity 0) (println ["port = " port]))
         help (get-in parsed [:options :help])
-        _ (if (> verbosity 0) (println ["help = " help]))
-        _ (println ["root = " root])
+        ;;_ (if (> verbosity 0) (println ["help = " help]))
+        ;; _ (println ["root = " root])
         ;; importfilestem (if desired (strip-extn model) nil) ; not clear that we need that.
         ;; model (get-in parsed [:options :model])
-        _ (if (> verbosity 0) (println ["model = " model]))
+        ;;_ (if (> verbosity 0) (println ["model = " model]))
         _ (do
             (def repl false)
             (when help
@@ -295,6 +303,8 @@
         _ (if (> verbosity 0) (println "DOLL Monte-Carlo Generative Planner" (:options parsed)))
         ]
 
+    (core/set-verbosity verbosity)
+    (rtm/set-verbosity verbosity)
     ;; Establish initial belief state
     ;; Start off in a clean state
     (rtm/unload-model)
@@ -322,39 +332,58 @@
               (def tracefilename trfn)
               (println "RabbitMQ connection Established")
               ;; Then what !!!*****
-          (when last-ctag
-            (mq/cancel-subscription (first last-ctag) (second last-ctag)))
-          ;; conj for list pushes to the front, so we push channel then ctag.
-          ;; So, we get ctag = (first last-ctag), and channel = (second last-ctag)
-          (def last-ctag (conj last-ctag channel ctag))
+              (when last-ctag
+                (mq/cancel-subscription (first last-ctag) (second last-ctag)))
+              ;; conj for list pushes to the front, so we push channel then ctag.
+              ;; So, we get ctag = (first last-ctag), and channel = (second last-ctag)
+              (def last-ctag (conj last-ctag channel ctag))
 
-          (if-not (nil? tracefilename)
-            (with-open [ostrm (clojure.java.io/writer tracefilename)]
-              ;; (recobs/set-trace-stream ostrm)
-              (while (not exitmainprogram) (Thread/sleep 1000))))
-          ctag)
+              (if-not (nil? tracefilename)
+                (with-open [ostrm (clojure.java.io/writer tracefilename)]
+                  ;; (recobs/set-trace-stream ostrm)
+                  (while (not exitmainprogram) (Thread/sleep 1000))))
+              ctag)
 
 
             :make-plan
 
-            (if model
-              (do
-                (rtm/load-model model root) ; no args
-                (pamela.tools.belief-state-planner.runtimemodel/describe-current-model)
-                (bs/describe-belief-state)
-                (println "")
-                (println "model loaded: " model)))
-            (if goals
-              (do
-                (rtm/load-model goals groo) ; no args
-                (pamela.tools.belief-state-planner.runtimemodel/describe-current-model)
-                (bs/describe-belief-state)
-                (println "")
-                (println "model loaded: " goals)))
+            (do
+              (if model
+                (do
+                  (if (.exists (io/file model))
+                    (do
+                      (rtm/load-model model root) ; no args
+                      (if (> verbosity 2)
+                        (do (rtm/describe-current-model)
+                            (bs/describe-belief-state)
+                            (println "")))
+                      (if (> verbosity 0) (println "model loaded: " model)))
+                    (do
+                      (println "File does not exist: " model)
+                      (Thread/sleep 2000)
+                      (System/exit 1)))))
+              (if goals
+                (do
+                  (if (.exists (io/file goals))
+                    (do
+                      (rtm/load-model goals groo) ; no args
+                      (if (> verbosity 2)
+                        (do (rtm/describe-current-model)
+                            (bs/describe-belief-state)
+                            (println "")))
+                      (if (> verbosity 0) (println "goal model loaded: " goals)))
+                    (do
+                      (println "File does not exist: " model)
+                      (Thread/sleep 2000)
+                      (System/exit 1)))
+                  (let [solutions (core/solveit :samples samp :max-depth maxd :rawp rawp)]
+                    (pprint solutions)))
+                (println "Nothing to do, no goals provided")))
 
-            ;; Then what!
-            )
-          )))
+            (println "Unknown action: " (first arguments)))
+
+          :otherwise
+          (println "No action specified, try: make-plan"))))
 
 (defn  -main
   "dmcp"

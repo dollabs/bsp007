@@ -61,6 +61,10 @@
 ;;(def ^:dynamic *printdebug* false)
 (def ^:dynamic verbosity 0) ; 0
 
+(defn set-verbosity
+  [n]
+  (def ^:dynamic verbosity n))
+
 ;;; A model is a map with a list of instantiated objects that constitute the model
 ;;; and a list of structural lvars.
 ;;; Each instantiated object is a map with entries for the object type,
@@ -869,7 +873,7 @@
         ;; Non embedded objects are at the root level and are named after their class with a proceeding "/"
         instance-name path
         newObject (RTobject. instance-name cname (atom nil) id)]
-    (if *printdebug*
+    (if (and (> verbosity 1) *printdebug*)
       (.write *out* (format "%nInstantiating class %s%n  args=%s%n  id=%s%n  fields=%s%n  modes=%s%n"
                             cname argmap id cfields modes)))
     ;; Create an instance var for the instatiated class and add it to the belief state and the model objects
@@ -972,7 +976,7 @@
 (defn load-model
   "Load a model from a file as produced from a pamela build with --json-ir."
   [file root & args]
-  (println "Loading " file " root=" root " args=" args)
+  (if (> verbosity 0) (println "Loading " file " root=" root " args=" args))
   (let [raw-json-ir (slurp file)]
     (load-model-from-json-string raw-json-ir root args)))
 

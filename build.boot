@@ -4,7 +4,7 @@
 ;; Apache License, Version 2.0 which can be found in
 ;; the file LICENSE at the root of this distribution.
 
-(def project 'dollabs/BSP)
+(def project 'dollabs/dmcgp)
 (def version "0.2.0")
 (def description "DOLL Monte-Carlo Generative Planner")
 (def project-url "https://TBD/dollabs/")

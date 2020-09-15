@@ -37,6 +37,10 @@
 
 (def ^:dynamic *printdebug* false) ; false
 
+(defn set-verbosity
+  [n]
+  (def ^:dynamic verbosity n))
+
 (defn nyi
   [text]
   (if (> verbosity 1) (println "NYI called with: " text))
@@ -532,7 +536,7 @@
 (defn scompile-call-sequence
   [calls]
   ;; (println "**** In scompile-call-sequence calls:")
-  (pprint calls)
+  (if (> verbosity 0) (pprint calls))
   (let [;; scalls (sanitize-calls calls)
         sequence (ir-sequence (into [] calls))
         - (if (> verbosity 2) (do (println "sequence:") (pprint sequence)))
