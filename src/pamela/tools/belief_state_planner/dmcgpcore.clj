@@ -780,7 +780,7 @@
         (if (condition-satisfied? this-goal rootobject)
           (if (empty? outstanding-goals)
             (do (if (> verbosity 2) (println "***Solution found:"))
-                (pprint complete-plan)
+                (if (> verbosity 2) (pprint complete-plan))
                 (if (> verbosity 2) (println "************************************************************************"))
                 complete-plan)                 ; The last outstanding goal was satisfied, return the completed plan SUCCESS
             (recur outstanding-goals complete-plan depth)) ; Continue until we reach an unsatisfied goal

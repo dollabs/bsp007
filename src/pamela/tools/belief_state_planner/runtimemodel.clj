@@ -88,7 +88,7 @@
   (doseq [obj (seq @(.objects *current-model*))]
     (let [pclass (:class obj)
           mode (:mode obj)]
-      (if *printdebug*
+      (if (and (> verbosity 0) *printdebug*)
         (.write *out* (format "%nMode of %s: %s" pclass mode)))
       ;; Delete the belief in the objects mode
       (bs/undef-variable mode)
@@ -243,8 +243,8 @@
 (defn add-pclasses
   "Add an pclasses from a loaded model file."
   [pcs]
-  (if *printdebug*
-    (do (if (> verbosity 1) (println "adding spam:\n"))
+  (if (and (> verbosity 1) *printdebug*)
+    (do (println "adding spam:\n")
         (pprint pcs)))
   (reset! (.pclasses *current-model*) pcs)) ;+++ unfinished, thsi needs to merge with whats already there
 

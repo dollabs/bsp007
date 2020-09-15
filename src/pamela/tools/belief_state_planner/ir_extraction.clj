@@ -29,6 +29,10 @@
 (def ^:dynamic inrepl false)
 ;;;(def ^:dynamic inrepl true)
 
+(defn set-verbosity
+  [n]
+  (def ^:dynamic verbosity n))
+
 (defn read-ir-file [pathstring]
   (read-string (slurp pathstring)))
 

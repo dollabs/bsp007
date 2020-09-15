@@ -305,6 +305,7 @@
 
     (core/set-verbosity verbosity)
     (rtm/set-verbosity verbosity)
+    (irx/set-verbosity verbosity)
     ;; Establish initial belief state
     ;; Start off in a clean state
     (rtm/unload-model)
@@ -390,3 +391,7 @@
   {:added "0.1.0"}
   [& args]
   (apply montecarloplanner args))
+
+;;; (def repl true)
+;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "false" "make-plan")
+;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
