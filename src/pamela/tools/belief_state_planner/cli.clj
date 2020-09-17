@@ -49,7 +49,7 @@
                   ["-G" "--groot name" "Root pClass of the goal" :default "main"]
                   ["-s" "--samples n" "Number of samples" :default "1000"]
                   ["-d" "--maxdepth n" "Maximum search depth" :default "20"]
-                  ["-r" "--rawp bool" "raw solutions? (otherwise) compiled)" :default false]
+                  ["-r" "--rawp bool" "raw solutions? (otherwise) compiled)" :default "false"]
                   ["-o" "--output file" "output" :default "solution.pamela"]
                   ["-h" "--host rmqhost" "RMQ Host" :default "localhost"]
                   ["-p" "--port rmqport" "RMQ Port" :default 5672]
@@ -396,3 +396,6 @@
 ;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "false" "make-plan")
 ;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "false" "make-plan")
+;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
