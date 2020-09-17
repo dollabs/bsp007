@@ -1,0 +1,423 @@
+{"Banana":
+ {":args":["pos", "hgt", "onwhat"],
+  ":fields":
+  {"edible":
+   {":access":":private", ":initial":":true", ":observable":false},
+   "height":
+   {":access":":private",
+    ":initial":{":names":["hgt"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "on":
+   {":access":":private",
+    ":initial":{":names":["onwhat"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "position":
+   {":access":":private",
+    ":initial":{":names":["pos"], ":type":":pclass-arg-ref"},
+    ":observable":false}},
+  ":methods":
+  {"be-eaten":
+   [{":doc":
+     "\"take an object by hand. Change state to eaten.  Perhaps should cease to exist+++\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Be Eaten\"",
+     ":pre":
+     {":type":":not",
+      ":args":
+      [{":type":":and",
+        ":args":
+        [{":type":":mode-ref",
+          ":mode-ref":{":type":":symbol-ref", ":names":["this"]},
+          ":mode":":eaten"}]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["this"]},
+      ":mode":":eaten"},
+     ":display-args":null}],
+   "reposition":
+   [{":doc":"\"Change position\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["nupos"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Reposition\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["position"]},
+       {":type":":method-arg-ref", ":names":["nupos"]}]},
+     ":display-args":["nupos"]}]},
+  ":modes":
+  {":eaten":true,
+   ":ripe":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"},
+   ":spoiled":true,
+   ":young":true},
+  ":type":":pclass"},
+ "Chair":
+ {":args":["pos", "hgt", "onwhat"],
+  ":fields":
+  {"edible":
+   {":access":":private", ":initial":":false", ":observable":false},
+   "height":
+   {":access":":private",
+    ":initial":{":names":["hgt"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "on":
+   {":access":":private",
+    ":initial":{":names":["onwhat"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "position":
+   {":access":":private",
+    ":initial":{":names":["pos"], ":type":":pclass-arg-ref"},
+    ":observable":false}},
+  ":methods":
+  {"reposition":
+   [{":doc":"\"Change position\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["nupos"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Reposition\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["position"]},
+       {":type":":method-arg-ref", ":names":["nupos"]}]},
+     ":display-args":["nupos"]}]},
+  ":modes":{":available":true, ":in-use":true},
+  ":type":":pclass"},
+ "Foodstate":
+ {":args":null,
+  ":modes":
+  {":eaten":true, ":ripe":true, ":spoiled":true, ":young":true},
+  ":type":":pclass"},
+ "General":
+ {":args":null,
+  ":modes":{":initial":true, ":nothing":true},
+  ":type":":pclass"},
+ "Height":
+ {":args":null,
+  ":modes":{":ground":true, ":high":true, ":very-high":true},
+  ":type":":pclass"},
+ "Robot":
+ {":args":["pos", "hgt", "onwhat"],
+  ":fields":
+  {"handholds":
+   {":access":":private",
+    ":initial":
+    {":mode":":nothing",
+     ":mode-ref":{":names":["General"], ":type":":symbol-ref"},
+     ":type":":mode-ref"},
+    ":observable":false},
+   "height":
+   {":access":":private",
+    ":initial":{":names":["hgt"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "on":
+   {":access":":private",
+    ":initial":{":names":["onwhat"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "position":
+   {":access":":private",
+    ":initial":{":names":["pos"], ":type":":pclass-arg-ref"},
+    ":observable":false}},
+  ":methods":
+  {"climb-on":
+   [{":doc":"\"climb on to the object\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["object"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Climb On\"",
+     ":pre":
+     {":type":":and",
+      ":args":
+      [{":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["position"]},
+         {":type":":method-arg-ref",
+          ":names":["object", "position"]}]},
+       {":type":":not",
+        ":args":
+        [{":type":":equal",
+          ":args":
+          [{":type":":field-ref", ":names":["on"]},
+           {":type":":method-arg-ref", ":names":["object"]}]}]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":and",
+      ":args":
+      [{":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["on"]},
+         {":type":":method-arg-ref", ":names":["object"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["height"]},
+         {":type":":mode-ref",
+          ":mode-ref":{":type":":symbol-ref", ":names":["Height"]},
+          ":mode":":high"}]}]},
+     ":display-args":["object"]}],
+   "eat":
+   [{":doc":"\"eat an edible object\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["object"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Eat\"",
+     ":pre":
+     {":type":":and",
+      ":args":
+      [{":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["handholds"]},
+         {":type":":method-arg-ref", ":names":["object"]}]},
+       {":type":":not",
+        ":args":
+        [{":type":":equal",
+          ":args":
+          [{":type":":method-arg-ref", ":names":["object"]},
+           {":type":":mode-ref",
+            ":mode-ref":
+            {":type":":symbol-ref", ":names":["Foodstate"]},
+            ":mode":":eaten"}]}]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":and",
+      ":args":
+      [{":type":":equal",
+        ":args":
+        [{":type":":method-arg-ref", ":names":["object"]},
+         {":type":":mode-ref",
+          ":mode-ref":{":type":":symbol-ref", ":names":["Foodstate"]},
+          ":mode":":eaten"}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["handholds"]},
+         {":type":":mode-ref",
+          ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+          ":mode":":nothing"}]}]},
+     ":display-args":["object"]}],
+   "goto":
+   [{":doc":"\"goto specified position\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["nupos"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Goto\"",
+     ":pre":
+     {":type":":not",
+      ":args":
+      [{":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["position"]},
+         {":type":":method-arg-ref", ":names":["nupos"]}]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["position"]},
+       {":type":":method-arg-ref", ":names":["nupos"]}]},
+     ":display-args":["nupos"]}],
+   "push":
+   [{":doc":"\"push an object to the designated position\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["object", "toposition"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Push\"",
+     ":pre":
+     {":type":":and",
+      ":args":
+      [{":type":":not",
+        ":args":
+        [{":type":":equal",
+          ":args":
+          [{":type":":field-ref", ":names":["position"]},
+           {":type":":method-arg-ref", ":names":["toposition"]}]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["position"]},
+         {":type":":method-arg-ref",
+          ":names":["object", "position"]}]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":and",
+      ":args":
+      [{":type":":equal",
+        ":args":
+        [{":type":":method-arg-ref", ":names":["object", "position"]},
+         {":type":":method-arg-ref", ":names":["toposition"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["position"]},
+         {":type":":method-arg-ref", ":names":["toposition"]}]}]},
+     ":display-args":["object", "toposition"]}],
+   "take":
+   [{":doc":"\"take an object by hand\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["object"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Take\"",
+     ":pre":
+     {":type":":and",
+      ":args":
+      [{":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["handholds"]},
+         {":type":":mode-ref",
+          ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+          ":mode":":nothing"}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["position"]},
+         {":type":":method-arg-ref",
+          ":names":["object", "position"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["height"]},
+         {":type":":method-arg-ref",
+          ":names":["object", "height"]}]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["handholds"]},
+       {":type":":method-arg-ref", ":names":["object"]}]},
+     ":display-args":["object"]}]},
+  ":modes":{":ready":true},
+  ":type":":pclass"},
+ "Support":
+ {":args":null,
+  ":modes":
+  {":banana1":true, ":chair1":true, ":ground":true, ":unknown":true},
+  ":type":":pclass"},
+ "world":
+ {":args":null,
+  ":fields":
+  {"abanana":
+   {":access":":private",
+    ":initial":
+    {":args":["\"10,10\"", ":high", ":unknown"],
+     ":pclass":"Banana",
+     ":plant-id":"\"banana1\"",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "achair":
+   {":access":":private",
+    ":initial":
+    {":args":["\"0,5\"", ":ground", ":ground"],
+     ":pclass":"Chair",
+     ":plant-id":"\"chair1\"",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "arobot":
+   {":access":":private",
+    ":initial":
+    {":args":["\"5,0\"", ":ground", ":ground"],
+     ":pclass":"Robot",
+     ":plant-id":"\"Robot1\"",
+     ":type":":pclass-ctor"},
+    ":observable":false}},
+  ":methods":
+  {"goal":
+   [{":doc":"\"eat the banana\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":false,
+     ":body":
+     [{":type":":sequence",
+       ":body":
+       [{":type":":method-fn",
+         ":method-ref":
+         {":type":":field-ref", ":names":["arobot", "goto"]},
+         ":args":["\"0,5\""]},
+        {":type":":method-fn",
+         ":method-ref":
+         {":type":":field-ref", ":names":["arobot", "push"]},
+         ":args":
+         [{":type":":field-ref", ":names":["achair"]}, "\"10,10\""]},
+        {":type":":method-fn",
+         ":method-ref":
+         {":type":":field-ref", ":names":["arobot", "climb-on"]},
+         ":args":[{":type":":field-ref", ":names":["achair"]}]},
+        {":type":":method-fn",
+         ":method-ref":
+         {":type":":field-ref", ":names":["arobot", "take"]},
+         ":args":[{":type":":field-ref", ":names":["abanana"]}]},
+        {":type":":method-fn",
+         ":method-ref":
+         {":type":":field-ref", ":names":["arobot", "eat"]},
+         ":args":[{":type":":field-ref", ":names":["abanana"]}]}]}],
+     ":display-name":"\"Goal\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["abanana"]},
+       {":type":":mode-ref",
+        ":mode-ref":{":type":":symbol-ref", ":names":["Banana"]},
+        ":mode":":eaten"}]},
+     ":display-args":null}]},
+  ":modes":{":root":true},
+  ":type":":pclass"}}
