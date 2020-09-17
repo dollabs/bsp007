@@ -106,16 +106,6 @@
             ;;   [object])
             ])
 
-;; ??? Why do the mode-of constructs not parse here? ??? +++
-;; (defpclass world []
-;;   :fields {abanana (Banana "10,10" (mode-of Height :high)   :unknown                  :id "banana1")
-;;            achair  (Chair  "0,5"   (mode-of Height :ground) (mode-of Support :ground) :id "chair1")
-;;            arobot  (Robot  "5,0"   (mode-of Height :ground) (mode-of Support :ground) :id "robot1")}
-;;   :methods [(defpmethod main
-;;               {:doc "eat the banana"}
-;;               :pre (= abanana (mode-of Banana :eaten))
-;;               [])])
-
 (defpclass world []
   :modes [ :root ]
   :fields {abanana (Banana "10,10" :ground :ground  :id "banana1")

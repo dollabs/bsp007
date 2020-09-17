@@ -251,7 +251,7 @@
 (defn add-preandpost
   "Add a preandpost condition vector from a loaded model file."
   [ppcs]
-  (if *printdebug*
+  (if (and (> verbosity 0) *printdebug*)
     (do
       (if (> verbosity 1) (println "adding pre-and-post-conditions:\n"))
       (pprint ppcs)))
@@ -657,8 +657,14 @@
 
           :arg-field (let [[object & field] (rest expn)
                            - (if (> verbosity 2) (println ":arg-field object= " object "field=" field "expn=" expn))
-                           obj (if (= (first object) :value)
+                           obj (cond
+                                 (RTobject? object)
+                                 object
+
+                                 (= (first object) :value)
                                  (second object)
+
+                                 :otherwise
                                  (deref-field (rest object) #_wrtobject (second (first (get-root-objects))) :normal)) ; Force caller to be root+++?
                            - (if (> verbosity 2) (println ":arg-field obj= " obj))
                            value (deref-field field obj :normal)] ; +++ handle multilevel case
@@ -719,9 +725,18 @@
 
           :arg-field (let [[object & field] (rest expn)
                            - (if (> verbosity 2) (println ":arg-field object= " object "field=" field "expn=" expn))
-                           obj (if (= (first object) :value)
-                                 (second object)
-                                 (deref-field (rest object) (second (first (get-root-objects))) :reference)) ; Force caller to be root+++?
+                           obj (cond
+                                   (RTobject? object)
+                                   object
+
+                                   (= (first object) :value)
+                                   (second object)
+
+                                   (= (first object) :arg-field)
+                                   (evaluate-reference wrtobject object class-bindings method-bindings cspam spam)
+
+                                   :otherwise
+                                   (deref-field (rest object) (second (first (get-root-objects))) :reference)) ; Force caller to be root+++?
                            - (if (> verbosity 2) (println ":arg-field obj= " obj))
                            value (deref-field field obj :reference)] ; +++ handle multilevel case
                          (if (not (instance? RTobject value))
@@ -747,7 +762,7 @@
 (defn deref-field
   [namelist wrtobject mode]
   (if (> verbosity 2)
-    (println "deref-field: " namelist (if (instance? RTobject wrtobject) (.variable wrtobject) [:oops wrtobject])))
+    (println "deref-field: " namelist "wrt-object=" (if (instance? RTobject wrtobject) (.variable wrtobject) [:oops wrtobject]) "mode=" mode))
   (cond ;;RTobject? (first namelist)) ; Obsolete
         ;;(first namelist)
 

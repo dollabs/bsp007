@@ -395,3 +395,4 @@
 ;;; (def repl true)
 ;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "false" "make-plan")
 ;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")

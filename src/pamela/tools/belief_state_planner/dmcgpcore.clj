@@ -190,13 +190,15 @@
       :equal (let [[arg1 arg2] (rest condition)
                    arg1 (if (value? arg1) (second arg1) arg1)
                    arg2 (if (value? arg2) (second arg2) arg2)]
-               (cond (or (and
-                          (or (rtm/RTobject? arg1) (= (first arg1) :field))
-                          (or (keyword? arg2) (= (first arg2) :mode-of)))
-                         (and
-                          (or (rtm/RTobject? arg2) (= (first arg2) :field))
-                          (or (keyword? arg1) (= (first arg1) :mode-of))))
-                     (list [condition [:any [:arg-mode]]])
+               (cond (and
+                      (or (rtm/RTobject? arg1) (= (first arg1) :field))
+                      (or (keyword? arg2) (= (first arg2) :mode-of)))
+                     (list [[:equal [:thunk arg1 pclass] arg2] [:any [:arg-mode]]])
+
+                     (and
+                      (or (rtm/RTobject? arg2) (= (first arg2) :field))
+                      (or (keyword? arg1) (= (first arg1) :mode-of)))
+                     (list [[:equal [:thunk arg2 pclass] arg1] [:any [:arg-mode]]])
 
                      (rtm/RTobject? arg1)
                      (list [condition [:object arg1]]) ;+++ surely we want to get both cases
@@ -390,7 +392,7 @@
   ;; +++ currently only produces the IR and not the mapping.
   [expn]
   ;; (println "In get-references-from-expression, expn=" expn)
-  (cond (= (first expn) :field) [(ir-field-ref [(second expn)])]
+  (cond (= (first expn) :field) [expn] ;; [(ir-field-ref [(second expn)])]
         (= (first expn) :value) (get-references-from-value (second expn))
         (= (first expn) :arg) [[:arg-ref (first expn) (second expn)]] ; +++ placeholder
         (= (first expn) :mode-of) nil
@@ -398,16 +400,17 @@
 
 (defn get-references-from-condition
   [condition]
+  (if (> verbosity 2) (println "entering get-references-from-condition, condition=" condition))
   (let [result (cond
                  (= (first condition) :thunk)
-                 (into [] (map (fn [ref] ref)
-                               (get-references-from-condition (second condition))))
+                 (into [] (map (fn [ref] [:thunk ref (nth condition 2)])
+                               (get-references-from-condition (nth condition 1))))
 
                  (= (first condition) :equal)
                  (into [] (apply concat (map (fn [expn] (get-references-from-expression expn)) (rest condition))))
 
                  :otherwise (do (irx/error "Unhandled case in get-references-from-condition: " condition) nil))]
-    (if (> verbosity 2) (println "in get-references-from-condition, condition=" condition "=" result))
+    (if (> verbosity 2) (println "exiting get-references-from-condition, condition=" condition "=" result))
     result))
 
 ;;; Args are evaluated from the standpoint of the root
@@ -483,8 +486,14 @@
         object (first objs)]  ;+++ what about if there are multiple such objects? +++
     object))
 
+(defn thunk?
+  [thing]
+  (if (> verbosity 2) (println "In thunk? with thing=" thing))
+  (and (sequential? thing) (= (first thing) :thunk)))
+
 (defn replace-args-with-bindings
   [condit argmap]
+  (if (> verbosity 2) (println "Entering replace-args-with-bindings - condit=" condit " argmap=" argmap))
   (let [replaced (if (not (vector? condit))
                    condit
                    (case (first condit)
@@ -492,14 +501,24 @@
                                  (map (fn [subexp]
                                         (replace-args-with-bindings subexp argmap))
                                       (rest (rest (rest condit)))))
+
                      :arg (get argmap (second condit))
-                     :arg-field [:arg-field
-                                 (get argmap (nth condit 1))
-                                 (nth condit 2)]
+
+                     :arg-field (let [object (get argmap (nth condit 1))]
+                                  (if (thunk? object)
+                                    (case (first (nth object 1))
+                                      :field
+                                      [:arg-field (rtm/deref-field (rest (nth object 1)) (nth object 2) :reference) (nth condit 2)]
+
+                                      ;+++ possibly add other cases here
+                                      [:arg-field [:arg-field (nth object 2) (nth object 1)] (nth condit 2)])
+                                    [:arg-field object (nth condit 2)]))
+
                      (:and :or :not :equal) (into [(first condit)]
                                                   (map (fn [subexp]
                                                          (replace-args-with-bindings subexp argmap))
                                                        (rest condit)))
+
                      condit))]
     (if (> verbosity 2) (println "replace-args-with-bindings - condit=" condit " argmap=" argmap " replaced=" replaced))
     replaced))
