@@ -894,6 +894,29 @@
         ;;(pprint actions)
         (recur (if compiled-calls (cons compiled-calls solutions) solutions) (+ 1 sampled))))))
 
+(defn compile-action-to-pamela
+  [action]
+  (let [[call post] action
+        {mref :method-ref
+         args :args} call
+        {names :names} mref
+        argvals (map (fn [anarg]
+                       (let [value (rtm/evaluate-reference nil anarg nil nil nil nil)]
+                         (cond (and (sequential? value)
+                                    (= (first value) :value)
+                                    (get (second value) :variable))
+                               (symbol (apply str (rest (string/split (get (second value) :variable) #"\."))))
+
+                               :otherwise value)))
+                     args)]
+    (concat
+     (list (symbol (str (first names)  "." (second names))))
+     argvals)))
+
+(defn compile-actions-to-pamela
+  [action-list]
+  (cons 'sequence (map (fn [anaction] (compile-action-to-pamela anaction)) action-list)))
+
 ;;; (solveit)
 
 
