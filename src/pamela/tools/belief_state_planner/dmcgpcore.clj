@@ -298,7 +298,7 @@
     (nth postconds 1)
     (if (not (= (first (nth postconds 2)) :arg)) (nth postconds 2) nil)))
 
-;;; +++ we need to handle all of the cases here especially multiple precondition case+++
+;;; +++ we need to handle all of the cases here +++
 (defn match-goal-query-aux
   [goal postconds]
    (if (> verbosity 2) (println "in match-goal-query-aux with (" goal "," postconds ")"))
@@ -324,11 +324,12 @@
 (defn match-goal-query?
   [goal query]
   (let [postconds (irx/.postc (.methodsig query))]
-    (match-goal-query-aux goal postconds)
-    #_(y-or-n? (str "match?"
-                  (with-out-str (print goal))
-                  " with "
-                  (with-out-str (print postconds))))))
+    (case (first postconds)
+      :equal (match-goal-query-aux goal postconds)
+      :and (some (fn [apost] (match-goal-query-aux goal apost)) (rest postconds))
+      (do (if (> verbosity 2)
+            (println "match-goal-query? unhandled case: goal=" goal " posts=" postconds))
+          nil))))
 
 (defn verify-candidate
   [acand]
