@@ -80,23 +80,23 @@
                :pre (not (= position nupos))
                :post (= position nupos)
                :primitive true}
-              [nupos])
-            (defpmethod push
-              {:doc "push an object to the designated position"
-               :pre (and (not (= position toposition))
-                         (= position object.position))
-               :post (and (= object.position toposition)
-                          (= position toposition))
-               :primitive true}
-              [object toposition])
-            (defpmethod climb-on
-              {:doc "climb on to the object"
-               :pre (and (= position object.position)
-                         (not (= on object)))
-               :post (and (= on object)
-                          (= height (mode-of Height :high)))
-               :primitive true}
-              [object])
+              [me nupos])
+            ;; (defpmethod push
+            ;;   {:doc "push an object to the designated position"
+            ;;    :pre (and (not (= position toposition))
+            ;;              (= position object.position))
+            ;;    :post (and (= object.position toposition)
+            ;;               (= position toposition))
+            ;;    :primitive true}
+            ;;   [object toposition])
+            ;; (defpmethod climb-on
+            ;;   {:doc "climb on to the object"
+            ;;    :pre (and (= position object.position)
+            ;;              (not (= on object)))
+            ;;    :post (and (= on object)
+            ;;               (= height (mode-of Height :high)))
+            ;;    :primitive true}
+            ;;   [object])
             ;; ;; Not needed in the initial demo
             ;; (defpmethod jump-down-from
             ;;   {:doc "jump off of an object"

@@ -193,12 +193,12 @@
                (cond (and
                       (or (rtm/RTobject? arg1) (= (first arg1) :field))
                       (or (keyword? arg2) (= (first arg2) :mode-of)))
-                     (list [[:equal [:thunk arg1 pclass] arg2] [:any [:arg-mode]]])
+                     (list [condition [:any [:arg-mode]]])
 
                      (and
                       (or (rtm/RTobject? arg2) (= (first arg2) :field))
                       (or (keyword? arg1) (= (first arg1) :mode-of)))
-                     (list [[:equal [:thunk arg2 pclass] arg1] [:any [:arg-mode]]])
+                     (list [condition [:any [:arg-mode]]])
 
                      (rtm/RTobject? arg1)
                      (list [condition [:object arg1]]) ;+++ surely we want to get both cases
@@ -404,8 +404,10 @@
   (if (> verbosity 2) (println "entering get-references-from-condition, condition=" condition))
   (let [result (cond
                  (= (first condition) :thunk)
-                 (into [] (map (fn [ref] [:thunk ref (nth condition 2)])
-                               (get-references-from-condition (nth condition 1))))
+                 (do
+                   (println "get-references-from-condition :thunk case -" condition)
+                   (into [] (map (fn [ref] [:thunk ref (nth condition 2)])
+                                 (get-references-from-condition (nth condition 1)))))
 
                  (= (first condition) :equal)
                  (into [] (apply concat (map (fn [expn] (get-references-from-expression expn)) (rest condition))))
@@ -424,18 +426,56 @@
     (if (> verbosity 2) (println "argsmap=" argsmap))
     [actuals argsmap]))
 
-(defn find-query-in-goal
-  [querypart goal]
-  (case (first goal)
-    :thunk (find-query-in-goal querypart (second goal))
-    :equal (cond (= querypart (nth goal 1)) (nth goal 2)
-                 (= querypart (nth goal 2)) (nth goal 1)
-                 :otherwise nil)
-    [:unhandled-case-in-find-query-in-goal goal]))
+(defn root-object
+  []
+  (second (first (rtm/get-root-objects))))
 
-(defn get-goal-reference
+(defn get-object-root-name
+  [object]
+  (if (rtm/RTobject? object)
+    (let [nameparts (string/split (.variable object) #"\.")
+          rootname (if (not (empty? (rest nameparts)))
+                     (symbol (str (string/join "." (rest nameparts))))
+                     nil)]
+      (println "*********get-object-root-name object=" object "rootname=" rootname)
+      (if rootname [:thunk [:field rootname] (root-object)]))
+    "error-non-rtobject-value-passed-to-get-object-root-name"))
+
+;;; (get-object-root-name "/world.foo.bar")
+
+(defn get-queries-in
+  [goal-fragment]
+  (cond
+      (thunk? goal-fragment)
+      (let [rootname (get-object-root-name (nth goal-fragment 2))]
+        (if rootname (cons rootname [goal-fragment]) [goal-fragment]))
+
+      (= (first goal-fragment) :arg-field)
+      (let [rootname (get-object-root-name (nth goal-fragment 1))]
+        (if rootname (cons rootname [goal-fragment]) [goal-fragment]))
+
+      :otherwise
+      [goal-fragment]))
+
+(defn find-queries-in-goal
+  [querypart goal]
+  (let[queries (case (first goal)
+                 :thunk (do
+                          ;;(println "find-queries-in-goal :thunk case -" goal)
+                          ;;(cons (get-object-root-name (nth goal 2))
+                          (find-queries-in-goal querypart (nth goal 1)))
+                 :equal (cond (= querypart (nth goal 1)) (get-queries-in (nth goal 2))
+                              (= querypart (nth goal 2)) (get-queries-in (nth goal 1))
+                              :otherwise [])
+                 [:unhandled-case-in-find-query-in-goal goal])]
+    (println "******find-queries-in-goal - querypart=" querypart "goal=" goal "queries=" queries)
+    queries))
+
+(defn get-goal-references
   [query goal]
-  (find-query-in-goal (second query) goal))
+  (let [result (find-queries-in-goal (second query) goal)]
+    (println "get-goal-references query=" query "goal=" goal "result=" result)
+    result))
 
 (defn describe-goal
   [agoal]
@@ -471,7 +511,7 @@
           (make-args-map-and-args argnames (map irx/compile-reference (get-references-from-condition goal)) wrtobject)
 
           :otherwise
-          (make-args-map-and-args argnames [(irx/compile-reference (get-goal-reference query goal))] wrtobject) ;+++ why only one?
+          (make-args-map-and-args argnames (map irx/compile-reference (get-goal-references query goal)) wrtobject)
 
           #_(let [amap (match-goal-query? goal query)]
               (make-args-map-and-args argnames (map (fn [arg]
@@ -493,14 +533,14 @@
   (and (sequential? thing) (= (first thing) :thunk)))
 
 (defn replace-args-with-bindings
-  [condit argmap]
-  (if (> verbosity 2) (println "Entering replace-args-with-bindings - condit=" condit " argmap=" argmap))
+  [mname condit argmap]
+  (if (> verbosity 2) (println "Entering replace-args-with-bindings - Method=" mname "condit=" condit " argmap=" argmap))
   (let [replaced (if (not (vector? condit))
                    condit
                    (case (first condit)
                      :call (into [(nth condit 0) (nth condit 1) (nth condit 2)]
                                  (map (fn [subexp]
-                                        (replace-args-with-bindings subexp argmap))
+                                        (replace-args-with-bindings mname subexp argmap))
                                       (rest (rest (rest condit)))))
 
                      :arg (get argmap (second condit))
@@ -511,13 +551,16 @@
                                       :field
                                       [:arg-field (rtm/deref-field (rest (nth object 1)) (nth object 2) :reference) (nth condit 2)]
 
-                                      ;+++ possibly add other cases here
+                                      :arg-field
+                                      (rtm/deref-field (rest (nth object 1)) :reference)
+
+                                        ;+++ possibly add other cases here
                                       [:arg-field [:arg-field (nth object 2) (nth object 1)] (nth condit 2)])
                                     [:arg-field object (nth condit 2)]))
 
                      (:and :or :not :equal) (into [(first condit)]
                                                   (map (fn [subexp]
-                                                         (replace-args-with-bindings subexp argmap))
+                                                         (replace-args-with-bindings mname subexp argmap))
                                                        (rest condit)))
 
                      condit))]
@@ -534,7 +577,7 @@
   (let [[args argmap] (compile-arglist action goal (second query) wrtobject)  ;+++ kludge "second" +++ was (first root-objects)
         object (compile-controllable-object action goal (second query))] ;+++ kludge "second"
     [(ir-method-call (ir-field-ref [object (irx/.mname (.methodsig action))]) args)
-     (replace-args-with-bindings (irx/.prec (.methodsig action)) argmap)]))
+     (replace-args-with-bindings (irx/.mname (.methodsig action)) (irx/.prec (.methodsig action)) argmap)]))
 
 (defn compile-calls
   [actions goal queries root-objects rtos]
@@ -624,7 +667,7 @@
 (defn simplify-condition
   "maniulate the condition into conjunctive normal form and return a list of conjunctions."
   [condit wrtobject]
-  ;; (println "In simplify condition with: " condit)
+  (if (> verbosity 3) (println "In simplify condition with: " condit))
   (if (not (or (list? condit) (vector? condit)))
     (list condit)
     (let [result (case (first condit)
@@ -656,7 +699,7 @@
 
 (defn simplify-cond-top-level
   [condit wrtobject]
-  (if (> verbosity 2) (println "In Simplify with wrtobject=" (.variable wrtobject)))
+  (if (> verbosity 2) (println "In Simplify with condit=" condit " wrtobject=" (.variable wrtobject)))
   (let [simplified (simplify-condition condit wrtobject)
         terms (count simplified)]
     (if (> terms 1)
@@ -788,6 +831,7 @@
                               (println "************************************************************************")
                               nil))
       (let [goals (apply concat (map (fn [agoal] (simplify-cond-top-level agoal (second (first root-objects)))) goals))
+            - (if (> verbosity 2) (println "Current outstanting goals:"))
             - (if (> verbosity 2) (describe-goals goals))
             this-goal (first goals)        ; We will solve this goal first
             rootobject (second (first root-objects))
@@ -826,7 +870,7 @@
                   (if selected                                ; If we have found an action to try prepare it, otherwise we fail
                     (let [rtos (map (fn [anmq] (.rto anmq)) selected)
                           actions (compile-calls selected this-goal queries root-objects rtos) ;
-                          ;; - (println "actions=" actions)
+                          _ (if (> verbosity 2) (println "ACTIONS=" actions))
                           subgoals (apply concat (map (fn [[call prec] rto]
                                                         (if (not (rtm/RTobject? rto)) (irx/error "not an RTobject: " rto))
                                                         (map (fn [conj] [:thunk conj rto])

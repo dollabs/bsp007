@@ -16,11 +16,14 @@
 
 (defpclass Foodstate [] :modes [:ripe :young :spoiled :eaten])
 
-(defpclass Banana [pos hgt onwhat]
+(defpclass Mobility [] :modes [:pushable :fixed :autonomous])
+
+(defpclass Banana [pos hgt onwhat mobility]
   :modes {:ripe (or (mode-of General :initial)) :young true :spoiled true :eaten true} ; crappy way of specifying initial
   :fields {position pos
            height hgt
            on onwhat
+           mobile mobility
            edible :true}
   :methods [(defpmethod be-eaten
               {:doc "take an object by hand. Change state to eaten.  Perhaps should cease to exist+++"
@@ -34,11 +37,12 @@
                [nupos]
               )])
 
-(defpclass Chair [pos hgt onwhat]
+(defpclass Chair [pos hgt onwhat mobility]
   :modes [ :available :in-use ]
   :fields {position pos
            height hgt
            on onwhat
+           mobile mobility
            edible :false}
   :methods [(defpmethod reposition
               {:doc "Change position"
@@ -46,12 +50,13 @@
               [nupos]
               )])
 
-(defpclass Robot [pos hgt onwhat]
+(defpclass Robot [pos hgt onwhat mobility]
   :modes [ :ready ]
   :fields {position pos
            height hgt
            handholds (mode-of General :nothing)
-           on onwhat}
+           on onwhat
+           mobile mobility}
   :methods [(defpmethod take
               {:doc "take an object by hand"
                :pre (and (= handholds (mode-of General :nothing))
@@ -80,10 +85,11 @@
                :pre (not (= position nupos))
                :post (= position nupos)
                :primitive true}
-              [nupos])
+              [me nupos])
             (defpmethod push
               {:doc "push an object to the designated position"
-               :pre (and (not (= position toposition))
+               :pre (and (= object.mobility (mode-of Mobility :pushable))
+                         (not (= position toposition))
                          (= position object.position))
                :post (and (= object.position toposition)
                           (= position toposition))
@@ -91,8 +97,9 @@
               [object toposition])
             (defpmethod climb-on
               {:doc "climb on to the object"
-               :pre (and (= position object.position)
-                         (not (= on object)))
+               :pre (and (not (= on object)) ; can't climb on if we are already on
+                         (= on object.on)    ; must be on the same thing to climb
+                         (= position object.position)) ; must be at the same place
                :post (and (= on object)
                           (= height (mode-of Height :high)))
                :primitive true}
@@ -118,9 +125,9 @@
 
 (defpclass world []
   :modes [ :root ]
-  :fields {abanana (Banana "10,10" :high   :unknown :id "banana1")
-           achair  (Chair  "0,5"   :ground :ground  :id "chair1")
-           arobot  (Robot  "5,0"   :ground :ground  :id "Robot1")}
+  :fields {abanana (Banana "10,10" :high   :unknown :autonomous :id "banana1")
+           achair  (Chair  "0,5"   :ground :ground  :pushable   :id "chair1")
+           arobot  (Robot  "5,0"   :ground :ground  :autonomous :id "Robot1")}
   :methods [(defpmethod goal
               {:doc "eat the banana"
                :post (= abanana (mode-of Banana :eaten))}

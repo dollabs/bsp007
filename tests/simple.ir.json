@@ -150,48 +150,7 @@
     ":initial":{":names":["pos"], ":type":":pclass-arg-ref"},
     ":observable":false}},
   ":methods":
-  {"climb-on":
-   [{":doc":"\"climb on to the object\"",
-     ":probability":1.0,
-     ":reward":0,
-     ":temporal-constraints":
-     [{":type":":bounds", ":value":[0, ":infinity"]}],
-     ":controllable":false,
-     ":cost":0,
-     ":args":["object"],
-     ":primitive":true,
-     ":body":null,
-     ":display-name":"\"Climb On\"",
-     ":pre":
-     {":type":":and",
-      ":args":
-      [{":type":":equal",
-        ":args":
-        [{":type":":field-ref", ":names":["position"]},
-         {":type":":method-arg-ref",
-          ":names":["object", "position"]}]},
-       {":type":":not",
-        ":args":
-        [{":type":":equal",
-          ":args":
-          [{":type":":field-ref", ":names":["on"]},
-           {":type":":method-arg-ref", ":names":["object"]}]}]}]},
-     ":betweens":null,
-     ":post":
-     {":type":":and",
-      ":args":
-      [{":type":":equal",
-        ":args":
-        [{":type":":field-ref", ":names":["on"]},
-         {":type":":method-arg-ref", ":names":["object"]}]},
-       {":type":":equal",
-        ":args":
-        [{":type":":field-ref", ":names":["height"]},
-         {":type":":mode-ref",
-          ":mode-ref":{":type":":symbol-ref", ":names":["Height"]},
-          ":mode":":high"}]}]},
-     ":display-args":["object"]}],
-   "eat":
+  {"eat":
    [{":doc":"\"eat an edible object\"",
      ":probability":1.0,
      ":reward":0,
@@ -244,7 +203,7 @@
      [{":type":":bounds", ":value":[0, ":infinity"]}],
      ":controllable":false,
      ":cost":0,
-     ":args":["nupos"],
+     ":args":["me", "nupos"],
      ":primitive":true,
      ":body":null,
      ":display-name":"\"Goto\"",
@@ -261,46 +220,7 @@
       ":args":
       [{":type":":field-ref", ":names":["position"]},
        {":type":":method-arg-ref", ":names":["nupos"]}]},
-     ":display-args":["nupos"]}],
-   "push":
-   [{":doc":"\"push an object to the designated position\"",
-     ":probability":1.0,
-     ":reward":0,
-     ":temporal-constraints":
-     [{":type":":bounds", ":value":[0, ":infinity"]}],
-     ":controllable":false,
-     ":cost":0,
-     ":args":["object", "toposition"],
-     ":primitive":true,
-     ":body":null,
-     ":display-name":"\"Push\"",
-     ":pre":
-     {":type":":and",
-      ":args":
-      [{":type":":not",
-        ":args":
-        [{":type":":equal",
-          ":args":
-          [{":type":":field-ref", ":names":["position"]},
-           {":type":":method-arg-ref", ":names":["toposition"]}]}]},
-       {":type":":equal",
-        ":args":
-        [{":type":":field-ref", ":names":["position"]},
-         {":type":":method-arg-ref",
-          ":names":["object", "position"]}]}]},
-     ":betweens":null,
-     ":post":
-     {":type":":and",
-      ":args":
-      [{":type":":equal",
-        ":args":
-        [{":type":":method-arg-ref", ":names":["object", "position"]},
-         {":type":":method-arg-ref", ":names":["toposition"]}]},
-       {":type":":equal",
-        ":args":
-        [{":type":":field-ref", ":names":["position"]},
-         {":type":":method-arg-ref", ":names":["toposition"]}]}]},
-     ":display-args":["object", "toposition"]}],
+     ":display-args":["me", "nupos"]}],
    "take":
    [{":doc":"\"take an object by hand\"",
      ":probability":1.0,
