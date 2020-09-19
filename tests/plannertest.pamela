@@ -88,7 +88,7 @@
               [me nupos])
             (defpmethod push
               {:doc "push an object to the designated position"
-               :pre (and (= object.mobility (mode-of Mobility :pushable))
+               :pre (and (= object.mobile (mode-of Mobility :pushable))
                          (not (= position toposition))
                          (= position object.position))
                :post (and (= object.position toposition)

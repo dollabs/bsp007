@@ -299,7 +299,7 @@
       ":args":
       [{":type":":equal",
         ":args":
-        [{":type":":method-arg-ref", ":names":["object", "mobility"]},
+        [{":type":":method-arg-ref", ":names":["object", "mobile"]},
          {":type":":mode-ref",
           ":mode-ref":{":type":":symbol-ref", ":names":["Mobility"]},
           ":mode":":pushable"}]},
