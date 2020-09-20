@@ -266,7 +266,6 @@
         {:keys [help version verbose observe connect make-plan] } options
         cmd (first arguments)
         verbosity (read-string (get-in parsed [:options :verbose]))
-        _ (if (> verbosity 2) (println parsed))
         goals (get-in parsed [:options :goals])
         model (get-in parsed [:options :model])
         root (symbol (get-in parsed [:options :root]))
@@ -278,21 +277,20 @@
 
         ;; For connectivity with another RMQ system
         ch-name (get-in parsed [:options :exchange])
-        ;;_ (if (> verbosity 0) (println [ "ch-name = " ch-name]))
+        _ (if (> verbosity 2) (println [ "ch-name = " ch-name]))
         host (get-in parsed [:options :host])
-        ;;_ (if (> verbosity 0) (println ["host = " host]))
+        _ (if (> verbosity 2) (println ["host = " host]))
         exch (get-in parsed [:options :exchange])
         myid (get-in parsed [:options :dmcpid])
         wpid (get-in parsed [:options :watchedplant])
         trfn (get-in parsed [:options :tracefile])
         port (get-in parsed [:options :port])
-        ;;_ (if (> verbosity 0) (println ["port = " port]))
+        _ (if (> verbosity 2) (println ["port = " port]))
         help (get-in parsed [:options :help])
-        ;;_ (if (> verbosity 0) (println ["help = " help]))
-        ;; _ (println ["root = " root])
+        _ (if (> verbosity 2) (println ["root = " root]))
         ;; importfilestem (if desired (strip-extn model) nil) ; not clear that we need that.
         ;; model (get-in parsed [:options :model])
-        ;;_ (if (> verbosity 0) (println ["model = " model]))
+        _ (if (> verbosity 3) (println ["model = " model]))
         _ (do
             (def repl false)
             (when help
@@ -354,7 +352,7 @@
                   (if (.exists (io/file model))
                     (do
                       (rtm/load-model model root) ; no args
-                      (if (> verbosity 2)
+                      (if (> verbosity 3)
                         (do (rtm/describe-current-model)
                             (bs/describe-belief-state)
                             (println "")))
@@ -368,7 +366,7 @@
                   (if (.exists (io/file goals))
                     (do
                       (rtm/load-model goals groo) ; no args
-                      (if (> verbosity 2)
+                      (if (> verbosity 3)
                         (do (rtm/describe-current-model)
                             (bs/describe-belief-state)
                             (println "")))
@@ -400,7 +398,10 @@
 ;;; (def repl true)
 ;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "false" "make-plan")
 ;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "1" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "100" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "1" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "2" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "8" "-r" "true" "make-plan")

@@ -10,7 +10,7 @@
 ;;; (defpclass Edible [] :modes [:edible :inedible])
 (defpclass General [] :modes [:initial :nothing])
 
-(defpclass Height [] :modes [:ground :high :very-high])
+;(defpclass Height [] :modes [:ground :high :very-high])
 
 (defpclass Support [] :modes [:unknown :ground :chair1 :banana1])
 
@@ -61,7 +61,7 @@
               {:doc "take an object by hand"
                :pre (and (= handholds (mode-of General :nothing))
                          (= position object.position)
-                         (= height (mode-of Height :high))) ;;object.height))++
+                         (= height object.height))
                :post (= handholds object)
                :primitive true}
               [object])
@@ -104,7 +104,7 @@
                          (not (= on object)) ; can't climb on if we are already on
                          (= on object.on)    ; must be on the same thing to climb
                          )
-               :post (and (= height (mode-of Height :high))
+               :post (and (= height object.height)
                           (= on object)
                           )
                :primitive true}
@@ -118,21 +118,11 @@
             ;;   [object])
             ])
 
-;; ??? Why do the mode-of constructs not parse here? ??? +++
-;; (defpclass world []
-;;   :fields {abanana (Banana "10,10" (mode-of Height :high)   :unknown                  :id "banana1")
-;;            achair  (Chair  "0,5"   (mode-of Height :ground) (mode-of Support :ground) :id "chair1")
-;;            arobot  (Robot  "5,0"   (mode-of Height :ground) (mode-of Support :ground) :id "robot1")}
-;;   :methods [(defpmethod main
-;;               {:doc "eat the banana"}
-;;               :pre (= abanana (mode-of Banana :eaten))
-;;               [])])
-
 (defpclass world []
   :modes [ :root ]
-  :fields {abanana (Banana "10,10" :high   :unknown :autonomous :id "banana1")
-           achair  (Chair  "0,5"   :ground :ground  :pushable   :id "chair1")
-           arobot  (Robot  "5,0"   :ground :ground  :autonomous :id "Robot1")}
+  :fields {abanana (Banana "10,10" 6 :unknown :autonomous :id "banana1")
+           achair  (Chair  "0,5"   0 :ground  :pushable   :id "chair1")
+           arobot  (Robot  "5,0"   0 :ground  :autonomous :id "Robot1")}
   :methods [(defpmethod goal
               {:doc "eat the banana"
                :post (= abanana (mode-of Banana :eaten))}

@@ -88,7 +88,7 @@
   (doseq [obj (seq @(.objects *current-model*))]
     (let [pclass (:class obj)
           mode (:mode obj)]
-      (if (and (> verbosity 0) *printdebug*)
+      (if (and (> verbosity 2) *printdebug*)
         (.write *out* (format "%nMode of %s: %s" pclass mode)))
       ;; Delete the belief in the objects mode
       (bs/undef-variable mode)
@@ -251,7 +251,7 @@
 (defn add-preandpost
   "Add a preandpost condition vector from a loaded model file."
   [ppcs]
-  (if (and (> verbosity 0) *printdebug*)
+  (if (and (> verbosity 2) *printdebug*)
     (do
       (if (> verbosity 1) (println "adding pre-and-post-conditions:\n"))
       (pprint ppcs)))
@@ -443,15 +443,22 @@
   [condition]
   (if (vector? condition)               ;atomic conditions = no influence
     (case (first condition)
-      :equal (cond (or (and (= (first (nth condition 1)) :arg)
-                            (= (first (nth condition 2)) :mode-of))
-                       (and (= (first (nth condition 2)) :arg)
-                            (= (first (nth condition 1)) :mode-of)))
+      :equal (cond (or (and (vector? (nth condition 1)) (= (first (nth condition 1)) :arg)
+                            (vector? (nth condition 2)) (= (first (nth condition 2)) :mode-of))
+                       (and (vector? (nth condition 2)) (= (first (nth condition 2)) :arg)
+                            (vector? (nth condition 1)) (= (first (nth condition 1)) :mode-of)))
                    (list [:arg-mode])
+
                    (and (= (first (nth condition 1)) :field)) (list (nth condition 1))
-                   (and (= (first (nth condition 2)) :field)) (list (nth condition 2))
-                   (and (= (first (nth condition 1)) :arg-field)) (list (nth condition 1))
-                   (and (= (first (nth condition 2)) :arg-field)) (list (nth condition 2))
+                   (and (vector? (nth condition 2)) (= (first (nth condition 2)) :field))
+                   (list (nth condition 2))
+
+                   (and (vector? (nth condition 1)) (= (first (nth condition 1)) :arg-field))
+                   (list (nth condition 1))
+
+                   (and (vector? (nth condition 2)) (= (first (nth condition 2)) :arg-field))
+                   (list (nth condition 2))
+
                    :else (list (extract-referents condition)))
       :and (apply concat (map (fn [arg] (compile-influence arg)) (rest condition)))
       :mode-of (list [:mode])
@@ -484,9 +491,14 @@
         eff-table (apply concat
                          (map (fn [[pmeth pcls effects]]
                                 (map (fn [effect]
-                                       (if (or (= (first effect) :arg-mode)
-                                               (= (first effect) :arg-field))
+                                       (cond
+                                         (and (not (keyword? effect))
+                                              (or
+                                               (= (first effect) :arg-mode)
+                                               (= (first effect) :arg-field)))
                                          [[:any effect] pmeth]
+
+                                         :otherwise
                                          [[@(.rootclass *current-model*) effect] pmeth])) ; +++was pcls
                                      effects))
                               inf-table))]
@@ -729,10 +741,10 @@
                                    (RTobject? object)
                                    object
 
-                                   (= (first object) :value)
+                                   (and (vector? object) (= (first object) :value))
                                    (second object)
 
-                                   (= (first object) :arg-field)
+                                   (and (vector? object) (= (first object) :arg-field))
                                    (evaluate-reference wrtobject object class-bindings method-bindings cspam spam)
 
                                    :otherwise

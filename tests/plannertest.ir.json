@@ -131,10 +131,6 @@
  {":args":null,
   ":modes":{":initial":true, ":nothing":true},
   ":type":":pclass"},
- "Height":
- {":args":null,
-  ":modes":{":ground":true, ":high":true, ":very-high":true},
-  ":type":":pclass"},
  "Mobility":
  {":args":null,
   ":modes":{":autonomous":true, ":fixed":true, ":pushable":true},
@@ -203,9 +199,7 @@
       [{":type":":equal",
         ":args":
         [{":type":":field-ref", ":names":["height"]},
-         {":type":":mode-ref",
-          ":mode-ref":{":type":":symbol-ref", ":names":["Height"]},
-          ":mode":":high"}]},
+         {":type":":method-arg-ref", ":names":["object", "height"]}]},
        {":type":":equal",
         ":args":
         [{":type":":field-ref", ":names":["on"]},
@@ -341,9 +335,8 @@
        {":type":":equal",
         ":args":
         [{":type":":field-ref", ":names":["height"]},
-         {":type":":mode-ref",
-          ":mode-ref":{":type":":symbol-ref", ":names":["Height"]},
-          ":mode":":high"}]}]},
+         {":type":":method-arg-ref",
+          ":names":["object", "height"]}]}]},
      ":betweens":null,
      ":post":
      {":type":":equal",
@@ -364,7 +357,7 @@
   {"abanana":
    {":access":":private",
     ":initial":
-    {":args":["\"10,10\"", ":high", ":unknown", ":autonomous"],
+    {":args":["\"10,10\"", 6, ":unknown", ":autonomous"],
      ":pclass":"Banana",
      ":plant-id":"\"banana1\"",
      ":type":":pclass-ctor"},
@@ -372,7 +365,7 @@
    "achair":
    {":access":":private",
     ":initial":
-    {":args":["\"0,5\"", ":ground", ":ground", ":pushable"],
+    {":args":["\"0,5\"", 0, ":ground", ":pushable"],
      ":pclass":"Chair",
      ":plant-id":"\"chair1\"",
      ":type":":pclass-ctor"},
@@ -380,7 +373,7 @@
    "arobot":
    {":access":":private",
     ":initial":
-    {":args":["\"5,0\"", ":ground", ":ground", ":autonomous"],
+    {":args":["\"5,0\"", 0, ":ground", ":autonomous"],
      ":pclass":"Robot",
      ":plant-id":"\"Robot1\"",
      ":type":":pclass-ctor"},
