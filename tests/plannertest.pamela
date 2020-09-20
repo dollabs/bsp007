@@ -61,7 +61,7 @@
               {:doc "take an object by hand"
                :pre (and (= handholds (mode-of General :nothing))
                          (= position object.position)
-                         (= height object.height))
+                         (= height (mode-of Height :high))) ;;object.height))++
                :post (= handholds object)
                :primitive true}
               [object])
@@ -88,24 +88,29 @@
               [me nupos])
             (defpmethod push
               {:doc "push an object to the designated position"
-               :pre (and (= object.mobile (mode-of Mobility :pushable))
-                         (not (= position toposition))
-                         (= position object.position))
-               :post (and (= object.position toposition)
-                          (= position toposition))
+               :pre (= position object.position)
+                      ;;(and ;(= object.mobile (mode-of Mobility :pushable))
+                      ;;   (not (= position toposition))
+                      ;;   (= position object.position))
+               :post (and ;(= object achair)
+                          (= object.position toposition)
+                          (= position toposition)
+                          )
                :primitive true}
               [object toposition])
             (defpmethod climb-on
               {:doc "climb on to the object"
-               :pre (and (not (= on object)) ; can't climb on if we are already on
+               :pre (and (= position object.position) ; must be at the same place
+                         (not (= on object)) ; can't climb on if we are already on
                          (= on object.on)    ; must be on the same thing to climb
-                         (= position object.position)) ; must be at the same place
-               :post (and (= on object)
-                          (= height (mode-of Height :high)))
+                         )
+               :post (and (= height (mode-of Height :high))
+                          (= on object)
+                          )
                :primitive true}
               [object])
             ;; ;; Not needed in the initial demo
-            ;; (defpmethod jump-down-from
+            ;; (defpmethodxs jump-down-from
             ;;   {:doc "jump off of an object"
             ;;    :pre (= on object)
             ;;    :post (= on (mode-of Support :ground))

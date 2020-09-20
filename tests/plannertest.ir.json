@@ -181,7 +181,12 @@
      ":pre":
      {":type":":and",
       ":args":
-      [{":type":":not",
+      [{":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["position"]},
+         {":type":":method-arg-ref",
+          ":names":["object", "position"]}]},
+       {":type":":not",
         ":args":
         [{":type":":equal",
           ":args":
@@ -190,26 +195,21 @@
        {":type":":equal",
         ":args":
         [{":type":":field-ref", ":names":["on"]},
-         {":type":":method-arg-ref", ":names":["object", "on"]}]},
-       {":type":":equal",
-        ":args":
-        [{":type":":field-ref", ":names":["position"]},
-         {":type":":method-arg-ref",
-          ":names":["object", "position"]}]}]},
+         {":type":":method-arg-ref", ":names":["object", "on"]}]}]},
      ":betweens":null,
      ":post":
      {":type":":and",
       ":args":
       [{":type":":equal",
         ":args":
-        [{":type":":field-ref", ":names":["on"]},
-         {":type":":method-arg-ref", ":names":["object"]}]},
-       {":type":":equal",
-        ":args":
         [{":type":":field-ref", ":names":["height"]},
          {":type":":mode-ref",
           ":mode-ref":{":type":":symbol-ref", ":names":["Height"]},
-          ":mode":":high"}]}]},
+          ":mode":":high"}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["on"]},
+         {":type":":method-arg-ref", ":names":["object"]}]}]},
      ":display-args":["object"]}],
    "eat":
    [{":doc":"\"eat an edible object\"",
@@ -295,25 +295,10 @@
      ":body":null,
      ":display-name":"\"Push\"",
      ":pre":
-     {":type":":and",
+     {":type":":equal",
       ":args":
-      [{":type":":equal",
-        ":args":
-        [{":type":":method-arg-ref", ":names":["object", "mobile"]},
-         {":type":":mode-ref",
-          ":mode-ref":{":type":":symbol-ref", ":names":["Mobility"]},
-          ":mode":":pushable"}]},
-       {":type":":not",
-        ":args":
-        [{":type":":equal",
-          ":args":
-          [{":type":":field-ref", ":names":["position"]},
-           {":type":":method-arg-ref", ":names":["toposition"]}]}]},
-       {":type":":equal",
-        ":args":
-        [{":type":":field-ref", ":names":["position"]},
-         {":type":":method-arg-ref",
-          ":names":["object", "position"]}]}]},
+      [{":type":":field-ref", ":names":["position"]},
+       {":type":":method-arg-ref", ":names":["object", "position"]}]},
      ":betweens":null,
      ":post":
      {":type":":and",
@@ -356,8 +341,9 @@
        {":type":":equal",
         ":args":
         [{":type":":field-ref", ":names":["height"]},
-         {":type":":method-arg-ref",
-          ":names":["object", "height"]}]}]},
+         {":type":":mode-ref",
+          ":mode-ref":{":type":":symbol-ref", ":names":["Height"]},
+          ":mode":":high"}]}]},
      ":betweens":null,
      ":post":
      {":type":":equal",
