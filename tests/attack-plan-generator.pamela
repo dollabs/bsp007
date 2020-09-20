@@ -141,11 +141,11 @@
 ;;; The planner class is instantiated with the object that is the
 ;;; active-agent and the target
 
-(defpclass AttackPlanner [active-agent target]
+(defpclass AttackPlanner [] ;  when integrated -- [active-agent target]
   :modes [ :root ]
   :fields {dmcp (DMCP :id "dmcpid")
-           anattacker (TypicalAttacker active-agent dmcp :id "Attacker1")
-           atarget (Target target :id "target1")
+           anattacker (TypicalAttacker active-agent dmcp :id "Attacker1")  ; when integrated - (TypicalAttacker active-agent dmcp :id "Attacker1")
+           atarget (Target target :id "target1") ; When integrated - (Target target :id "target1")
            ;; Following are examples of generated code
            step1 (lvar "step1")
            step2 (lvar "step2")}
