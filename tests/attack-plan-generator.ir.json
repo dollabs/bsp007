@@ -1,0 +1,529 @@
+{"AttackPlanner":
+ {":args":["active-agent", "target"],
+  ":fields":
+  {"anattacker":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":pclass-arg-ref", ":names":["active-agent"]},
+      {":type":":field-ref", ":names":["dmcp"]}],
+     ":pclass":"TypicalAttacker",
+     ":plant-id":"\"Attacker1\"",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "atarget":
+   {":access":":private",
+    ":initial":
+    {":args":[{":type":":pclass-arg-ref", ":names":["target"]}],
+     ":pclass":"Target",
+     ":plant-id":"\"target1\"",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "dmcp":
+   {":access":":private",
+    ":initial":
+    {":args":null,
+     ":pclass":"DMCP",
+     ":plant-id":"\"dmcpid\"",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "step1":
+   {":access":":private",
+    ":initial":{":name":"\"step1\"", ":type":":lvar"},
+    ":observable":false},
+   "step2":
+   {":access":":private",
+    ":initial":{":name":"\"step2\"", ":type":":lvar"},
+    ":observable":false}},
+  ":methods":
+  {"goal":
+   [{":doc":"\"Attack the target\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":false,
+     ":body":
+     [{":type":":sequence",
+       ":body":
+       [{":type":":method-fn",
+         ":method-ref":
+         {":type":":field-ref",
+          ":names":["anattacker", "lateral-move"]},
+         ":args":[{":type":":field-ref", ":names":["step1"]}]},
+        {":type":":method-fn",
+         ":method-ref":
+         {":type":":field-ref",
+          ":names":["anattacker", "move-to-subsystem"]},
+         ":args":[{":type":":field-ref", ":names":["step2"]}]},
+        {":type":":method-fn",
+         ":method-ref":
+         {":type":":field-ref",
+          ":names":["anattacker", "move-to-supersystem"]},
+         ":args":[{":type":":field-ref", ":names":["atarget"]}]},
+        {":type":":method-fn",
+         ":method-ref":
+         {":type":":field-ref", ":names":["anattacker", "attack"]},
+         ":args":[{":type":":field-ref", ":names":["atarget"]}]}]}],
+     ":display-name":"\"Goal\"",
+     ":pre":
+     {":type":":and",
+      ":args":
+      [{":type":":function-call",
+        ":args":
+        [{":type":":field-ref", ":names":["dmcp", "lookup-object"]},
+         "\"anobjectid1\"",
+         {":type":":field-ref", ":names":["step1"]}]},
+       {":type":":function-call",
+        ":args":
+        [{":type":":field-ref", ":names":["dmcp", "lookup-object"]},
+         "\"anobjectid2\"",
+         {":type":":field-ref", ":names":["step2"]}]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["atarget"]},
+       {":type":":mode-ref",
+        ":mode-ref":
+        {":type":":symbol-ref", ":names":["TargetStates"]},
+        ":mode":":attacked"}]},
+     ":display-args":null}]},
+  ":modes":{":root":true},
+  ":type":":pclass"},
+ "AuthenticationRequired":
+ {":args":null,
+  ":modes":
+  {":Router":true, ":SmartController":true, ":Workstation":true},
+  ":type":":pclass"},
+ "BinaryPropositionTypes":
+ {":args":null,
+  ":modes":
+  {":connects-to":true,
+   ":is-a":true,
+   ":is-of-dcrypps-category":true,
+   ":is-part-of":true},
+  ":type":":pclass"},
+ "DMCP":
+ {":args":null,
+  ":methods":
+  {"find-binary-proposition":
+   [{":doc":
+     "\"Lookup a proposition binding any provided unbound LVAR arguments\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["proposition", "p1", "p2"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Find Binary Proposition\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":["proposition", "p1", "p2"]}],
+   "lookup-object":
+   [{":doc":
+     "\"Lookup an object from it's ID binding if provided an unbound LVAR argument\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["objectid", "object"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Lookup Object\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":["objectid", "object"]}]},
+  ":type":":pclass"},
+ "General":
+ {":args":null,
+  ":modes":{":initial":true, ":nothing":true},
+  ":type":":pclass"},
+ "NetworkConnectionModes":
+ {":args":null,
+  ":modes":{":superuser":true, ":user":true},
+  ":type":":pclass"},
+ "Target":
+ {":args":["target"],
+  ":fields":
+  {"T-location":
+   {":access":":private",
+    ":initial":{":names":["target"], ":type":":pclass-arg-ref"},
+    ":observable":false}},
+  ":methods":
+  {"be-attacked":
+   [{":doc":"\"Change state to attacked.\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Be Attacked\"",
+     ":pre":
+     {":type":":not",
+      ":args":
+      [{":type":":mode-ref",
+        ":mode-ref":{":type":":symbol-ref", ":names":["this"]},
+        ":mode":":attacked"}]},
+     ":betweens":null,
+     ":post":
+     {":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["this"]},
+      ":mode":":attacked"},
+     ":display-args":null}]},
+  ":modes":
+  {":attacked":true,
+   ":normal":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"}},
+  ":type":":pclass"},
+ "TargetStates":
+ {":args":null,
+  ":modes":{":attacked":true, ":normal":true},
+  ":type":":pclass"},
+ "TypicalAttacker":
+ {":args":["pos", "dmcpobj"],
+  ":fields":
+  {"TA-location":
+   {":access":":private",
+    ":initial":{":names":["pos"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "connected":
+   {":access":":private",
+    ":initial":"\"Unconnected\"",
+    ":observable":false},
+   "connection":
+   {":access":":private",
+    ":initial":
+    {":mode":":user",
+     ":mode-ref":
+     {":names":["NetworkConnectionModes"], ":type":":symbol-ref"},
+     ":type":":mode-ref"},
+    ":observable":false},
+   "dmcp":
+   {":access":":private",
+    ":initial":{":names":["dmcpobj"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "p1":
+   {":access":":private",
+    ":initial":{":name":"\"Proposition-arg1\"", ":type":":lvar"},
+    ":observable":false},
+   "p10":
+   {":access":":private",
+    ":initial":{":name":"\"proposition-arg10\"", ":type":":lvar"},
+    ":observable":false},
+   "p2":
+   {":access":":private",
+    ":initial":{":name":"\"proposition-arg2\"", ":type":":lvar"},
+    ":observable":false},
+   "p3":
+   {":access":":private",
+    ":initial":{":name":"\"proposition-arg3\"", ":type":":lvar"},
+    ":observable":false},
+   "p4":
+   {":access":":private",
+    ":initial":{":name":"\"proposition-arg4\"", ":type":":lvar"},
+    ":observable":false},
+   "p5":
+   {":access":":private",
+    ":initial":{":name":"\"proposition-arg5\"", ":type":":lvar"},
+    ":observable":false},
+   "p6":
+   {":access":":private",
+    ":initial":{":name":"\"proposition-arg6\"", ":type":":lvar"},
+    ":observable":false},
+   "p7":
+   {":access":":private",
+    ":initial":{":name":"\"proposition-arg7\"", ":type":":lvar"},
+    ":observable":false},
+   "p8":
+   {":access":":private",
+    ":initial":{":name":"\"proposition-arg8\"", ":type":":lvar"},
+    ":observable":false},
+   "p9":
+   {":access":":private",
+    ":initial":{":name":"\"proposition-arg9\"", ":type":":lvar"},
+    ":observable":false}},
+  ":methods":
+  {"down":
+   [{":doc":"\"move down in a system to a subcomponent\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["newloc"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Down\"",
+     ":pre":
+     {":type":":and",
+      ":args":
+      [{":type":":function-call",
+        ":args":
+        [{":type":":field-ref",
+          ":names":["dmcp", "find-binary-proposition"]},
+         {":type":":mode-ref",
+          ":mode-ref":
+          {":type":":symbol-ref", ":names":
+                                  ["BinaryPropositionTypes"]},
+          ":mode":":is-part-of"},
+         {":type":":method-arg-ref", ":names":["newloc"]},
+         {":type":":field-ref", ":names":["p2"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["TA-location"]},
+         {":type":":field-ref", ":names":["p2"]}]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["TA-location"]},
+       {":type":":method-arg-ref", ":names":["newloc"]}]},
+     ":display-args":["newloc"]}],
+   "lateral":
+   [{":doc":"\"Move to another host in the same subnet\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["newloc"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Lateral\"",
+     ":pre":
+     {":type":":and",
+      ":args":
+      [{":type":":function-call",
+        ":args":
+        [{":type":":field-ref",
+          ":names":["dmcp", "find-binary-proposition"]},
+         {":type":":mode-ref",
+          ":mode-ref":
+          {":type":":symbol-ref", ":names":
+                                  ["BinaryPropositionTypes"]},
+          ":mode":":connects-with"},
+         {":type":":field-ref", ":names":["p1"]},
+         {":type":":method-arg-ref", ":names":["newloc"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["connected"]},
+         {":type":":field-ref", ":names":["p1"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["TA-location"]},
+         {":type":":field-ref", ":names":["p1"]}]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["TA-location"]},
+       {":type":":method-arg-ref", ":names":["newloc"]}]},
+     ":display-args":["newloc"]}],
+   "launch-PW-guessing":
+   [{":doc":
+     "\"Attempt to gain access by launching a ohishing attack to obtain credentials and connect\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["target"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Launch Pw Guessing\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["connected"]},
+       {":type":":method-arg-ref", ":names":["target"]}]},
+     ":display-args":["target"]}],
+   "launch-backdoor-attack":
+   [{":doc":
+     "\"Attempt to gain access by launching a ohishing attack to obtain credentials and connect\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["target"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Launch Backdoor Attack\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["connected"]},
+       {":type":":method-arg-ref", ":names":["target"]}]},
+     ":display-args":["target"]}],
+   "launch-factory-pw-attack":
+   [{":doc":
+     "\"Attempt to gain access by launching a ohishing attack to obtain credentials and connect\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["target"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Launch Factory Pw Attack\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["connected"]},
+       {":type":":method-arg-ref", ":names":["target"]}]},
+     ":display-args":["target"]}],
+   "launch-phishing-attack":
+   [{":doc":
+     "\"Attempt to gain access by launching a phishing attack to obtain credentials and connect\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["target"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Launch Phishing Attack\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["connected"]},
+       {":type":":method-arg-ref", ":names":["target"]}]},
+     ":display-args":["target"]}],
+   "launch-supply-chain-attack":
+   [{":doc":
+     "\"Attempt to gain access by launching a phishing attack to obtain credentials and connect\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["target"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Launch Supply Chain Attack\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["connected"]},
+       {":type":":method-arg-ref", ":names":["target"]}]},
+     ":display-args":["target"]}],
+   "launch-traffic-injection-attack":
+   [{":doc":"\"attack the device with false commands\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["object"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Launch Traffic Injection Attack\"",
+     ":pre":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["TA-location"]},
+       {":type":":method-arg-ref",
+        ":names":["object", "T-location"]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":method-arg-ref", ":names":["object"]},
+       {":type":":mode-ref",
+        ":mode-ref":
+        {":type":":symbol-ref", ":names":["TargetStates"]},
+        ":mode":":attacked"}]},
+     ":display-args":["object"]}],
+   "up":
+   [{":doc":"\"move up in a system to a containing supercomponent\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["newloc"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Up\"",
+     ":pre":
+     {":type":":and",
+      ":args":
+      [{":type":":function-call",
+        ":args":
+        [{":type":":field-ref",
+          ":names":["dmcp", "find-binary-proposition"]},
+         {":type":":mode-ref",
+          ":mode-ref":
+          {":type":":symbol-ref", ":names":
+                                  ["BinaryPropositionTypes"]},
+          ":mode":":is-part-of"},
+         {":type":":field-ref", ":names":["p3"]},
+         {":type":":method-arg-ref", ":names":["newloc"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["TA-location"]},
+         {":type":":field-ref", ":names":["p3"]}]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["TA-location"]},
+       {":type":":method-arg-ref", ":names":["newloc"]}]},
+     ":display-args":["newloc"]}]},
+  ":modes":{":ready":true},
+  ":type":":pclass"},
+ "lvars":
+ {":lvars":
+  {"\"Proposition-arg1\"":":unset",
+   "\"proposition-arg10\"":":unset",
+   "\"proposition-arg2\"":":unset",
+   "\"proposition-arg3\"":":unset",
+   "\"proposition-arg4\"":":unset",
+   "\"proposition-arg5\"":":unset",
+   "\"proposition-arg6\"":":unset",
+   "\"proposition-arg7\"":":unset",
+   "\"proposition-arg8\"":":unset",
+   "\"proposition-arg9\"":":unset",
+   "\"step1\"":":unset",
+   "\"step2\"":":unset"},
+  ":type":":lvars"}}

@@ -1,0 +1,725 @@
+
+(defpclass Actuator []
+ :inherit [system]
+  :methods []
+ )
+
+(defpclass AeroGuidance []
+ :inherit [system]
+  :methods []
+ )
+
+(defpclass AeroGuidance_p_Impl []
+ :inherit [system AeroGuidance]
+  :methods []
+ )
+
+(defpclass Authorization_Pool []
+ :inherit [data]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Boolean []
+ :inherit [data]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Character []
+ :inherit [data]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Float []
+ :inherit [data]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Float_32 []
+ :inherit [Base_Types_dc_Float]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Float_64 []
+ :inherit [Base_Types_dc_Float]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Integer []
+ :inherit [data]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Integer_16 []
+ :inherit [Base_Types_dc_Integer]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Integer_32 []
+ :inherit [Base_Types_dc_Integer]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Integer_64 []
+ :inherit [Base_Types_dc_Integer]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Integer_8 []
+ :inherit [Base_Types_dc_Integer]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Natural []
+ :inherit [Base_Types_dc_Integer]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_String []
+ :inherit [data]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Unsigned_16 []
+ :inherit [Base_Types_dc_Integer]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Unsigned_32 []
+ :inherit [Base_Types_dc_Integer]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Unsigned_64 []
+ :inherit [Base_Types_dc_Integer]
+  :methods []
+ )
+
+(defpclass Base_Types_dc_Unsigned_8 []
+ :inherit [Base_Types_dc_Integer]
+  :methods []
+ )
+
+(defpclass Capability []
+ :inherit [data]
+  :methods []
+ )
+
+(defpclass Capability_p_Empty []
+ :inherit [data Capability]
+  :methods []
+ )
+
+(defpclass Capability_p_Missile_Super_User []
+ :inherit [data Capability]
+  :fields {
+            pool (Missile_Pool_p_Impl )
+            greater (Capability_p_Empty )
+            }
+  :methods []
+ )
+
+(defpclass Capability_p_Missile_User_Read []
+ :inherit [data Capability]
+  :fields {
+            pool (Missile_Pool_p_Impl )
+            greater (Capability_p_Missile_User_Write )
+            }
+  :methods []
+ )
+
+(defpclass Capability_p_Missile_User_Write []
+ :inherit [data Capability]
+  :fields {
+            pool (Missile_Pool_p_Impl )
+            greater (Capability_p_Missile_Super_User )
+            }
+  :methods []
+ )
+
+(defpclass CellularNetwork []
+ :inherit [bus]
+  :methods []
+ )
+
+(defpclass CellularNetwork_p_Impl [a_bus]
+ :inherit [bus CellularNetwork]
+  :fields {
+            drain_CellularNetwork_p_Impl {:initial a_bus}
+            }
+  :methods []
+ )
+
+(defpclass Controller []
+ :inherit [system]
+  :methods [ (defpmethod turn_on [])
+  (defpmethod turn_off [])
+ ]
+ )
+
+(defpclass ControllerBoard []
+ :inherit [Controller]
+  :fields {
+            program (lvar "program")
+            battery_level (lvar "battery_level")
+            command_execute_window (lvar "command_execute_window")
+            empty_TCPA (lvar "empty_TCPA")
+            TCPA (MissileGuidanceBus_p_Impl empty_TCPA)
+            }
+  :methods [ (defpmethod turn_on [])
+  (defpmethod turn_off [])
+  (defpmethod initialize [])
+  (defpmethod navigation_test [])
+  (defpmethod abort_mission [])
+  (defpmethod received_command_abort [])
+ ]
+ )
+
+(defpclass ControllerBoard_p_Impl [a_TCPA]
+ :inherit [system ControllerBoard]
+  :fields {
+            bus_TCPA {:initial a_TCPA}
+            TCPA (MissileGuidanceBus_p_Impl bus_TCPA)
+            TA1_Properties_dc_command_execute_window { :initial 0.0 :observable true :access :public}
+        }
+  :methods []
+ )
+
+(defpclass Enterprise []
+ :inherit [system]
+  :methods []
+ )
+
+(defpclass Enterprise_p_Impl []
+ :inherit [system Enterprise]
+  :methods []
+ )
+
+(defpclass FinControl []
+ :inherit [Actuator]
+  :fields {
+            in_desired (lvar "in_desired")
+            empty_TCPA (lvar "empty_TCPA")
+            TCPA (MissileGuidanceBus_p_Impl empty_TCPA)
+            }
+  :methods [ (defpmethod in_abort [])
+ ]
+ )
+
+(defpclass FinControl_p_Impl [a_in_desired a_TCPA]
+ :inherit [system FinControl]
+  :fields {
+            in_desired {:initial a_in_desired :consumer true }
+            bus_TCPA {:initial a_TCPA}
+            TCPA (MissileGuidanceBus_p_Impl bus_TCPA)
+            }
+  :methods []
+ )
+
+(defpclass GPS []
+ :inherit [NavigationalSensorDependentOnRadio]
+  :fields {
+            out_current_latitude (lvar "out_current_latitude")
+            out_current_longitude (lvar "out_current_longitude")
+            out_current_altitude (lvar "out_current_altitude")
+            out_current (lvar "out_current")
+            empty_TCPA (lvar "empty_TCPA")
+            TCPA (MissileGuidanceBus_p_Impl empty_TCPA)
+            }
+  :methods [ (defpmethod in_reset [])
+  (defpmethod turn_off [])
+  (defpmethod turn_on [])
+ ]
+ )
+
+(defpclass GPSUser []
+ :inherit [system]
+  :methods []
+ )
+
+(defpclass GPS_p_Impl [a_out_current a_TCPA]
+ :inherit [system GPS]
+  :fields {
+            out_current {:initial a_out_current :producer true}
+            bus_TCPA {:initial a_TCPA}
+            TCPA (MissileGuidanceBus_p_Impl bus_TCPA)
+            }
+  :methods []
+ )
+
+(defpclass GroundStation []
+ :inherit [system]
+  :fields {
+            out_target (lvar "out_target")
+            out_abort (lvar "out_abort")
+            empty_RFA (lvar "empty_RFA")
+            RFA (MCCellularNetwork_p_Impl empty_RFA)
+            }
+  :methods [ (defpmethod sent_command [])
+  (defpmethod sent_command_abort [])
+ ]
+ )
+
+(defpclass GroundStation_p_Impl [a_out_target a_out_abort a_RFA]
+ :inherit [system GroundStation]
+  :fields {
+            out_target {:initial a_out_target}
+            out_abort {:initial a_out_abort}
+            bus_RFA {:initial a_RFA}
+            RFA (MCCellularNetwork_p_Impl bus_RFA)
+            }
+  :methods []
+ )
+
+(defpclass INS []
+ :inherit [NavigationalSensorNotDependentOnRadio]
+  :fields {
+            out_current_velocity (lvar "out_current_velocity")
+            out_current_position (lvar "out_current_position")
+            out_current_direction (lvar "out_current_direction")
+            out_current (lvar "out_current")
+            empty_TCPA (lvar "empty_TCPA")
+            TCPA (MissileGuidanceBus_p_Impl empty_TCPA)
+            }
+  :methods [ (defpmethod turn_off [])
+  (defpmethod turn_on [])
+  (defpmethod in_reset [])
+  (defpmethod in_recalibrate_from_gps [])
+ ]
+ )
+
+(defpclass INSUser []
+ :inherit [system]
+  :methods []
+ )
+
+(defpclass INS_p_Impl [a_out_current a_TCPA]
+ :inherit [system INS]
+  :fields {
+            out_current {:initial a_out_current :producer true}
+            bus_TCPA {:initial a_TCPA}
+            TCPA (MissileGuidanceBus_p_Impl bus_TCPA)
+            }
+  :methods []
+ )
+
+(defpclass IP_Address []
+ :inherit [data]
+  :methods []
+ )
+
+(defpclass IP_Address_p_Impl []
+ :inherit [data IP_Address]
+  :fields {
+            octet2 (Base_Types_dc_Integer )
+            octet3 (Base_Types_dc_Integer )
+            octet4 (Base_Types_dc_Integer )
+            octet1 (Base_Types_dc_Integer )
+            }
+  :methods []
+ )
+
+(defpclass KalmanFilter []
+ :inherit [system]
+  :methods []
+ )
+
+(defpclass LocalNetwork []
+ :inherit [Switch]
+  :methods []
+ )
+
+(defpclass LocalNetwork_p_Impl [a_bus]
+ :inherit [Switch_p_Impl LocalNetwork]
+  :fields {
+            drain_LocalNetwork_p_Impl {:initial a_bus}
+            }
+  :methods []
+ )
+
+(defpclass MCCellularNetwork []
+ :inherit [CellularNetwork]
+  :methods []
+ )
+
+(defpclass MCCellularNetwork_p_Impl [a_bus]
+ :inherit [CellularNetwork_p_Impl MCCellularNetwork]
+  :fields {
+            drain_MCCellularNetwork_p_Impl {:initial a_bus}
+            }
+  :methods []
+ )
+
+(defpclass Main []
+ :inherit [system MissileGuidanceUnit]
+  :fields {
+            router (Router_p_Impl bus_network_switch bus_cell_net)
+            mgp (MissileGuidanceProgram_p_Impl in_target op3 bus_network_switch)
+            controller (ControllerBoard_p_Impl bus_network_switch)
+            gps (GPS_p_Impl op7 bus_network_switch)
+            ins (INS_p_Impl op6 bus_network_switch)
+            st (SeekerTrackerComponent_p_Impl op3 op6 op7 op8 bus_network_switch)
+            fc (FinControl_p_Impl op8 bus_network_switch)
+            gs (GroundStation_p_Impl in_target in_abort bus_cell_net)
+            op3 (lvar "op3")
+            op6 (lvar "op6")
+            op7 (lvar "op7")
+            op8 (lvar "op8")
+            bus_network_switch (lvar "bus_network_switch")
+            network_switch (MissileGuidanceBus_p_Impl bus_network_switch)
+            bus_cell_net (lvar "bus_cell_net")
+            cell_net (MCCellularNetwork_p_Impl bus_cell_net)
+            Deployment_Properties_dc_Actual_Connection_Binding { :initial "['network_switch']" :observable true :access :public}
+        }
+  :methods []
+ )
+
+(defpclass MissileGuidanceBus []
+ :inherit [NetworkSwitch]
+  :fields {
+            route (lvar "route")
+            }
+  :methods []
+ )
+
+(defpclass MissileGuidanceBus_p_Impl [a_bus]
+ :inherit [NetworkSwitch_p_Impl MissileGuidanceBus]
+  :fields {
+            drain_MissileGuidanceBus_p_Impl {:initial a_bus}
+            }
+  :methods []
+ )
+
+(defpclass MissileGuidanceDiagnosticsServer []
+ :inherit [WebServer]
+  :methods []
+ )
+
+(defpclass MissileGuidanceDiagnosticsServer_p_Impl []
+ :inherit [system MissileGuidanceDiagnosticsServer]
+  :methods []
+ )
+
+(defpclass MissileGuidanceProgram []
+ :inherit [system]
+  :fields {
+            out_target (lvar "out_target")
+            time_to_target (lvar "time_to_target")
+            out_reset (lvar "out_reset")
+            out_abort (lvar "out_abort")
+            in_target (lvar "in_target")
+            in_ttt (lvar "in_ttt")
+            empty_TCPA (lvar "empty_TCPA")
+            TCPA (MissileGuidanceBus_p_Impl empty_TCPA)
+            }
+  :methods [ (defpmethod in_abort [])
+ ]
+ )
+
+(defpclass MissileGuidanceProgram_p_Impl [a_in_target a_out_target a_TCPA]
+ :inherit [system MissileGuidanceProgram]
+  :fields {
+            in_target {:initial a_in_target}
+            out_target {:initial a_out_target :producer true}
+            bus_TCPA {:initial a_TCPA}
+            TCPA (MissileGuidanceBus_p_Impl bus_TCPA)
+            TA1_Properties_dc_current_bearing { :initial 0.0 :observable true :access :public}
+        TA1_Properties_dc_desired_bearing { :initial 0.0 :observable true :access :public}
+        TA1_Properties_dc_time_to_target { :initial 0.0 :observable true :access :public}
+        }
+  :methods []
+ )
+
+(defpclass MissileGuidanceUnit []
+ :inherit [system]
+  :fields {
+            in_target (lvar "in_target")
+            in_abort (lvar "in_abort")
+            empty_RFA (lvar "empty_RFA")
+            RFA (MCCellularNetwork_p_Impl empty_RFA)
+            }
+  :methods [ (defpmethod in_main [])
+ ]
+ )
+
+(defpclass Missile_Guidance_Network []
+ :inherit [system]
+  :methods []
+ )
+
+(defpclass Missile_Guidance_Network_p_Impl []
+ :inherit [system Missile_Guidance_Network]
+  :fields {
+            missile_user_write (Capability_p_Missile_User_Write )
+            missile_user_read (Capability_p_Missile_User_Read )
+            missile_pool (Missile_Pool_p_Impl )
+            missile_super_user (Capability_p_Missile_Super_User )
+            }
+  :methods []
+ )
+
+(defpclass Missile_Pool []
+ :inherit [data]
+  :methods []
+ )
+
+(defpclass Missile_Pool_p_Impl []
+ :inherit [data Missile_Pool]
+  :fields {
+            pool (Authorization_Pool )
+            }
+  :methods []
+ )
+
+(defpclass NavigationalSensor []
+ :inherit [Sensor]
+  :methods [ (defpmethod turn_on [])
+  (defpmethod turn_off [])
+ ]
+ )
+
+(defpclass NavigationalSensorDependentOnRadio []
+ :inherit [NavigationalSensor]
+  :methods [ (defpmethod turn_on [])
+  (defpmethod turn_off [])
+ ]
+ )
+
+(defpclass NavigationalSensorNotDependentOnRadio []
+ :inherit [NavigationalSensor]
+  :methods [ (defpmethod turn_on [])
+  (defpmethod turn_off [])
+ ]
+ )
+
+(defpclass Network []
+ :inherit [system]
+  :methods []
+ )
+
+(defpclass NetworkSwitch []
+ :inherit [bus]
+  :fields {
+            route (lvar "route")
+            }
+  :methods []
+ )
+
+(defpclass NetworkSwitch_p_Impl [a_bus]
+ :inherit [bus NetworkSwitch]
+  :fields {
+            drain_NetworkSwitch_p_Impl {:initial a_bus}
+            }
+  :methods []
+ )
+
+(defpclass Network_p_Impl []
+ :inherit [system Network]
+  :methods []
+ )
+
+(defpclass OutsideNetwork []
+ :inherit [Network]
+  :fields {
+            exclude_ip_range (lvar "exclude_ip_range")
+            exclude_ip_mask (lvar "exclude_ip_mask")
+            }
+  :methods []
+ )
+
+(defpclass OutsideNetwork_p_Impl []
+ :inherit [Network_p_Impl OutsideNetwork]
+  :methods []
+ )
+
+(defpclass Router []
+ :inherit [system]
+  :fields {
+            empty_net2 (lvar "empty_net2")
+            net2 (MissileGuidanceBus_p_Impl empty_net2)
+            empty_net1 (lvar "empty_net1")
+            net1 (MCCellularNetwork_p_Impl empty_net1)
+            }
+  :methods []
+ )
+
+(defpclass Router_p_Impl [a_net2 a_net1]
+ :inherit [system Router]
+  :fields {
+            bus_net2 {:initial a_net2}
+            net2 (MissileGuidanceBus_p_Impl bus_net2)
+            bus_net1 {:initial a_net1}
+            net1 (MCCellularNetwork_p_Impl bus_net1)
+            }
+  :methods []
+ )
+
+(defpclass SeekerTrackerComponent []
+ :inherit [Sensor]
+  :fields {
+            out_current_range (lvar "out_current_range")
+            out_current_look_angle (lvar "out_current_look_angle")
+            out_abort (lvar "out_abort")
+            in_set_seeker_angle (lvar "in_set_seeker_angle")
+            in_target (lvar "in_target")
+            in_gps_current (lvar "in_gps_current")
+            in_ins_current (lvar "in_ins_current")
+            out_desired (lvar "out_desired")
+            out_cew (lvar "out_cew")
+            empty_TCPA (lvar "empty_TCPA")
+            TCPA (MissileGuidanceBus_p_Impl empty_TCPA)
+            TA1_Properties_dc_current_range { :initial 0.0 :observable true :access :public}
+        }
+  :methods [ (defpmethod turn_off [])
+  (defpmethod turn_on [])
+  (defpmethod in_abort [])
+ ]
+ )
+
+(defpclass SeekerTrackerComponent_p_Impl [a_in_target a_in_ins_current a_in_gps_current a_out_desired a_TCPA]
+ :inherit [system SeekerTrackerComponent]
+  :fields {
+            in_target {:initial a_in_target :consumer true }
+            in_ins_current {:initial a_in_ins_current :consumer true }
+            in_gps_current {:initial a_in_gps_current :consumer true }
+            out_desired {:initial a_out_desired :producer true}
+            bus_TCPA {:initial a_TCPA}
+            TCPA (MissileGuidanceBus_p_Impl bus_TCPA)
+            TA1_Properties_dc_current_range { :initial 0.0 :observable true :access :public}
+        }
+  :methods []
+ )
+
+(defpclass Sensor []
+ :inherit [system]
+  :methods [ (defpmethod turn_on [])
+  (defpmethod turn_off [])
+ ]
+ )
+
+(defpclass Site []
+ :inherit [system]
+  :fields {
+            victim (lvar "victim")
+            ip_range (lvar "ip_range")
+            ip_mask (lvar "ip_mask")
+            }
+  :methods []
+ )
+
+(defpclass Switch []
+ :inherit [bus]
+  :methods []
+ )
+
+(defpclass SwitchPort []
+ :inherit [device]
+  :methods []
+ )
+
+(defpclass SwitchPort_p_Impl []
+ :inherit [device SwitchPort]
+  :methods []
+ )
+
+(defpclass Switch_p_Impl [a_bus]
+ :inherit [bus Switch]
+  :fields {
+            drain_Switch_p_Impl {:initial a_bus}
+            }
+  :methods []
+ )
+
+(defpclass SwitchedSubnet []
+ :inherit [system]
+  :fields {
+            ip_mask (lvar "ip_mask")
+            ip_range (lvar "ip_range")
+            TA1_Properties_dc_IP_Mask { :initial "255.255.255.0" :observable true :access :public}
+        }
+  :methods []
+ )
+
+(defpclass SwitchedSubnet_p_Impl []
+ :inherit [system SwitchedSubnet]
+  :methods []
+ )
+
+(defpclass ThreeAxisAccelerometer []
+ :inherit [NavigationalSensorNotDependentOnRadio]
+  :fields {
+            out_y_acceleration (lvar "out_y_acceleration")
+            out_x_acceleration (lvar "out_x_acceleration")
+            out_z_acceleration (lvar "out_z_acceleration")
+            out_current (lvar "out_current")
+            empty_TCPA (lvar "empty_TCPA")
+            TCPA (MissileGuidanceBus_p_Impl empty_TCPA)
+            }
+  :methods [ (defpmethod turn_off [])
+  (defpmethod turn_on [])
+  (defpmethod in_reset [])
+ ]
+ )
+
+(defpclass ThreeAxisAccelerometer_p_Impl [a_TCPA]
+ :inherit [system ThreeAxisAccelerometer]
+  :fields {
+            bus_TCPA {:initial a_TCPA}
+            TCPA (MissileGuidanceBus_p_Impl bus_TCPA)
+            }
+  :methods []
+ )
+
+(defpclass TimeToAbortMission []
+ :inherit [device]
+  :fields {
+            ttam (lvar "ttam")
+            empty_TCPA (lvar "empty_TCPA")
+            TCPA (MissileGuidanceBus_p_Impl empty_TCPA)
+            }
+  :methods []
+ )
+
+(defpclass TimeToAbortMission_p_Impl [a_TCPA]
+ :inherit [device TimeToAbortMission]
+  :fields {
+            bus_TCPA {:initial a_TCPA}
+            TCPA (MissileGuidanceBus_p_Impl bus_TCPA)
+            }
+  :methods []
+ )
+
+(defpclass Victim []
+ :inherit [Enterprise]
+  :methods []
+ )
+
+(defpclass Victim_p_Impl []
+ :inherit [Enterprise_p_Impl Victim]
+  :methods []
+ )
+
+(defpclass WebServer []
+ :inherit [system]
+  :methods []
+ )
+
+(defpclass bus []
+ 
+  :methods []
+ )
+
+(defpclass data []
+ 
+  :methods []
+ )
+
+(defpclass device []
+ 
+  :methods []
+ )
+
+(defpclass system []
+ 
+  :methods []
+ )
+

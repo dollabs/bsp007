@@ -1,0 +1,165 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; DCRYPSS attack plan generator
+
+(defpclass General [] :modes [:initial :nothing])
+
+(defpclass TargetStates [] :modes [:normal :attacked])
+
+(defpclass BinaryPropositionTypes [] :modes [:connects-to :is-part-of :is-a :is-of-dcrypps-category])
+
+(defpclass NetworkConnectionModes [] :modes [:user :superuser])
+
+(defpclass AuthenticationRequired [] :modes [:SmartController :Router :Workstation])
+
+(defpclass Target [target]
+  :modes {:normal (or (mode-of General :initial)) :attacked true} ; crappy way of specifying initial
+  :fields {T-location target}
+  :methods [(defpmethod be-attacked
+              {:doc "Change state to attacked."
+               :pre (not :attacked)
+               :post :attacked
+               }
+              [])])
+
+(defpclass DMCP []
+  :methods [(defpmethod find-binary-proposition
+              {:doc "Lookup a proposition binding any provided unbound LVAR arguments"
+               :primitive true}
+              [proposition p1 p2])
+            (defpmethod lookup-object
+              {:doc "Lookup an object from it's ID binding if provided an unbound LVAR argument"
+               :primitive true}
+              [objectid object])])
+
+(defpclass TypicalAttacker [pos dmcpobj]
+  :modes [ :ready ]
+  :fields {TA-location pos                 ;This represents where the attacker has reached (is)
+           dmcp dmcpobj
+           connected "Unconnected"
+           connection (mode-of NetworkConnectionModes :user)
+           p1 (lvar "Proposition-arg1")
+           p2 (lvar "proposition-arg2")
+           p3 (lvar "proposition-arg3")
+           p4 (lvar "proposition-arg4") ; Not used beyond here
+           p5 (lvar "proposition-arg5")
+           p6 (lvar "proposition-arg6")
+           p7 (lvar "proposition-arg7")
+           p8 (lvar "proposition-arg8")
+           p9 (lvar "proposition-arg9")
+           p10 (lvar "proposition-arg10")
+           }
+  :methods [(defpmethod lateral         ;lateral-move
+              {:doc "Move to another host in the same subnet"
+               :pre (and (call dmcp.find-binary-proposition
+                               (mode-of BinaryPropositionTypes :connects-with) p1 newloc)
+                          (= connected p1)
+                          (= TA-location p1))
+               :post (= TA-location newloc)
+               :primitive true}
+              [newloc])
+            (defpmethod down            ;move-to-subsystem
+              {:doc "move down in a system to a subcomponent"
+               :pre (and (call dmcp.find-binary-proposition (mode-of BinaryPropositionTypes :is-part-of) newloc p2)
+                         (= TA-location p2))
+               :post (= TA-location newloc)
+               :primitive true}
+              [newloc])
+
+            (defpmethod up              ; move-to-supersystem
+              {:doc "move up in a system to a containing supercomponent"
+               :pre (and (call dmcp.find-binary-proposition (mode-of BinaryPropositionTypes :is-part-of) p3 newloc)
+                         (= TA-location p3))
+               :post (= TA-location newloc)
+               :primitive true}
+              [newloc])
+
+            (defpmethod launch-phishing-attack
+              {:doc "Attempt to gain access by launching a phishing attack to obtain credentials and connect"
+               ;:pre ;(call dmcp.find-binary-proposition
+                    ;      (mode-of BinaryPropositionTypes :is-of-dcrypps-category)
+                    ;      target
+                    ;      (mode-of AuthenticationRequired :Workstation))
+               :post (= connected target)
+               :primitive true}
+              [target])
+
+            (defpmethod launch-PW-guessing
+              {:doc "Attempt to gain access by launching a ohishing attack to obtain credentials and connect"
+               ;:pre (call dmcp.find-binary-proposition
+               ;           (mode-of BinaryPropositionTypes :is-of-dcrypps-category)
+               ;           target (mode-of AuthenticationRequired :Workstation))
+               :post (= connected target)
+               :primitive true}
+              [target])
+
+            (defpmethod launch-backdoor-attack
+              {:doc "Attempt to gain access by launching a ohishing attack to obtain credentials and connect"
+               ;:pre (call dmcp.find-binary-proposition
+               ;           (mode-of BinaryPropositionTypes :is-of-dcrypps-category)
+               ;           target
+               ;           (mode-of AuthenticationRequired :Workstation))
+               :post (= connected target)
+               :primitive true}
+              [target])
+
+            (defpmethod launch-supply-chain-attack
+              {:doc "Attempt to gain access by launching a phishing attack to obtain credentials and connect"
+               ;:pre (call dmcp.find-binary-proposition
+               ;           (mode-of BinaryPropositionTypes :is-of-dcrypps-category)
+               ;           target
+               ;           (mode-of AuthenticationRequired :SmartController))
+               :post (= connected target)
+               :primitive true}
+              [target])
+
+            (defpmethod launch-factory-pw-attack
+              {:doc "Attempt to gain access by launching a ohishing attack to obtain credentials and connect"
+               ;:pre (call dmcp.find-binary-proposition
+               ;           (mode-of BinaryPropositionTypes :is-of-dcrypps-category)
+               ;           target
+               ;           (mode-of AuthenticationRequired :Router))
+               :post (= connected target)
+               :primitive true}
+              [target])
+
+            (defpmethod launch-traffic-injection-attack
+              {:doc "attack the device with false commands"
+               :pre (= TA-location object.T-location)
+               :post (= object (mode-of TargetStates :attacked))
+               :primitive true}
+              [object])
+
+            ;; (defpmethod attack-device
+            ;;   {:doc "attack the object specified"
+            ;;    :pre (= TA-location object.T-location)
+            ;;    :post (= object (mode-of TargetStates :attacked))
+            ;;    :primitive true}
+            ;;   [object])
+            ])
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; The planner class is instantiated with the object that is the
+;;; active-agent and the target
+
+(defpclass AttackPlanner [active-agent target]
+  :modes [ :root ]
+  :fields {dmcp (DMCP :id "dmcpid")
+           anattacker (TypicalAttacker active-agent dmcp :id "Attacker1")
+           atarget (Target target :id "target1")
+           ;; Following are examples of generated code
+           step1 (lvar "step1")
+           step2 (lvar "step2")}
+  :methods [(defpmethod goal
+              {:doc "Attack the target"
+               ;; Generated precondition to extract waypoints
+               :pre (and (call dmcp.lookup-object "anobjectid1" step1)
+                         (call dmcp.lookup-object "anobjectid2" step2))
+               :post (= atarget (mode-of TargetStates :attacked))}
+              []
+              ;; This is an example of what a generated solution should look like
+              (sequence
+               (anattacker.lateral-move step1)
+               (anattacker.move-to-subsystem step2)
+               (anattacker.move-to-supersystem atarget)
+               (anattacker.attack atarget))
+              )])

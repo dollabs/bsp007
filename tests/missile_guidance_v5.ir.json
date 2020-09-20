@@ -1,0 +1,1501 @@
+{"Actuator":
+ {":args":null,
+  ":inherit":["System"],
+  ":methods":{},
+  ":type":":pclass"},
+ "Bus":
+ {":args":null,
+  ":inherit":["Hardware"],
+  ":methods":{},
+  ":type":":pclass"},
+ "CellularNetwork":
+ {":args":null, ":inherit":["Bus"], ":methods":{}, ":type":":pclass"},
+ "Component":{":args":null, ":methods":{}, ":type":":pclass"},
+ "Controller":
+ {":args":null,
+  ":inherit":["System"],
+  ":methods":
+  {"turn_off":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn Off\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_on":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn On\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "ControllerBoard":
+ {":args":null,
+  ":fields":
+  {"battery_level":
+   {":access":":private",
+    ":initial":{":name":"\"battery_level\"", ":type":":lvar"},
+    ":observable":false},
+   "command_execute_window":
+   {":access":":private",
+    ":initial":
+    {":name":"\"command_execute_window\"", ":type":":lvar"},
+    ":observable":false},
+   "program":
+   {":access":":private",
+    ":initial":{":name":"\"program\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["System", "Controller"],
+  ":methods":
+  {"abort_mission":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Abort Mission\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "initialize":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Initialize\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "navigation_test":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Navigation Test\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "received_command_abort":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Received Command Abort\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_off":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn Off\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_on":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn On\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "ControllerBoard_Impl":
+ {":args":null,
+  ":fields":
+  {"TA1_Properties_command_execute_window":
+   {":access":":public", ":initial":0, ":observable":true},
+   "battery_level":
+   {":access":":private",
+    ":initial":{":name":"\"battery_level\"", ":type":":lvar"},
+    ":observable":false},
+   "command_execute_window":
+   {":access":":private",
+    ":initial":
+    {":name":"\"command_execute_window\"", ":type":":lvar"},
+    ":observable":false},
+   "program":
+   {":access":":private",
+    ":initial":{":name":"\"program\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["ControllerBoard"],
+  ":methods":
+  {"abort_mission":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Abort Mission\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "initialize":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Initialize\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "navigation_test":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Navigation Test\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "received_command_abort":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Received Command Abort\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_off":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn Off\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_on":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn On\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "FinControl":
+ {":args":null,
+  ":fields":
+  {"TCPA":
+   {":access":":private",
+    ":initial":{":name":"\"TCPA\"", ":type":":lvar"},
+    ":observable":false},
+   "in_desired":
+   {":access":":private",
+    ":initial":{":name":"\"in_desired\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["System", "Actuator"],
+  ":methods":
+  {"in_abort":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Abort\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "FinControl_Impl":
+ {":args":["a_TCPA", "a_in_desired"],
+  ":fields":
+  {"TCPA":
+   {":access":":private",
+    ":initial":{":names":["a_TCPA"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "in_desired":
+   {":access":":private",
+    ":consumer":true,
+    ":initial":{":names":["a_in_desired"], ":type":":pclass-arg-ref"},
+    ":observable":false}},
+  ":inherit":["FinControl"],
+  ":methods":
+  {"in_abort":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Abort\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "GPS":
+ {":args":null,
+  ":fields":
+  {"TCPA":
+   {":access":":private",
+    ":initial":{":name":"\"TCPA\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current":
+   {":access":":private",
+    ":initial":{":name":"\"out_current\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current_altitude":
+   {":access":":private",
+    ":initial":{":name":"\"out_current_altitude\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current_latitude":
+   {":access":":private",
+    ":initial":{":name":"\"out_current_latitude\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current_longitude":
+   {":access":":private",
+    ":initial":{":name":"\"out_current_longitude\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["System", "NavigationalSensorDependentOnRadio"],
+  ":methods":
+  {"in_reset":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Reset\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_off":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn Off\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_on":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn On\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "GPS_Impl":
+ {":args":["a_TCPA", "a_out_current"],
+  ":fields":
+  {"TCPA":
+   {":access":":private",
+    ":initial":{":names":["a_TCPA"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "out_current":
+   {":access":":private",
+    ":initial":
+    {":names":["a_out_current"], ":type":":pclass-arg-ref"},
+    ":observable":false,
+    ":producer":true},
+   "out_current_altitude":
+   {":access":":private",
+    ":initial":{":name":"\"out_current_altitude\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current_latitude":
+   {":access":":private",
+    ":initial":{":name":"\"out_current_latitude\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current_longitude":
+   {":access":":private",
+    ":initial":{":name":"\"out_current_longitude\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["GPS"],
+  ":methods":
+  {"in_reset":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Reset\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_off":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn Off\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_on":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn On\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "GroundStation":
+ {":args":null,
+  ":fields":
+  {"RFA":
+   {":access":":private",
+    ":initial":{":name":"\"RFA\"", ":type":":lvar"},
+    ":observable":false},
+   "out_target":
+   {":access":":private",
+    ":initial":{":name":"\"out_target\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["System"],
+  ":methods":
+  {"sent_command":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Sent Command\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "sent_command_abort":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Sent Command Abort\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "GroundStation_Impl":
+ {":args":["a_RFA", "a_out_target"],
+  ":fields":
+  {"RFA":
+   {":access":":private",
+    ":initial":{":names":["a_RFA"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "out_target":
+   {":access":":private",
+    ":initial":{":name":"\"out_target\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["GroundStation"],
+  ":methods":
+  {"sent_command":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Sent Command\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "sent_command_abort":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Sent Command Abort\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "Hardware":{":args":null, ":methods":{}, ":type":":pclass"},
+ "INS":
+ {":args":null,
+  ":fields":
+  {"TCPA":
+   {":access":":private",
+    ":initial":{":name":"\"TCPA\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current":
+   {":access":":private",
+    ":initial":{":name":"\"out_current\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current_direction":
+   {":access":":private",
+    ":initial":{":name":"\"out_current_direction\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current_position":
+   {":access":":private",
+    ":initial":{":name":"\"out_current_position\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current_velocity":
+   {":access":":private",
+    ":initial":{":name":"\"out_current_velocity\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["System", "NavigationalSensorNotDependentOnRadio"],
+  ":methods":
+  {"in_recalibrate_from_gps":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Recalibrate From Gps\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "in_reset":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Reset\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_off":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn Off\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_on":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn On\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "INS_Impl":
+ {":args":["a_TCPA", "a_out_current"],
+  ":fields":
+  {"TCPA":
+   {":access":":private",
+    ":initial":{":names":["a_TCPA"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "out_current":
+   {":access":":private",
+    ":initial":
+    {":names":["a_out_current"], ":type":":pclass-arg-ref"},
+    ":observable":false,
+    ":producer":true},
+   "out_current_direction":
+   {":access":":private",
+    ":initial":{":name":"\"out_current_direction\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current_position":
+   {":access":":private",
+    ":initial":{":name":"\"out_current_position\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current_velocity":
+   {":access":":private",
+    ":initial":{":name":"\"out_current_velocity\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["INS"],
+  ":methods":
+  {"in_recalibrate_from_gps":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Recalibrate From Gps\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "in_reset":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Reset\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_off":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn Off\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_on":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn On\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "MCCellularNetwork":
+ {":args":null,
+  ":fields":
+  {"con_bus":
+   {":access":":private",
+    ":initial":{":name":"\"con_bus\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["Bus", "CellularNetwork"],
+  ":methods":{},
+  ":type":":pclass"},
+ "MCCellularNetwork_Impl":
+ {":args":["a_con_bus"],
+  ":fields":
+  {"con_bus":
+   {":access":":private",
+    ":initial":{":names":["a_con_bus"], ":type":":pclass-arg-ref"},
+    ":observable":false}},
+  ":inherit":["MCCellularNetwork"],
+  ":methods":{},
+  ":type":":pclass"},
+ "Main":
+ {":args":null,
+  ":fields":
+  {"cell_net":
+   {":access":":private",
+    ":initial":
+    {":args":[{":type":":field-ref", ":names":["con_cell_net"]}],
+     ":pclass":"MCCellularNetwork_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "con_cell_net":
+   {":access":":private",
+    ":initial":{":name":"\"con_cell_net\"", ":type":":lvar"},
+    ":observable":false},
+   "con_gps_out_current":
+   {":access":":private",
+    ":initial":{":name":"\"con_gps_out_current\"", ":type":":lvar"},
+    ":observable":false},
+   "con_ins_out_current":
+   {":access":":private",
+    ":initial":{":name":"\"con_ins_out_current\"", ":type":":lvar"},
+    ":observable":false},
+   "con_mgp_out_target":
+   {":access":":private",
+    ":initial":{":name":"\"con_mgp_out_target\"", ":type":":lvar"},
+    ":observable":false},
+   "con_network_switch":
+   {":access":":private",
+    ":initial":{":name":"\"con_network_switch\"", ":type":":lvar"},
+    ":observable":false},
+   "con_st_out_desired":
+   {":access":":private",
+    ":initial":{":name":"\"con_st_out_desired\"", ":type":":lvar"},
+    ":observable":false},
+   "controller":
+   {":access":":private",
+    ":initial":
+    {":args":null,
+     ":pclass":"ControllerBoard_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "fc":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["con_network_switch"]},
+      {":type":":field-ref", ":names":["con_st_out_desired"]}],
+     ":pclass":"FinControl_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "gps":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["con_network_switch"]},
+      {":type":":field-ref", ":names":["con_gps_out_current"]}],
+     ":pclass":"GPS_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "gs":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["con_cell_net"]},
+      {":type":":field-ref", ":names":["in_target"]}],
+     ":pclass":"GroundStation_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "in_target":
+   {":access":":private",
+    ":initial":{":name":"\"in_target\"", ":type":":lvar"},
+    ":observable":false},
+   "ins":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["con_network_switch"]},
+      {":type":":field-ref", ":names":["con_ins_out_current"]}],
+     ":pclass":"INS_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "mgp":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["con_network_switch"]},
+      {":type":":field-ref", ":names":["in_target"]},
+      {":type":":field-ref", ":names":["con_mgp_out_target"]}],
+     ":pclass":"MissileGuidanceProgram_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "network_switch":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["con_network_switch"]}],
+     ":pclass":"MissileGuidanceBus_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "router":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["con_cell_net"]},
+      {":type":":field-ref", ":names":["con_network_switch"]}],
+     ":pclass":"Router_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "st":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["con_network_switch"]},
+      {":type":":field-ref", ":names":["con_gps_out_current"]},
+      {":type":":field-ref", ":names":["con_ins_out_current"]},
+      {":type":":field-ref", ":names":["con_mgp_out_target"]},
+      {":type":":field-ref", ":names":["con_st_out_desired"]}],
+     ":pclass":"SeekerTrackerComponent_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "ta":
+   {":access":":private",
+    ":initial":
+    {":args":[{":type":":field-ref", ":names":["con_cell_net"]}],
+     ":pclass":"TypicalAttacker_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false}},
+  ":inherit":["MissileGuidanceUnit"],
+  ":methods":
+  {"in_abort":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Abort\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "in_main":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Main\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "MissileGuidanceBus":
+ {":args":null,
+  ":fields":
+  {"con_bus":
+   {":access":":private",
+    ":initial":{":name":"\"con_bus\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["Bus", "NetworkSwitch"],
+  ":methods":{},
+  ":type":":pclass"},
+ "MissileGuidanceBus_Impl":
+ {":args":["a_con_bus"],
+  ":fields":
+  {"con_bus":
+   {":access":":private",
+    ":initial":{":names":["a_con_bus"], ":type":":pclass-arg-ref"},
+    ":observable":false}},
+  ":inherit":["MissileGuidanceBus"],
+  ":methods":{},
+  ":type":":pclass"},
+ "MissileGuidanceProgram":
+ {":args":null,
+  ":fields":
+  {"TCPA":
+   {":access":":private",
+    ":initial":{":name":"\"TCPA\"", ":type":":lvar"},
+    ":observable":false},
+   "in_target":
+   {":access":":private",
+    ":initial":{":name":"\"in_target\"", ":type":":lvar"},
+    ":observable":false},
+   "in_ttt":
+   {":access":":private",
+    ":initial":{":name":"\"in_ttt\"", ":type":":lvar"},
+    ":observable":false},
+   "out_target":
+   {":access":":private",
+    ":initial":{":name":"\"out_target\"", ":type":":lvar"},
+    ":observable":false},
+   "time_to_target":
+   {":access":":private",
+    ":initial":{":name":"\"time_to_target\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["System"],
+  ":methods":
+  {"in_abort":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Abort\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "MissileGuidanceProgram_Impl":
+ {":args":["a_TCPA", "a_in_target", "a_out_target"],
+  ":fields":
+  {"TA1_Properties_current_bearing":
+   {":access":":public", ":initial":0, ":observable":true},
+   "TA1_Properties_desired_bearing":
+   {":access":":public", ":initial":0, ":observable":true},
+   "TA1_Properties_time_to_target":
+   {":access":":public", ":initial":0, ":observable":true},
+   "TCPA":
+   {":access":":private",
+    ":initial":{":names":["a_TCPA"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "in_target":
+   {":access":":private",
+    ":initial":{":name":"\"in_target\"", ":type":":lvar"},
+    ":observable":false},
+   "in_ttt":
+   {":access":":private",
+    ":initial":{":name":"\"in_ttt\"", ":type":":lvar"},
+    ":observable":false},
+   "out_target":
+   {":access":":private",
+    ":initial":{":names":["a_out_target"], ":type":":pclass-arg-ref"},
+    ":observable":false,
+    ":producer":true},
+   "time_to_target":
+   {":access":":private",
+    ":initial":{":name":"\"time_to_target\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["MissileGuidanceProgram"],
+  ":methods":
+  {"in_abort":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Abort\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "MissileGuidanceUnit":
+ {":args":null,
+  ":fields":
+  {"in_target":
+   {":access":":private",
+    ":initial":{":name":"\"in_target\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["System"],
+  ":methods":
+  {"in_abort":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Abort\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "in_main":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Main\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "NavigationalSensor":
+ {":args":null,
+  ":inherit":["System", "Sensor"],
+  ":methods":
+  {"turn_off":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn Off\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_on":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn On\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "NavigationalSensorDependentOnRadio":
+ {":args":null,
+  ":inherit":["System", "NavigationalSensor"],
+  ":methods":
+  {"turn_off":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn Off\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_on":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn On\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "NavigationalSensorNotDependentOnRadio":
+ {":args":null,
+  ":inherit":["System", "NavigationalSensor"],
+  ":methods":
+  {"turn_off":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn Off\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_on":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn On\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "NetworkSwitch":
+ {":args":null, ":inherit":["Bus"], ":methods":{}, ":type":":pclass"},
+ "Router":
+ {":args":null,
+  ":fields":
+  {"net1":
+   {":access":":private",
+    ":initial":{":name":"\"net1\"", ":type":":lvar"},
+    ":observable":false},
+   "net2":
+   {":access":":private",
+    ":initial":{":name":"\"net2\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["System"],
+  ":methods":{},
+  ":type":":pclass"},
+ "Router_Impl":
+ {":args":["a_net1", "a_net2"],
+  ":fields":
+  {"net1":
+   {":access":":private",
+    ":initial":{":names":["a_net1"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "net2":
+   {":access":":private",
+    ":initial":{":names":["a_net2"], ":type":":pclass-arg-ref"},
+    ":observable":false}},
+  ":inherit":["Router"],
+  ":methods":{},
+  ":type":":pclass"},
+ "SeekerTrackerComponent":
+ {":args":null,
+  ":fields":
+  {"TA1_Properties_current_range":
+   {":access":":public", ":initial":0, ":observable":true},
+   "TCPA":
+   {":access":":private",
+    ":initial":{":name":"\"TCPA\"", ":type":":lvar"},
+    ":observable":false},
+   "in_gps_current":
+   {":access":":private",
+    ":initial":{":name":"\"in_gps_current\"", ":type":":lvar"},
+    ":observable":false},
+   "in_ins_current":
+   {":access":":private",
+    ":initial":{":name":"\"in_ins_current\"", ":type":":lvar"},
+    ":observable":false},
+   "in_set_seeker_angle":
+   {":access":":private",
+    ":initial":{":name":"\"in_set_seeker_angle\"", ":type":":lvar"},
+    ":observable":false},
+   "in_target":
+   {":access":":private",
+    ":initial":{":name":"\"in_target\"", ":type":":lvar"},
+    ":observable":false},
+   "out_cew":
+   {":access":":private",
+    ":initial":{":name":"\"out_cew\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current_look_angle":
+   {":access":":private",
+    ":initial":
+    {":name":"\"out_current_look_angle\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current_range":
+   {":access":":private",
+    ":initial":{":name":"\"out_current_range\"", ":type":":lvar"},
+    ":observable":false},
+   "out_desired":
+   {":access":":private",
+    ":initial":{":name":"\"out_desired\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["System", "Sensor"],
+  ":methods":
+  {"in_abort":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Abort\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_off":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn Off\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_on":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn On\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "SeekerTrackerComponent_Impl":
+ {":args":
+  ["a_TCPA", "a_in_gps_current", "a_in_ins_current", "a_in_target",
+   "a_out_desired"],
+  ":fields":
+  {"TA1_Properties_current_range":
+   {":access":":public", ":initial":0, ":observable":true},
+   "TCPA":
+   {":access":":private",
+    ":initial":{":names":["a_TCPA"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "in_gps_current":
+   {":access":":private",
+    ":consumer":true,
+    ":initial":
+    {":names":["a_in_gps_current"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "in_ins_current":
+   {":access":":private",
+    ":consumer":true,
+    ":initial":
+    {":names":["a_in_ins_current"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "in_set_seeker_angle":
+   {":access":":private",
+    ":initial":{":name":"\"in_set_seeker_angle\"", ":type":":lvar"},
+    ":observable":false},
+   "in_target":
+   {":access":":private",
+    ":consumer":true,
+    ":initial":{":names":["a_in_target"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "out_cew":
+   {":access":":private",
+    ":initial":{":name":"\"out_cew\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current_look_angle":
+   {":access":":private",
+    ":initial":
+    {":name":"\"out_current_look_angle\"", ":type":":lvar"},
+    ":observable":false},
+   "out_current_range":
+   {":access":":private",
+    ":initial":{":name":"\"out_current_range\"", ":type":":lvar"},
+    ":observable":false},
+   "out_desired":
+   {":access":":private",
+    ":initial":
+    {":names":["a_out_desired"], ":type":":pclass-arg-ref"},
+    ":observable":false,
+    ":producer":true}},
+  ":inherit":["SeekerTrackerComponent"],
+  ":methods":
+  {"in_abort":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Abort\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_off":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn Off\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_on":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn On\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "Sensor":
+ {":args":null,
+  ":inherit":["System"],
+  ":methods":
+  {"turn_off":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn Off\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}],
+   "turn_on":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Turn On\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":null}]},
+  ":type":":pclass"},
+ "System":
+ {":args":null,
+  ":inherit":["Component"],
+  ":methods":{},
+  ":type":":pclass"},
+ "TypicalAttacker":
+ {":args":null,
+  ":fields":
+  {"RFA":
+   {":access":":private",
+    ":initial":{":name":"\"RFA\"", ":type":":lvar"},
+    ":observable":false},
+   "on_network":
+   {":access":":private",
+    ":initial":{":name":"\"on_network\"", ":type":":lvar"},
+    ":observable":false},
+   "world":
+   {":access":":private",
+    ":initial":{":name":"\"world\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["System"],
+  ":methods":{},
+  ":type":":pclass"},
+ "TypicalAttacker_Impl":
+ {":args":["a_RFA"],
+  ":fields":
+  {"RFA":
+   {":access":":private",
+    ":initial":{":names":["a_RFA"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "on_network":
+   {":access":":private",
+    ":initial":{":name":"\"on_network\"", ":type":":lvar"},
+    ":observable":false},
+   "world":
+   {":access":":private",
+    ":initial":{":name":"\"world\"", ":type":":lvar"},
+    ":observable":false}},
+  ":inherit":["TypicalAttacker"],
+  ":methods":{},
+  ":type":":pclass"},
+ "lvars":
+ {":lvars":
+  {"\"RFA\"":":unset",
+   "\"TCPA\"":":unset",
+   "\"battery_level\"":":unset",
+   "\"command_execute_window\"":":unset",
+   "\"con_bus\"":":unset",
+   "\"con_cell_net\"":":unset",
+   "\"con_gps_out_current\"":":unset",
+   "\"con_ins_out_current\"":":unset",
+   "\"con_mgp_out_target\"":":unset",
+   "\"con_network_switch\"":":unset",
+   "\"con_st_out_desired\"":":unset",
+   "\"in_desired\"":":unset",
+   "\"in_gps_current\"":":unset",
+   "\"in_ins_current\"":":unset",
+   "\"in_set_seeker_angle\"":":unset",
+   "\"in_target\"":":unset",
+   "\"in_ttt\"":":unset",
+   "\"net1\"":":unset",
+   "\"net2\"":":unset",
+   "\"on_network\"":":unset",
+   "\"out_cew\"":":unset",
+   "\"out_current\"":":unset",
+   "\"out_current_altitude\"":":unset",
+   "\"out_current_direction\"":":unset",
+   "\"out_current_latitude\"":":unset",
+   "\"out_current_longitude\"":":unset",
+   "\"out_current_look_angle\"":":unset",
+   "\"out_current_position\"":":unset",
+   "\"out_current_range\"":":unset",
+   "\"out_current_velocity\"":":unset",
+   "\"out_desired\"":":unset",
+   "\"out_target\"":":unset",
+   "\"program\"":":unset",
+   "\"time_to_target\"":":unset",
+   "\"world\"":":unset"},
+  ":type":":lvars"}}
