@@ -233,6 +233,11 @@
   (reset! (.objects *current-model*) (cons object @(.objects *current-model*)))
   ) ;;)
 
+(defn remove-object
+  "Remove an object from the current model."
+  [object]
+  (reset! (.objects *current-model*) (remove #{object} @(.objects *current-model*))))
+
 (defn add-lvar
   "Add an lvar to the current model."
   [lv]
@@ -883,6 +888,28 @@
                                             args)))]
         (set frefs))
       (set nil))))
+
+(defn clone-object
+  [instance-name object]
+  (let [id (RTobject-id object)
+        cname (RTobject-type object)
+        obj-field-map (RTobject-fields object)
+        field-map (into {} (map (fn [[k v]] [k (atom @v)]) obj-field-map))
+        clone (RTobject. instance-name cname (atom field-map) id)
+        pclass (get-class-by-name cname)
+        modes (seq (get pclass :modes))]
+    (bs/add-variable instance-name cname (map first modes)) ; create variable
+    clone))
+
+(defn delete-object
+  [object]
+  (let [id (RTobject-id object)
+        ;;cname (RTobject-type object)
+        obj-field-map (RTobject-fields object)
+        var (RTobject-variable object)]
+    (remove-object object)              ; Remove the object from the list of objects
+    (bs/undef-variable var))            ; Remove the belief in the variable
+  :deleted)
 
 (defn instantiate-pclass
   "Create an instance of a model class."
