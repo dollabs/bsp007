@@ -894,11 +894,13 @@
   (let [id (RTobject-id object)
         cname (RTobject-type object)
         obj-field-map (RTobject-fields object)
-        field-map (into {} (map (fn [[k v]] [k (atom @v)]) obj-field-map))
+        field-map (into {} (map (fn [[k v]] [k (atom @v)]) @obj-field-map))
         clone (RTobject. instance-name cname (atom field-map) id)
         pclass (get-class-by-name cname)
         modes (seq (get pclass :modes))]
     (bs/add-variable instance-name cname (map first modes)) ; create variable
+    (bs/add-binary-proposition :is-a instance-name cname)
+    (add-object clone)
     clone))
 
 (defn delete-object
