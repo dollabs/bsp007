@@ -575,12 +575,25 @@
   [astring]
   (throw (Throwable. (str "Instantiation error: " astring))))
 
-(defn get-likely-value
+#_(defn get-likely-value
   [pdf threshold]
   (let [values (keys pdf)
         numvals (count values)]
     (if (= numvals 1)
       (first values)
+      (let [best (apply max-key val pdf)]
+        (if (>= (second best) threshold)
+          (first best)
+          :unknown)))))
+
+(defn get-likely-value
+  [pdf threshold]
+  (let [values (keys pdf)
+        numvals (count values)]
+    ;(println "get-likely-value pdf=" pdf "threshold=" threshold "values=" values "numvals=" numvals)
+    (case numvals
+      0 :unknown
+      1 (first values)
       (let [best (apply max-key val pdf)]
         (if (>= (second best) threshold)
           (first best)
