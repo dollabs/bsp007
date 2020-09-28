@@ -1,0 +1,4 @@
+(sequence
+ (arobot.goto abanana "10,10")
+ (arobot.take abanana)
+ (arobot.eat abanana))
