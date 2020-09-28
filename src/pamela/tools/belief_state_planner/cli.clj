@@ -384,7 +384,7 @@
                               result (case (count pamela-solutions)
                                        0 "No solutions found"
                                        1 (first (into [] pamela-solutions))
-                                       (into '(choose) (map (fn [asoln] (cons 'choice asoln)) pamela-solutions)))]
+                                       (cons 'choose (map (fn [asoln] (list 'choice asoln)) pamela-solutions)))]
                           (if (= outfile "")
                             (pprint result)
                             (spit outfile (with-out-str (pprint result))))))))
