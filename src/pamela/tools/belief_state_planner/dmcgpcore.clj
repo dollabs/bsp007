@@ -485,19 +485,19 @@
       [[:value goal-fragment]]
 
       :otherwise
-      [[goal-fragment]]))
+      [goal-fragment]))
 
 (defn find-queries-in-goal
   [querypart goal]
-  (let[queries (case (first goal)
-                 :thunk (do
-                          ;;(println "find-queries-in-goal :thunk case -" goal)
-                          ;;(cons (get-object-root-name (nth goal 2))
-                          (find-queries-in-goal querypart (nth goal 1)))
-                 :equal (cond (= querypart (nth goal 1)) (get-queries-in (nth goal 2))
-                              (= querypart (nth goal 2)) (get-queries-in (nth goal 1))
-                              :otherwise [])
-                 [:unhandled-case-in-find-query-in-goal goal])]
+  (let [queries (case (first goal)
+                  :thunk (do
+                           ;;(println "find-queries-in-goal :thunk case -" goal)
+                           ;;(cons (get-object-root-name (nth goal 2))
+                           (find-queries-in-goal querypart (nth goal 1)))
+                  :equal (cond (= querypart (nth goal 1)) (get-queries-in (nth goal 2))
+                               (= querypart (nth goal 2)) (get-queries-in (nth goal 1))
+                               :otherwise [])
+                  [:unhandled-case-in-find-query-in-goal goal])]
     (if (> verbosity 3)
       (println "find-queries-in-goal - querypart=" querypart "goal=" goal "queries=" queries))
     queries))
