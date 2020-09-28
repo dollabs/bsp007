@@ -411,5 +411,4 @@
 ;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "2" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "8" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/dcryppstest.ir.json" "-G" "AttackPlanner" "-v" "4" "-d" "10" "-s" "1" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-m" "tests/missile_guidance_v5.ir.json" "-R" "Main" "-g" "tests/attack-plan-generator.ir.json" "-v" "4" "-G" "AttackPlanner" "-d" "10" "-s" "1" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "tests/dcryppstest.ir.json" "-G" "AttackPlanner" "-v" "0" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
