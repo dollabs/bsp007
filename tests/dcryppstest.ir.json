@@ -16,11 +16,22 @@
  "AttackPlanner":
  {":args":null,
   ":fields":
-  {"anattacker":
+  {"Deployment_Properties_dc_Actual_Connection_Binding":
+   {":access":":public",
+    ":initial":"\"['network_switch']\"",
+    ":observable":true},
+   "RFA":
+   {":access":":private",
+    ":initial":
+    {":args":[{":type":":field-ref", ":names":["empty_RFA"]}],
+     ":pclass":"MCCellularNetwork_p_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "anattacker":
    {":access":":private",
     ":initial":
     {":args":
-     [{":type":":field-ref", ":names":["main", "gs"]},
+     ["\"\/AttackPlanner.gs\"",
       {":type":":field-ref", ":names":["dmcp"]}],
      ":pclass":"TypicalAttacker",
      ":plant-id":"\"Attacker1\"",
@@ -29,9 +40,32 @@
    "atarget":
    {":access":":private",
     ":initial":
-    {":args":[{":type":":field-ref", ":names":["main", "fc"]}],
+    {":args":["\"\/AttackPlanner.st\""],
      ":pclass":"Target",
      ":plant-id":"\"target1\"",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "bus_cell_net":
+   {":access":":private",
+    ":initial":{":name":"\"bus_cell_net\"", ":type":":lvar"},
+    ":observable":false},
+   "bus_network_switch":
+   {":access":":private",
+    ":initial":{":name":"\"bus_network_switch\"", ":type":":lvar"},
+    ":observable":false},
+   "cell_net":
+   {":access":":private",
+    ":initial":
+    {":args":[{":type":":field-ref", ":names":["bus_cell_net"]}],
+     ":pclass":"MCCellularNetwork_p_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "controller":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["bus_network_switch"]}],
+     ":pclass":"ControllerBoard_p_Impl",
      ":type":":pclass-ctor"},
     ":observable":false},
    "dmcp":
@@ -42,10 +76,109 @@
      ":plant-id":"\"dmcpid\"",
      ":type":":pclass-ctor"},
     ":observable":false},
-   "main":
+   "empty_RFA":
+   {":access":":private",
+    ":initial":{":name":"\"empty_RFA\"", ":type":":lvar"},
+    ":observable":false},
+   "fc":
    {":access":":private",
     ":initial":
-    {":args":null, ":pclass":"Main", ":type":":pclass-ctor"},
+    {":args":
+     [{":type":":field-ref", ":names":["op8"]},
+      {":type":":field-ref", ":names":["bus_network_switch"]}],
+     ":pclass":"FinControl_p_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "gps":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["op7"]},
+      {":type":":field-ref", ":names":["bus_network_switch"]}],
+     ":pclass":"GPS_p_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "gs":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["in_target"]},
+      {":type":":field-ref", ":names":["in_abort"]},
+      {":type":":field-ref", ":names":["bus_cell_net"]}],
+     ":pclass":"GroundStation_p_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "in_abort":
+   {":access":":private",
+    ":initial":{":name":"\"in_abort\"", ":type":":lvar"},
+    ":observable":false},
+   "in_target":
+   {":access":":private",
+    ":initial":{":name":"\"in_target\"", ":type":":lvar"},
+    ":observable":false},
+   "ins":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["op6"]},
+      {":type":":field-ref", ":names":["bus_network_switch"]}],
+     ":pclass":"INS_p_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "mgp":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["in_target"]},
+      {":type":":field-ref", ":names":["op3"]},
+      {":type":":field-ref", ":names":["bus_network_switch"]}],
+     ":pclass":"MissileGuidanceProgram_p_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "network_switch":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["bus_network_switch"]}],
+     ":pclass":"MissileGuidanceBus_p_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "op3":
+   {":access":":private",
+    ":initial":{":name":"\"op3\"", ":type":":lvar"},
+    ":observable":false},
+   "op6":
+   {":access":":private",
+    ":initial":{":name":"\"op6\"", ":type":":lvar"},
+    ":observable":false},
+   "op7":
+   {":access":":private",
+    ":initial":{":name":"\"op7\"", ":type":":lvar"},
+    ":observable":false},
+   "op8":
+   {":access":":private",
+    ":initial":{":name":"\"op8\"", ":type":":lvar"},
+    ":observable":false},
+   "router":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["bus_network_switch"]},
+      {":type":":field-ref", ":names":["bus_cell_net"]}],
+     ":pclass":"Router_p_Impl",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "st":
+   {":access":":private",
+    ":initial":
+    {":args":
+     [{":type":":field-ref", ":names":["op3"]},
+      {":type":":field-ref", ":names":["op6"]},
+      {":type":":field-ref", ":names":["op7"]},
+      {":type":":field-ref", ":names":["op8"]},
+      {":type":":field-ref", ":names":["bus_network_switch"]}],
+     ":pclass":"SeekerTrackerComponent_p_Impl",
+     ":type":":pclass-ctor"},
     ":observable":false},
    "step1":
    {":access":":private",
@@ -55,6 +188,7 @@
    {":access":":private",
     ":initial":{":name":"\"step2\"", ":type":":lvar"},
     ":observable":false}},
+  ":inherit":["system", "MissileGuidanceUnit"],
   ":methods":
   {"goal":
    [{":doc":"\"Attack the target\"",
@@ -111,6 +245,21 @@
         ":mode-ref":
         {":type":":symbol-ref", ":names":["TargetStates"]},
         ":mode":":attacked"}]},
+     ":display-args":null}],
+   "in_main":
+   [{":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"In Main\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
      ":display-args":null}]},
   ":modes":{":root":true},
   ":type":":pclass"},
@@ -1247,165 +1396,6 @@
     ":observable":false}},
   ":inherit":["CellularNetwork_p_Impl", "MCCellularNetwork"],
   ":methods":{},
-  ":type":":pclass"},
- "Main":
- {":args":null,
-  ":fields":
-  {"Deployment_Properties_dc_Actual_Connection_Binding":
-   {":access":":public",
-    ":initial":"\"['network_switch']\"",
-    ":observable":true},
-   "RFA":
-   {":access":":private",
-    ":initial":
-    {":args":[{":type":":field-ref", ":names":["empty_RFA"]}],
-     ":pclass":"MCCellularNetwork_p_Impl",
-     ":type":":pclass-ctor"},
-    ":observable":false},
-   "bus_cell_net":
-   {":access":":private",
-    ":initial":{":name":"\"bus_cell_net\"", ":type":":lvar"},
-    ":observable":false},
-   "bus_network_switch":
-   {":access":":private",
-    ":initial":{":name":"\"bus_network_switch\"", ":type":":lvar"},
-    ":observable":false},
-   "cell_net":
-   {":access":":private",
-    ":initial":
-    {":args":[{":type":":field-ref", ":names":["bus_cell_net"]}],
-     ":pclass":"MCCellularNetwork_p_Impl",
-     ":type":":pclass-ctor"},
-    ":observable":false},
-   "controller":
-   {":access":":private",
-    ":initial":
-    {":args":
-     [{":type":":field-ref", ":names":["bus_network_switch"]}],
-     ":pclass":"ControllerBoard_p_Impl",
-     ":type":":pclass-ctor"},
-    ":observable":false},
-   "empty_RFA":
-   {":access":":private",
-    ":initial":{":name":"\"empty_RFA\"", ":type":":lvar"},
-    ":observable":false},
-   "fc":
-   {":access":":private",
-    ":initial":
-    {":args":
-     [{":type":":field-ref", ":names":["op8"]},
-      {":type":":field-ref", ":names":["bus_network_switch"]}],
-     ":pclass":"FinControl_p_Impl",
-     ":type":":pclass-ctor"},
-    ":observable":false},
-   "gps":
-   {":access":":private",
-    ":initial":
-    {":args":
-     [{":type":":field-ref", ":names":["op7"]},
-      {":type":":field-ref", ":names":["bus_network_switch"]}],
-     ":pclass":"GPS_p_Impl",
-     ":type":":pclass-ctor"},
-    ":observable":false},
-   "gs":
-   {":access":":private",
-    ":initial":
-    {":args":
-     [{":type":":field-ref", ":names":["in_target"]},
-      {":type":":field-ref", ":names":["in_abort"]},
-      {":type":":field-ref", ":names":["bus_cell_net"]}],
-     ":pclass":"GroundStation_p_Impl",
-     ":type":":pclass-ctor"},
-    ":observable":false},
-   "in_abort":
-   {":access":":private",
-    ":initial":{":name":"\"in_abort\"", ":type":":lvar"},
-    ":observable":false},
-   "in_target":
-   {":access":":private",
-    ":initial":{":name":"\"in_target\"", ":type":":lvar"},
-    ":observable":false},
-   "ins":
-   {":access":":private",
-    ":initial":
-    {":args":
-     [{":type":":field-ref", ":names":["op6"]},
-      {":type":":field-ref", ":names":["bus_network_switch"]}],
-     ":pclass":"INS_p_Impl",
-     ":type":":pclass-ctor"},
-    ":observable":false},
-   "mgp":
-   {":access":":private",
-    ":initial":
-    {":args":
-     [{":type":":field-ref", ":names":["in_target"]},
-      {":type":":field-ref", ":names":["op3"]},
-      {":type":":field-ref", ":names":["bus_network_switch"]}],
-     ":pclass":"MissileGuidanceProgram_p_Impl",
-     ":type":":pclass-ctor"},
-    ":observable":false},
-   "network_switch":
-   {":access":":private",
-    ":initial":
-    {":args":
-     [{":type":":field-ref", ":names":["bus_network_switch"]}],
-     ":pclass":"MissileGuidanceBus_p_Impl",
-     ":type":":pclass-ctor"},
-    ":observable":false},
-   "op3":
-   {":access":":private",
-    ":initial":{":name":"\"op3\"", ":type":":lvar"},
-    ":observable":false},
-   "op6":
-   {":access":":private",
-    ":initial":{":name":"\"op6\"", ":type":":lvar"},
-    ":observable":false},
-   "op7":
-   {":access":":private",
-    ":initial":{":name":"\"op7\"", ":type":":lvar"},
-    ":observable":false},
-   "op8":
-   {":access":":private",
-    ":initial":{":name":"\"op8\"", ":type":":lvar"},
-    ":observable":false},
-   "router":
-   {":access":":private",
-    ":initial":
-    {":args":
-     [{":type":":field-ref", ":names":["bus_network_switch"]},
-      {":type":":field-ref", ":names":["bus_cell_net"]}],
-     ":pclass":"Router_p_Impl",
-     ":type":":pclass-ctor"},
-    ":observable":false},
-   "st":
-   {":access":":private",
-    ":initial":
-    {":args":
-     [{":type":":field-ref", ":names":["op3"]},
-      {":type":":field-ref", ":names":["op6"]},
-      {":type":":field-ref", ":names":["op7"]},
-      {":type":":field-ref", ":names":["op8"]},
-      {":type":":field-ref", ":names":["bus_network_switch"]}],
-     ":pclass":"SeekerTrackerComponent_p_Impl",
-     ":type":":pclass-ctor"},
-    ":observable":false}},
-  ":inherit":["system", "MissileGuidanceUnit"],
-  ":methods":
-  {"in_main":
-   [{":probability":1.0,
-     ":reward":0,
-     ":temporal-constraints":
-     [{":type":":bounds", ":value":[0, ":infinity"]}],
-     ":controllable":false,
-     ":cost":0,
-     ":args":null,
-     ":primitive":true,
-     ":body":null,
-     ":display-name":"\"In Main\"",
-     ":pre":true,
-     ":betweens":null,
-     ":post":true,
-     ":display-args":null}]},
   ":type":":pclass"},
  "MissileGuidanceBus":
  {":args":null,

@@ -575,29 +575,23 @@
   [astring]
   (throw (Throwable. (str "Instantiation error: " astring))))
 
-#_(defn get-likely-value
-  [pdf threshold]
-  (let [values (keys pdf)
-        numvals (count values)]
-    (if (= numvals 1)
-      (first values)
-      (let [best (apply max-key val pdf)]
-        (if (>= (second best) threshold)
-          (first best)
-          :unknown)))))
-
 (defn get-likely-value
   [pdf threshold]
   (let [values (keys pdf)
         numvals (count values)]
-    ;(println "get-likely-value pdf=" pdf "threshold=" threshold "values=" values "numvals=" numvals)
-    (case numvals
-      0 :unknown
-      1 (first values)
-      (let [best (apply max-key val pdf)]
-        (if (>= (second best) threshold)
-          (first best)
-          :unknown)))))
+    (if (> verbosity 3) (println "In get-likely-value pdf=" pdf "threshold=" threshold "values=" values "numvals=" numvals))
+    (if (empty? pdf)
+      :null
+      (case numvals
+        0 :null
+
+        1 (first values)
+        (let [best (apply max-key val pdf)]
+          (if (>= (second best) threshold)
+            (first best)
+            :null))
+
+        :unknown))))
 
 (defn evaluate
   "Evaluate an expression in the current belief state with args as provided."
@@ -665,6 +659,7 @@
                      val
                      (let [variable (.variable val) ; +++ avoid duplication of this idiom
                            pdf (bs/get-belief-distribution-in-variable variable)]
+                       (if (> verbosity 3) (println "variable=" variable "pdf=" pdf))
                        (get-likely-value pdf 0.8))))
           :thunk (evaluate (nth expn 2) path (second expn) class-bindings method-bindings cspam spam)
           :or (some #(evaluate wrtobject path % class-bindings method-bindings cspam spam) (rest expn))
@@ -683,6 +678,7 @@
                      value
                      (let [variable (.variable value)
                            pdf (bs/get-belief-distribution-in-variable variable)]
+                       (if (> verbosity 3) (println "variable=" variable "pdf=" pdf))
                        (get-likely-value pdf 0.8))))  ; +++ where did 0.8 come from!!!
 
           :arg-field (let [[object & field] (rest expn)
@@ -702,6 +698,7 @@
                            value
                            (let [variable (.variable value) ; +++ avoid duplication of this idiom
                                  pdf (bs/get-belief-distribution-in-variable variable)]
+                             (if (> verbosity 3) (println "variable=" variable "pdf=" pdf))
                              (get-likely-value pdf 0.8))))
 
           :mode-of (last expn)
@@ -1015,15 +1012,16 @@
         (if (not (= root nil))
           (do
             (let [rootsym (symbol root)
-                  ;; _ (pprint root)
+                  _ (if (> verbosity 3) (pprint root))
                   sroot [rootsym []]
                   ;; _ (pprint sroot)
                   root-class (irx/get-spamela-class-from-ir ir sroot)
                   ;; _ (pprint root-class)
                   root-methods (get root-class :methods)
-                  ;; _ (pprint root-methods)
-                  goal-method (first root-methods)
-                  ;; _ (pprint  goal-method)
+                  _ (if (> verbosity 3) (pprint root-methods))
+                  goal-method (last root-methods) ; +++ was first
+                  _ (if (> verbosity 3) (pprint  goal-method))
+                  _ (if (> verbosity 3) (println :pre (irx/.prec goal-method) :post (irx/.postc goal-method)))
                   pre-and-post (if (and root-class goal-method)
                                  [[rootsym (irx/.prec goal-method)] [rootsym (irx/.postc goal-method)]])]
               (if root-class
@@ -1126,7 +1124,7 @@
         con (atom {})]
     (doseq [[obj lvs] cm]
       (doseq [lv lvs]
-        ;;(println "Adding " (.variable obj) " to " lv)
+        ;;(println "Adding " (.variable obj) " to " lv) ;+++ comment me out
         (reset! con (into @con {lv (conj (or (get @con lv) #{}) (.variable obj))}))))
     @con))
 

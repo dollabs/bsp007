@@ -435,12 +435,17 @@
 ;;; Args are evaluated from the standpoint of the root
 (defn make-args-map-and-args
   [formals actuals wrtobject]
-  (if (not (= (count formals) (count actuals)))
-    (irx/error  "Wrong Number of Arguments in: make-args-map-and-args formals=" formals " actuals=" actuals))
-  (let [- (if (> verbosity 2) (println "*** make-args-map-and-args: " actuals "wrtobject=" wrtobject))
-        argsmap (into {} (map (fn [f a] [f a]) formals actuals))]
-    (if (> verbosity 2) (println "argsmap=" argsmap))
-    [actuals argsmap]))
+  (let [adjactuals (if (> (count actuals) (count formals))
+                     (do (if (> verbosity 0) (println "+++ Dropping first actual (superfluous)")
+                         (if (> verbosity 3) (println "dropped actual=" (first actuals) "remaining =" (rest actuals)))
+                         (rest actuals))
+                     actuals)]
+    (if (not (= (count formals) (count adjactuals)))
+      (irx/error  "Wrong Number of Arguments in: make-args-map-and-args formals=" formals " actuals=" adjactuals))
+    (let [- (if (> verbosity 2) (println "*** make-args-map-and-args: " adjactuals "wrtobject=" wrtobject))
+          argsmap (into {} (map (fn [f a] [f a]) formals adjactuals))]
+      (if (> verbosity 2) (println "argsmap=" argsmap))
+      [adjactuals argsmap])))
 
 (defn root-object
   []

@@ -349,29 +349,29 @@
   :methods []
  )
 
-(defpclass Main []
- :inherit [system MissileGuidanceUnit]
-  :fields {
-            router (Router_p_Impl bus_network_switch bus_cell_net)
-            mgp (MissileGuidanceProgram_p_Impl in_target op3 bus_network_switch)
-            controller (ControllerBoard_p_Impl bus_network_switch)
-            gps (GPS_p_Impl op7 bus_network_switch)
-            ins (INS_p_Impl op6 bus_network_switch)
-            st (SeekerTrackerComponent_p_Impl op3 op6 op7 op8 bus_network_switch)
-            fc (FinControl_p_Impl op8 bus_network_switch)
-            gs (GroundStation_p_Impl in_target in_abort bus_cell_net)
-            op3 (lvar "op3")
-            op6 (lvar "op6")
-            op7 (lvar "op7")
-            op8 (lvar "op8")
-            bus_network_switch (lvar "bus_network_switch")
-            network_switch (MissileGuidanceBus_p_Impl bus_network_switch)
-            bus_cell_net (lvar "bus_cell_net")
-            cell_net (MCCellularNetwork_p_Impl bus_cell_net)
-           Deployment_Properties_dc_Actual_Connection_Binding { :initial "['network_switch']" :observable true :access :public}
-        }
-  :methods []
- )
+;; (defpclass Main []
+;;  :inherit [system MissileGuidanceUnit]
+;;   :fields {
+;;             router (Router_p_Impl bus_network_switch bus_cell_net)
+;;             mgp (MissileGuidanceProgram_p_Impl in_target op3 bus_network_switch)
+;;             controller (ControllerBoard_p_Impl bus_network_switch)
+;;             gps (GPS_p_Impl op7 bus_network_switch)
+;;             ins (INS_p_Impl op6 bus_network_switch)
+;;             st (SeekerTrackerComponent_p_Impl op3 op6 op7 op8 bus_network_switch)
+;;             fc (FinControl_p_Impl op8 bus_network_switch)
+;;             gs (GroundStation_p_Impl in_target in_abort bus_cell_net)
+;;             op3 (lvar "op3")
+;;             op6 (lvar "op6")
+;;             op7 (lvar "op7")
+;;             op8 (lvar "op8")
+;;             bus_network_switch (lvar "bus_network_switch")
+;;             network_switch (MissileGuidanceBus_p_Impl bus_network_switch)
+;;             bus_cell_net (lvar "bus_cell_net")
+;;             cell_net (MCCellularNetwork_p_Impl bus_cell_net)
+;;            Deployment_Properties_dc_Actual_Connection_Binding { :initial "['network_switch']" :observable true :access :public}
+;;         }
+;;   :methods []
+;;  )
 
 (defpclass MissileGuidanceBus []
  :inherit [NetworkSwitch]
@@ -868,11 +868,31 @@
 
 (defpclass AttackPlanner []  ; when integrated - [active-agent target]
   :modes [ :root ]
-  :fields {main (Main)
+  :inherit [system MissileGuidanceUnit] ; From Main
+  :fields {;;main (Main)
+           ;; from Main
+           router (Router_p_Impl bus_network_switch bus_cell_net)
+           mgp (MissileGuidanceProgram_p_Impl in_target op3 bus_network_switch)
+           controller (ControllerBoard_p_Impl bus_network_switch)
+           gps (GPS_p_Impl op7 bus_network_switch)
+           ins (INS_p_Impl op6 bus_network_switch)
+           st (SeekerTrackerComponent_p_Impl op3 op6 op7 op8 bus_network_switch)
+           fc (FinControl_p_Impl op8 bus_network_switch)
+           gs (GroundStation_p_Impl in_target in_abort bus_cell_net)
+           op3 (lvar "op3")
+           op6 (lvar "op6")
+           op7 (lvar "op7")
+           op8 (lvar "op8")
+           bus_network_switch (lvar "bus_network_switch")
+           network_switch (MissileGuidanceBus_p_Impl bus_network_switch)
+           bus_cell_net (lvar "bus_cell_net")
+           cell_net (MCCellularNetwork_p_Impl bus_cell_net)
+           Deployment_Properties_dc_Actual_Connection_Binding { :initial "['network_switch']" :observable true :access :public}
+           ;; ** End of from Main
 
            dmcp (DMCP :id "dmcpid")
-           anattacker (TypicalAttacker main.gs dmcp :id "Attacker1")  ; when integrated - (TypicalAttacker active-agent dmcp :id "Attacker1")
-           atarget (Target main.fc :id "target1") ; When integrated - (Target target :id "target1")
+           anattacker (TypicalAttacker "/AttackPlanner.gs" dmcp :id "Attacker1")
+           atarget (Target "/AttackPlanner.st" :id "target1")
            ;; Following are examples of generated code
            step1 (lvar "step1")
            step2 (lvar "step2")}

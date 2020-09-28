@@ -46,11 +46,11 @@
 (def cli-options [["-m" "--model pm" "pamela model, in ir-json, of system" :default nil]
                   ["-R" "--root name" "Root pClass" :default "main"]
                   ["-g" "--goals gm" "goal definitions and support, in, ir-json" :default nil]
-                  ["-G" "--groot name" "Root pClass of the goal" :default "main"]
+                  ["-G" "--groot name" "Root pClass of the goal" :default "Main"]
                   ["-s" "--samples n" "Number of samples" :default "1000"]
                   ["-d" "--maxdepth n" "Maximum search depth" :default "20"]
                   ["-r" "--rawp bool" "raw solutions? (otherwise) compiled)" :default "true"]
-                  ["-o" "--output file" "output" :default "solution.pamela"]
+                  ["-o" "--output file" "output" :default ""]
                   ["-h" "--host rmqhost" "RMQ Host" :default "localhost"]
                   ["-p" "--port rmqport" "RMQ Port" :default 5672]
                   ["-e" "--exchange name" "RMQ Exchange Name" :default "tpn-updates"]
@@ -345,13 +345,14 @@
 
 
             :make-plan
-
             (do
               (if model
                 (do
                   (if (.exists (io/file model))
                     (do
                       (rtm/load-model model root) ; no args
+                      (rtm/establish-connectivity-propositions root)
+                      (rtm/establish-part-of-propositions root)
                       (if (> verbosity 3)
                         (do (rtm/describe-current-model)
                             (bs/describe-belief-state)
@@ -366,6 +367,8 @@
                   (if (.exists (io/file goals))
                     (do
                       (rtm/load-model goals groo) ; no args
+                      (rtm/establish-connectivity-propositions groo)
+                      (rtm/establish-part-of-propositions groo)
                       (if (> verbosity 3)
                         (do (rtm/describe-current-model)
                             (bs/describe-belief-state)
@@ -377,11 +380,14 @@
                       (System/exit 1)))
                   (let [solutions (core/solveit :samples samp :max-depth maxd :rawp rawp)]
                     (if (not rawp) (pprint solutions)
-                        (let [pamela-solutions (into #{} (map core/compile-actions-to-pamela solutions))]
-                          (case (count pamela-solutions)
-                            0 (println "No solutions found")
-                            1 (pprint (first (into [] pamela-solutions)))
-                            (pprint (into '(choose) (map (fn [asoln] (cons 'choice asoln)) pamela-solutions))))))))
+                        (let [pamela-solutions (into #{} (map core/compile-actions-to-pamela solutions))
+                              result (case (count pamela-solutions)
+                                       0 "No solutions found"
+                                       1 (first (into [] pamela-solutions))
+                                       (into '(choose) (map (fn [asoln] (cons 'choice asoln)) pamela-solutions)))]
+                          (if (= outfile "")
+                            (pprint result)
+                            (spit outfile (with-out-str (pprint result))))))))
                 (println "Nothing to do, no goals provided")))
 
             (println "Unknown action: " (first arguments)))
@@ -405,3 +411,5 @@
 ;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "2" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "8" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "tests/dcryppstest.ir.json" "-G" "AttackPlanner" "-v" "4" "-d" "10" "-s" "1" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-m" "tests/missile_guidance_v5.ir.json" "-R" "Main" "-g" "tests/attack-plan-generator.ir.json" "-v" "4" "-G" "AttackPlanner" "-d" "10" "-s" "1" "-r" "true" "make-plan")
