@@ -772,6 +772,8 @@
 
           :mode-of [:value (last expn)]
 
+          :value expn
+
           :function-call (irx/error "Unknown case: " expn))))))
 
 (defn maybe-deref
