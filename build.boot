@@ -33,11 +33,21 @@
                     [random-seed "1.0.0"]
 
                     [dollabs/pamela "0.6.3-SNAPSHOT"]
+
+                    ;; testing
+                    [adzerk/boot-test          "1.1.2" :scope "test"]
+                    [criterium                 "0.4.4" :scope "test"]
+                    [adzerk/bootlaces "0.2.0" :scope "test"]
                     ])
 
 (require
   '[clojure.string :as string]
   '[boot.util :as util])
+
+(require
+ '[adzerk.boot-test :refer [test]])
+(require
+ '[adzerk.bootlaces :refer [push-snapshot push-release]])
 
 (task-options!
   pom {:project     project
@@ -47,7 +57,9 @@
        :scm         {:url project-url}
        :license     {"Apache-2.0" "http://opensource.org/licenses/Apache-2.0"}}
   aot {:namespace   #{main}}
-  jar {:main        main})
+  jar {:main        main}
+  test {:namespaces #{'testing.pamela.cli}}
+  )
 
 (deftask clj-dev
   "Clojure REPL for CIDER"
@@ -64,6 +76,7 @@
 
 (deftask build-jar
   "Build the project locally as a JAR."
+
   [d dir PATH #{str} "the set of directories to write to (target)."]
   (let [dir (if (seq dir) dir #{"target"})]
     (comp
@@ -89,4 +102,21 @@
   ;; (reset! util/*verbosity* 0) ;; quiet output
   (cli :args args))
 
+(deftask cli-test
+  "Run the command line tests."
+  []
+  (let [cmd ["./bin/cli-test"]]
+    (comp
+      (build-jar)
+      (with-post-wrap [_]
+        (apply dosh cmd))))) ;; will throw exception on non-zero exit
+
+(deftask all-tests
+  "Run the Clojure and command line tests."
+  []
+  (comp
+    (cli-test)   ;Call build-jar, which recreates target, which deletes target/gen-files.
+    ; we need to preserve target/gen-files
+    (test)
+    ))
 ;;; Fin

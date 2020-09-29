@@ -17,6 +17,7 @@
             [langohr.channel :as lch]
             [clojure.string :as string]
             [tpn.fromjson]
+            [random-seed.core :refer :all]
             [clojure.repl :refer [pst]]
             [clojure.tools.cli :refer [parse-opts]]
             [clojure.pprint :as pp :refer [pprint]]
@@ -33,6 +34,7 @@
             [pamela.tools.belief-state-planner.ir-extraction :as irx])
   (:import (java.text SimpleDateFormat)
            (java.util Date))
+  (:refer-clojure :exclude [rand rand-int rand-nth])
   (:gen-class))
 
 ;(def default-action "observe") ; Maintain a belief state given a model and observations
@@ -346,6 +348,7 @@
 
             :make-plan
             (do
+              (set-random-seed! 666) ; for repeatability of the tests
               (if model
                 (do
                   (if (.exists (io/file model))
