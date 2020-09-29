@@ -688,7 +688,7 @@
         - (if (> verbosity 3) (if bound-value (println "****" (.name evaluated) "=" bound-value)))
         result (if (sequential? exprn)
                  (case (first exprn)
-                   :field (if bound-value [:value bound-value] exprn) ; was [:field [:value bound-value]]
+                   :field (if bound-value [:field [:value bound-value]] exprn) ; was [:field [:value bound-value]] [:value bound-value]
                    :mode-of exprn                    ; Perhaps allow the class and the value to be lvared?+++
                    :arg-field exprn
                    exprn)
