@@ -78,6 +78,10 @@
    ":spoiled":true,
    ":young":true},
   ":type":":pclass"},
+ "BinaryPropositionTypes":
+ {":args":null,
+  ":modes":{":is-a":true, ":is-part-of":true},
+  ":type":":pclass"},
  "Chair":
  {":args":["pos", "hgt", "onwhat", "mobility"],
   ":fields":
@@ -122,6 +126,44 @@
      ":display-args":["nupos"]}]},
   ":modes":{":available":true, ":in-use":true},
   ":type":":pclass"},
+ "DMCP":
+ {":args":null,
+  ":methods":
+  {"find-binary-proposition":
+   [{":doc":
+     "\"Lookup a proposition binding any provided unbound LVAR arguments\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["prop", "p1", "p2"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Find Binary Proposition\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":["prop", "p1", "p2"]}],
+   "lookup-object":
+   [{":doc":
+     "\"Lookup an object from it's ID binding if provided an unbound LVAR argument\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["objectid", "object"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Lookup Object\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":true,
+     ":display-args":["objectid", "object"]}]},
+  ":type":":pclass"},
  "Foodstate":
  {":args":null,
   ":modes":
@@ -138,7 +180,19 @@
  "Robot":
  {":args":["pos", "hgt", "onwhat", "mobility"],
   ":fields":
-  {"handholds":
+  {"achair":
+   {":access":":private",
+    ":initial":{":name":"\"a chair\"", ":type":":lvar"},
+    ":observable":false},
+   "dmcp":
+   {":access":":private",
+    ":initial":
+    {":args":null,
+     ":pclass":"DMCP",
+     ":plant-id":"\"dmcpid\"",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "handholds":
    {":access":":private",
     ":initial":
     {":mode":":nothing",
@@ -205,6 +259,58 @@
         [{":type":":field-ref", ":names":["on"]},
          {":type":":method-arg-ref", ":names":["object"]}]}]},
      ":display-args":["object"]}],
+   "climb-onto-chair":
+   [{":doc":"\"find a chair and climb on to it\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Climb Onto Chair\"",
+     ":pre":
+     {":type":":and",
+      ":args":
+      [{":type":":function-call",
+        ":args":
+        [{":type":":field-ref",
+          ":names":["dmcp", "find-binary-proposition"]},
+         {":type":":mode-ref",
+          ":mode-ref":
+          {":type":":symbol-ref", ":names":
+                                  ["BinaryPropositionTypes"]},
+          ":mode":":is-a"},
+         {":type":":field-ref", ":names":["achair"]}, "\"Chair\""]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["position"]},
+         {":type":":field-ref", ":names":["achair", "position"]}]},
+       {":type":":not",
+        ":args":
+        [{":type":":equal",
+          ":args":
+          [{":type":":field-ref", ":names":["on"]},
+           {":type":":field-ref", ":names":["achair"]}]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["on"]},
+         {":type":":field-ref", ":names":["achair", "on"]}]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":and",
+      ":args":
+      [{":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["height"]},
+         {":type":":field-ref", ":names":["achair", "height"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["on"]},
+         {":type":":field-ref", ":names":["achair"]}]}]},
+     ":display-args":null}],
    "eat":
    [{":doc":"\"eat an edible object\"",
      ":probability":1.0,
@@ -425,4 +531,5 @@
         ":mode":":eaten"}]},
      ":display-args":null}]},
   ":modes":{":root":true},
-  ":type":":pclass"}}
+  ":type":":pclass"},
+ "lvars":{":lvars":{"\"a chair\"":":unset"}, ":type":":lvars"}}

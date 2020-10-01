@@ -198,6 +198,11 @@
         cons
         'true))))
 
+(defn compile-proposition
+  [prop]
+  (let [{type :type, look-where :look-where, prop-name :prop-name args :args} prop]
+    [:lookup-in look-where (into [prop-name] (map compile-reference args))]))
+
 (defn compile-condition
   "Compile a condition into evaluable form;"
   [cond]
@@ -228,6 +233,13 @@
                         cond) ; +++ unfinished - what do we want to do with a malformed xor
       :function-call  (dxp/make-CALL (get (first args) :names)
                                      (map (fn [arg] (compile-reference arg)) (rest args)))
+      :lookup-propositions (let [{where :where
+                                  props :propositions} cond]
+                             (dxp/make-PROPOSITIONS (compile-condition where)
+                                                    (into []
+                                                          (map (fn [aprop] (compile-proposition aprop))
+                                                               props))))
+
       'true)))
 
 (defn lvar? [lv]

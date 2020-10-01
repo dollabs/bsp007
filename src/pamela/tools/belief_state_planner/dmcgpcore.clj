@@ -710,10 +710,13 @@
                            [:equal
                             (un-lvar-expression (nth condit 1) wrtobject)
                             (un-lvar-expression (nth condit 2) wrtobject)])
+
                    ;; NOT negate the simplified subexpression
                    :not (conjunctive-list (simplify-negate (second condit) wrtobject) wrtobject)
+
                    ;; AND return the simplified parts as a list.
                    :and (apply concat (map (fn [sc] (simplify-condition sc wrtobject)) (rest condit)))
+
                    ;; OR - Happy OR Sad = ~(~Happy AND ~Sad)
                    :or (conjunctive-list (simplify-negate (into [:and]
                                                                 (map (fn [sc]
@@ -721,7 +724,14 @@
                                                                      (rest condit)))
                                                           wrtobject)
                                          wrtobject)
+
                    :field [:value (un-lvar-expression condit wrtobject)]
+
+                   :lookup-propositions
+                   (do
+                     ;;(println "*** FOUND lookup-propositions-here!!!" condit)
+                     [condit])
+
                    [condit])
           simpres (remove (fn [x] (= x true)) result)]
       ;; (println "simplified=" result "simpres=" simpres)
@@ -774,6 +784,53 @@
             (if (> verbosity 2) (rtm/describe-lvar arg2))))
         true))))
 
+(defn compute-prop-matchs
+  "For a binary proposition [:prop arg1 arg2] product arglist for find-binary-propositions"
+  [wrtobject [pname a1 a2]]
+  (let [arg1 (rtm/evaluate wrtobject "???" a1 nil nil nil nil)
+        arg2 (rtm/evaluate wrtobject "???" a2 nil nil nil nil)
+        arg1-unbound-lvar (and (rtm/is-lvar? arg1) (not (rtm/is-bound-lvar? arg1)))
+        arg2-unbound-lvar (and (rtm/is-lvar? arg2) (not (rtm/is-bound-lvar? arg2)))
+        ;; Dereference bound LVARS
+        arg1 (if (and (rtm/is-lvar? arg1) (rtm/is-bound-lvar? arg1)) (rtm/deref-lvar arg1) arg1)
+        arg2 (if (and (rtm/is-lvar? arg2) (rtm/is-bound-lvar? arg2)) (rtm/deref-lvar arg2) arg2)]
+    (cond ;; There are 4 cases, one bound, the other bound, both bound, neither bound
+      (not (or arg1-unbound-lvar arg2-unbound-lvar)) ; both bound
+      [arg1 arg2 (bs/find-binary-propositions-matching #{arg1} nil #{pname} nil #{arg2} nil)]
+
+      (and arg1-unbound-lvar (not arg2-unbound-lvar)) ; arg2 bound
+      [arg1 arg2 (bs/find-binary-propositions-matching nil nil #{pname} nil #{arg2} nil)]
+
+      (and (not arg1-unbound-lvar) arg2-unbound-lvar) ; arg1 bound
+      [arg1 arg2 (bs/find-binary-propositions-matching #{arg1} nil #{pname} nil nil nil)]
+
+      (and arg1-unbound-lvar arg2-unbound-lvar) ; This is a strange request, but not illegal
+      [arg1 arg2 (bs/find-binary-propositions-matching nil nil #{pname} nil nil nil)]
+
+      :otherwise (irx/error "compûte-prop-matches: can't get here, arg1=" arg1 " arg2=" arg2))))
+
+(defn select-and-bind-multiple
+  "Out of the available multiple hypotheses, mcselect one and make necessary lvar bindings"
+  [choicelist]
+  (println "In select-and-bind-multiple with choicelist=" choicelist)
+  nil)                                  ;NYI+++
+
+(defn filter-binary-proposition-matches
+  "find all combinations of results that satisfy the condition"
+  [condit pm]
+  (let [[a1 a2 matches] pm]
+    (println "In filter-binary-proposition-matches with condit=" condit "a1=" a1 "a2=" a2 "matches=" matches)
+    nil))                               ;NYI+++
+
+(defn lookup-propositions
+  [wrtobj condit]
+  (println "In lookup-propositions with:" condit)
+  (let [[type pvec constraint] condit ; [:lookup-propositions vector-or-propositions condition]
+        resvec (into [] (map (fn [prop] (compute-prop-matchs wrtobj prop)) pvec)) ; [[a1 a2 matches] ...]
+        filtered (if (not (some (fn [[a1 a2 matches]] (nil? matches)) resvec))
+                   (remove nil? (map (fn [resn] (filter-binary-proposition-matches condit resn)) resvec)))]
+    (select-and-bind-multiple filtered)))
+
 (defn internal-condition-call
   [plant name args]
   (case plant
@@ -812,6 +869,7 @@
 
 (defn condition-satisfied?
   [condit wrtobject]
+  ;; (println "In condition-satisfied? with condit=" condit)
   (if (not (sequential? condit))
     condit ; (irx/error "In condition-satisfied? condit = " condit)
     (case (first condit)
@@ -850,6 +908,9 @@
               (internal-condition-call plant (first names) args)
 
               :otherwise (do (irx/break "CALL: plant=" plant " names=" names " args=" args) true)))
+
+      :lookup-propositions
+      (lookup-propositions wrtobject condit)
 
       (irx/error "(condition-satisfied? " condit ")"))))
 
