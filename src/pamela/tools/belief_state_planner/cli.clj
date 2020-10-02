@@ -372,7 +372,7 @@
                       (rtm/load-model goals groo) ; no args
                       (rtm/establish-connectivity-propositions groo)
                       (rtm/establish-part-of-propositions groo)
-                      (if (> verbosity 3)
+                      (if (> verbosity 0)
                         (do (rtm/describe-current-model)
                             (bs/describe-belief-state)
                             (println "")))
