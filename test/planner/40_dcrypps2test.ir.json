@@ -2518,18 +2518,20 @@
      ":body":null,
      ":display-name":"\"Down\"",
      ":pre":
-     {":type":":lookup-propositions",
-      ":where":
-      {":type":":equal",
-       ":args":
-       [{":type":":field-ref", ":names":["TA-location"]},
-        {":type":":field-ref", ":names":["p2"]}]},
-      ":propositions":
-      [{":type":":proposition-pattern",
-        ":look-where":null,
-        ":prop-name":":is-part-of",
+     {":type":":and",
+      ":args":
+      [{":type":":lookup-propositions",
+        ":where":null,
+        ":propositions":
+        [{":type":":proposition-pattern",
+          ":look-where":null,
+          ":prop-name":":is-part-of",
+          ":args":
+          [{":type":":method-arg-ref", ":names":["newloc"]},
+           {":type":":field-ref", ":names":["p2"]}]}]},
+       {":type":":equal",
         ":args":
-        [{":type":":method-arg-ref", ":names":["newloc"]},
+        [{":type":":field-ref", ":names":["TA-location"]},
          {":type":":field-ref", ":names":["p2"]}]}]},
      ":betweens":null,
      ":post":
@@ -2551,25 +2553,25 @@
      ":body":null,
      ":display-name":"\"Lateral\"",
      ":pre":
-     {":type":":lookup-propositions",
-      ":where":
-      {":type":":and",
-       ":args":
-       [{":type":":equal",
-         ":args":
-         [{":type":":field-ref", ":names":["connected"]},
-          {":type":":field-ref", ":names":["p1"]}]},
-        {":type":":equal",
-         ":args":
-         [{":type":":field-ref", ":names":["TA-location"]},
-          {":type":":field-ref", ":names":["p1"]}]}]},
-      ":propositions":
-      [{":type":":proposition-pattern",
-        ":look-where":null,
-        ":prop-name":":connects-with",
+     {":type":":and",
+      ":args":
+      [{":type":":lookup-propositions",
+        ":where":null,
+        ":propositions":
+        [{":type":":proposition-pattern",
+          ":look-where":null,
+          ":prop-name":":connects-with",
+          ":args":
+          [{":type":":field-ref", ":names":["p1"]},
+           {":type":":method-arg-ref", ":names":["newloc"]}]}]},
+       {":type":":equal",
         ":args":
-        [{":type":":field-ref", ":names":["p1"]},
-         {":type":":method-arg-ref", ":names":["newloc"]}]}]},
+        [{":type":":field-ref", ":names":["connected"]},
+         {":type":":field-ref", ":names":["p1"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["TA-location"]},
+         {":type":":field-ref", ":names":["p1"]}]}]},
      ":betweens":null,
      ":post":
      {":type":":equal",
@@ -2723,19 +2725,21 @@
      ":body":null,
      ":display-name":"\"Up\"",
      ":pre":
-     {":type":":lookup-propositions",
-      ":where":
-      {":type":":equal",
-       ":args":
-       [{":type":":field-ref", ":names":["TA-location"]},
-        {":type":":field-ref", ":names":["p3"]}]},
-      ":propositions":
-      [{":type":":proposition-pattern",
-        ":look-where":null,
-        ":prop-name":":is-part-of",
+     {":type":":and",
+      ":args":
+      [{":type":":lookup-propositions",
+        ":where":null,
+        ":propositions":
+        [{":type":":proposition-pattern",
+          ":look-where":null,
+          ":prop-name":":is-part-of",
+          ":args":
+          [{":type":":field-ref", ":names":["p3"]},
+           {":type":":method-arg-ref", ":names":["newloc"]}]}]},
+       {":type":":equal",
         ":args":
-        [{":type":":field-ref", ":names":["p3"]},
-         {":type":":method-arg-ref", ":names":["newloc"]}]}]},
+        [{":type":":field-ref", ":names":["TA-location"]},
+         {":type":":field-ref", ":names":["p3"]}]}]},
      ":betweens":null,
      ":post":
      {":type":":equal",

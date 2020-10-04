@@ -23,7 +23,7 @@
             [pamela.utils :refer [output-file]]
             [plan-schema.utils :refer [fs-get-path fs-basename]]))
 
-(deftest testing-dmcgp-make-plan
+#_(deftest testing-dmcgp-make-plan
   (testing "testing-dmcgp-make-plan"
     (let [excludes #{"biased-coin.pamela" ; #127 as an example
 

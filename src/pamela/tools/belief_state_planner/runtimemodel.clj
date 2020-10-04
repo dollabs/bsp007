@@ -295,6 +295,10 @@
   [thing]
   (not (= @(.boundp thing) :unbound)))
 
+(defn is-unbound-lvar?
+  [thing]
+  (= @(.boundp thing) :unbound))
+
 (defn deref-lvar
   [something]
   (if (instance? LVar something)

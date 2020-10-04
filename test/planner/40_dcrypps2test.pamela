@@ -768,24 +768,24 @@
            p4 (lvar "proposition-arg4")}
   :methods [(defpmethod lateral         ;lateral-move
               {:doc "Move to another host in the same subnet"
-               :pre (propositions [(:connects-with p1 newloc)]
-                       where (and (= connected p1)
-                                  (= TA-location p1)))
+               :pre (and (propositions [(:connects-with p1 newloc)])
+                         (= connected p1)
+                         (= TA-location p1))
                :post (= TA-location newloc)
                :primitive true}
               [newloc])
             (defpmethod down            ;move-to-subsystem
               {:doc "move down in a system to a subcomponent"
-               :pre (propositions [(:is-part-of newloc p2)]
-                       where (= TA-location p2))
+               :pre (and (propositions [(:is-part-of newloc p2)])
+                         (= TA-location p2))
                :post (= TA-location newloc)
                :primitive true}
               [newloc])
 
             (defpmethod up              ; move-to-supersystem
               {:doc "move up in a system to a containing supercomponent"
-               :pre (propositions [(:is-part-of p3 newloc)]
-                       where (= TA-location p3))
+               :pre (and (propositions [(:is-part-of p3 newloc)])
+                         (= TA-location p3))
                :post (= TA-location newloc)
                :primitive true}
               [newloc])
