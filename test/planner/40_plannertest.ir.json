@@ -185,12 +185,7 @@
      ":pre":
      {":type":":and",
       ":args":
-      [{":type":":equal",
-        ":args":
-        [{":type":":field-ref", ":names":["position"]},
-         {":type":":method-arg-ref",
-          ":names":["object", "position"]}]},
-       {":type":":not",
+      [{":type":":not",
         ":args":
         [{":type":":equal",
           ":args":
@@ -237,10 +232,16 @@
          {":type":":literal", ":value":"\"Chair\""}]}]},
      ":betweens":null,
      ":post":
-     {":type":":equal",
+     {":type":":and",
       ":args":
-      [{":type":":field-ref", ":names":["height"]},
-       {":type":":method-arg-ref", ":names":["object", "height"]}]},
+      [{":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["height"]},
+         {":type":":method-arg-ref", ":names":["object", "height"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["on"]},
+         {":type":":method-arg-ref", ":names":["object"]}]}]},
      ":display-args":["object"]}],
    "eat":
    [{":doc":"\"eat an edible object\"",

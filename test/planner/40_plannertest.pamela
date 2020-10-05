@@ -104,7 +104,7 @@
               [object toposition])
             (defpmethod climb-on
               {:doc "climb on to the object"
-               :pre (and (= position object.position) ; must be at the same place
+               :pre (and ;(= position object.position) ; must be at the same place
                          (not (= on object)) ; can't climb on if we are already on
                          (= on object.on)    ; must be on the same thing to climb
                          )
@@ -115,16 +115,15 @@
               [object])
             (defpmethod climb-onto-chair
               {:doc "find a chair and climb on to it"
-               :pre ;;(and
+               :pre ;(and
                      (propositions [(:is-a achair "Chair")])
-                         ;;(= position achair.position) ; must be at the same place
+                     ;(= position achair.position) ; must be at the same place
                          ;;(not (= on achair)) ; can't climb on if we are already on
-                         ;;(= on achair.on)
-                         ;;(= achair object)
-                         ;;)   ; must be on the same thing to climb
-               :post ;(and
+                     ;(= on achair.on)
+                     ;(= achair object))   ; must be on the same thing to climb
+               :post (and
                         (= height object.height)  ; object.height
-                        ;;(= on object))
+                        (= on object))
                :primitive true}
               [object])
             ;; Not needed in the initial demo
