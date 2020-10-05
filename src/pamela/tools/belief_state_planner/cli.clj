@@ -378,7 +378,7 @@
                             (println "")))
                       (if (> verbosity 0) (println "goal model loaded: " goals)))
                     (do
-                      (println "File does not exist: " model)
+                      (println "File does not exist: " goals)
                       (Thread/sleep 2000)
                       (System/exit 1)))
                   (let [solutions (core/solveit :samples samp :max-depth maxd :rawp rawp)]
@@ -405,13 +405,7 @@
   (apply montecarloplanner args))
 
 ;;; (def repl true)
-;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "false" "make-plan")
-;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "1" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "100" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "1" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "2" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "8" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/dcryppstest.ir.json" "-G" "AttackPlanner" "-v" "0" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_dcrypps2test.ir.json" "-G" "AttackPlanner" "-v" "0" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_dcryppstest.ir.json" "-G" "AttackPlanner" "-v" "0" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_simple.ir.json" "-G" "world" "-v" "0" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_plannertest.ir.json" "-G" "world" "-v" "4" "-d" "20" "-s" "1000" "-r" "true" "make-plan")

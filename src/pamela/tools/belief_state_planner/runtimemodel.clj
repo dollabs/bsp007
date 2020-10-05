@@ -452,25 +452,32 @@
   [condition]
   (if (vector? condition)               ;atomic conditions = no influence
     (case (first condition)
-      :equal (cond (or (and (vector? (nth condition 1)) (= (first (nth condition 1)) :arg)
-                            (vector? (nth condition 2)) (= (first (nth condition 2)) :mode-of))
-                       (and (vector? (nth condition 2)) (= (first (nth condition 2)) :arg)
-                            (vector? (nth condition 1)) (= (first (nth condition 1)) :mode-of)))
-                   (list [:arg-mode])
+      (:equal :gr :ge :lt :le)
+                   (cond (or (and (vector? (nth condition 1)) (= (first (nth condition 1)) :arg)
+                                  (vector? (nth condition 2)) (= (first (nth condition 2)) :mode-of))
+                             (and (vector? (nth condition 2)) (= (first (nth condition 2)) :arg)
+                                  (vector? (nth condition 1)) (= (first (nth condition 1)) :mode-of)))
+                         (list [:arg-mode])
 
-                   (and (= (first (nth condition 1)) :field)) (list (nth condition 1))
-                   (and (vector? (nth condition 2)) (= (first (nth condition 2)) :field))
-                   (list (nth condition 2))
+                         (and (= (first (nth condition 1)) :field))
+                         (list (nth condition 1))
 
-                   (and (vector? (nth condition 1)) (= (first (nth condition 1)) :arg-field))
-                   (list (nth condition 1))
+                         (and (vector? (nth condition 2)) (= (first (nth condition 2)) :field))
+                         (list (nth condition 2))
 
-                   (and (vector? (nth condition 2)) (= (first (nth condition 2)) :arg-field))
-                   (list (nth condition 2))
+                         (and (vector? (nth condition 1)) (= (first (nth condition 1)) :arg-field))
+                         (list (nth condition 1))
 
-                   :else (list (extract-referents condition)))
+                         (and (vector? (nth condition 2)) (= (first (nth condition 2)) :arg-field))
+                         (list (nth condition 2))
+
+                         :else
+                         (list (extract-referents condition)))
+
       :and (apply concat (map (fn [arg] (compile-influence arg)) (rest condition)))
+
       :mode-of (list [:mode])
+
       :not (list [:not]) ;+++
       nil)))
 
@@ -915,7 +922,7 @@
         pclass (get-class-by-name cname)
         modes (seq (get pclass :modes))]
     (bs/add-variable instance-name cname (map first modes)) ; create variable
-    (bs/add-binary-proposition :is-a instance-name cname)
+    (bs/add-binary-proposition :is-a instance-name (str cname))
     (add-object clone)
     clone))
 
@@ -932,7 +939,7 @@
 (defn instantiate-pclass
   "Create an instance of a model class."
   [wrtobject path cname spam class-spam class-bindings args id plant-part]
-  ;; (println "****** in instantiate-pclass with args=" args)
+  ;; (println "****** in instantiate-pclass with path=" path "cname=" cname "args=" args)
   ;; (pprint class-spam)
   (let [classargs (get class-spam :args)
         numargs (count classargs)
@@ -956,7 +963,7 @@
       (when modes (bs/set-belief-in-variable instance-name
                                              (initial-mode-of modes argmap nil class-spam spam)
                                              1.0))
-      (bs/add-binary-proposition :is-a instance-name cname)) ;)
+      (bs/add-binary-proposition :is-a instance-name (str cname))) ;)
     (add-object newObject)
     (if id (add-plant id newObject)) ;+++ what do we do with plant-part?
     ;;(println "cfields=" cfields)

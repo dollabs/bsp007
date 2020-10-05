@@ -176,6 +176,7 @@
   ;; (println "in compile-reference, ref=" ref)
   (let [{type :type, names :names, pclass :pclass, args :args, mode :mode, mode-ref :mode-ref plant-id :plant-id} ref ]
     (case type
+      :literal (:value ref)
       :field-ref (into [] (cons :field names))
       :method-arg-ref (into [] (if (> (count names) 1) (cons :arg-field names) (cons :arg names)))
       :pclass-arg-ref (into [] (cons :class-arg names))
@@ -192,9 +193,14 @@
     (if (= (:type cond) :literal)
       (:value cond)
       (if (or (= (:type cond) :equal)
+              (= (:type cond) :gr)
+              (= (:type cond) :ge)
+              (= (:type cond) :lt)
+              (= (:type cond) :le)
               (= (:type cond) :and)
               (= (:type cond) :or)
-              (= (:type cond) :not))
+              (= (:type cond) :not)
+              (= (:type cond) :implies))
         cons
         'true))))
 
@@ -212,10 +218,12 @@
     (case type
       :mode-ref       (compile-reference cond)
       :literal        value
-      :equal          (if (= numargs 2) [:equal
+
+      (:equal :gr :ge :lt :le :same)
+                      (if (= numargs 2) [type
                                          (compile-reference (first args))
                                          (compile-reference (second args))]
-                          cond)         ; +++ unfinished - how to compile equal with args != 2
+                          cond)         ; +++ unfinished - how to compile inequalities with args != 2
       :and            (if (= numargs 1)
                         (compile-condition (first args))
                         (dxp/make-AND (map (fn [part] (compile-condition part)) args)))

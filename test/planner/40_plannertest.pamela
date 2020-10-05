@@ -6,22 +6,13 @@
 ;;;   Monkey
 
 ;;; Goal state  Monkey eats banana
-(defpclass DMCP []
-  :methods [(defpmethod find-binary-proposition
-              {:doc "Lookup a proposition binding any provided unbound LVAR arguments"
-               :primitive true}
-              [prop p1 p2])
-            (defpmethod lookup-object
-              {:doc "Lookup an object from it's ID binding if provided an unbound LVAR argument"
-               :primitive true}
-              [objectid object])])
 
 (defpclass BinaryPropositionTypes [] :modes [:is-part-of :is-a])
 
 ;;; (defpclass Edible [] :modes [:edible :inedible])
 (defpclass General [] :modes [:initial :nothing])
 
-;(defpclass Height [] :modes [:ground :high :very-high])
+;;;(defpclass Height [] :modes [:ground :high :very-high])
 
 (defpclass Support [] :modes [:unknown :ground :chair1 :banana1])
 
@@ -61,9 +52,9 @@
               [nupos]
               )])
 
-(defpclass Robot [pos hgt onwhat mobility]
+(defpclass Robot [pos hgt onwhat mobility]  ; dmcpobj]
   :modes [ :ready ]
-  :fields {dmcp (DMCP :id "dmcpid")
+  :fields {;;dmcp dmcpobj
            position pos
            height hgt
            handholds (mode-of General :nothing)
@@ -124,16 +115,19 @@
               [object])
             (defpmethod climb-onto-chair
               {:doc "find a chair and climb on to it"
-               :pre (and (call dmcp.find-binary-proposition
-                               (mode-of BinaryPropositionTypes :is-a) achair "Chair")
-                         (= position achair.position) ; must be at the same place
-                         (not (= on achair)) ; can't climb on if we are already on
-                         (= on achair.on))   ; must be on the same thing to climb
-               :post (and (= height achair.height)
-                          (= on achair))
+               :pre ;;(and
+                     (propositions [(:is-a achair "Chair")])
+                         ;;(= position achair.position) ; must be at the same place
+                         ;;(not (= on achair)) ; can't climb on if we are already on
+                         ;;(= on achair.on)
+                         ;;(= achair object)
+                         ;;)   ; must be on the same thing to climb
+               :post ;(and
+                        (= height object.height)  ; object.height
+                        ;;(= on object))
                :primitive true}
-              [])
-            ;; ;; Not needed in the initial demo
+              [object])
+            ;; Not needed in the initial demo
             ;; (defpmethodxs jump-down-from
             ;;   {:doc "jump off of an object"
             ;;    :pre (= on object)
@@ -144,8 +138,10 @@
 
 (defpclass world []
   :modes [ :root ]
-  :fields {abanana (Banana "10,10" 6 :unknown :autonomous :id "banana1")
-           achair  (Chair  "0,5"   0 :ground  :pushable   :id "chair1")
+  :fields {;;dmcp (DMCP :id "dmcpid")
+           abanana (Banana "10,10" 6 :unknown :autonomous :id "banana1")
+           achair  (Chair  "0,5"   6 :ground  :pushable   :id "chair1")
+           ;;arobot  (Robot  "5,0"   0 :ground  :autonomous dmcp :id "Robot1")
            arobot  (Robot  "5,0"   0 :ground  :autonomous :id "Robot1")}
   :methods [(defpmethod goal
               {:doc "eat the banana"

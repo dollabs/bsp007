@@ -289,11 +289,20 @@
 
 (defn argpart
   [postconds]
-  (if (and (sequential? (nth postconds 1)) (= (first (nth postconds 1)) :arg))
-    (nth postconds 1)
-    (if (and (sequential? (nth postconds 2)) (= (first (nth postconds 2)) :arg))
-      (nth postconds 2)
-      nil)))
+  (cond (and (sequential? (nth postconds 1)) (= (first (nth postconds 1)) :arg))
+        (nth postconds 1)
+
+        (and (sequential? (nth postconds 2)) (= (first (nth postconds 2)) :arg))
+        (nth postconds 2)
+
+        (and (sequential? (nth postconds 1)) (= (first (nth postconds 1)) :arg-field))
+        (nth postconds 1)
+
+        (and (sequential? (nth postconds 2)) (= (first (nth postconds 2)) :arg-field))
+        (nth postconds 2)
+
+        :otherwise
+        nil))
 
 (defn nonargpart
   [postconds]
@@ -325,6 +334,7 @@
                                      nil)))]
                (if (> verbosity 3) (println "match " matchcondpart " with " goal " goal =" matchresult))
                matchresult)
+
       (do (if (> verbosity 0) (println "match-goal-query-aux unhandled case 1: goal=" goal " posts=" postconds))
           nil))
 
@@ -343,7 +353,7 @@
                        (println "match-goal-query? unhandled case: goal=" goal " posts=" postconds))
                      nil))]
     (if (> verbosity 2)
-      (println "match-goal-query? goal=" goal "query=" query "amatch=" amatch))
+      (println "match-goal-query? goal=" goal "query=" query "posts=" postconds "amatch=" amatch))
     amatch))
 
 (defn verify-candidate
@@ -805,8 +815,10 @@
             arg1-unbound-lvar (and (rtm/is-lvar? arg1) (not (rtm/is-bound-lvar? arg1)))
             arg2-unbound-lvar (and (rtm/is-lvar? arg2) (not (rtm/is-bound-lvar? arg2)))
             ;; Dereference bound LVARS
-            arg1 (if (and (rtm/is-lvar? arg1) (rtm/is-bound-lvar? arg1)) (rtm/deref-lvar arg1) arg1)
-            arg2 (if (and (rtm/is-lvar? arg2) (rtm/is-bound-lvar? arg2)) (rtm/deref-lvar arg2) arg2)]
+            arg1r (if (and (rtm/is-lvar? arg1) (rtm/is-bound-lvar? arg1)) (rtm/deref-lvar arg1) arg1)
+            arg2r (if (and (rtm/is-lvar? arg2) (rtm/is-bound-lvar? arg2)) (rtm/deref-lvar arg2) arg2)
+            arg1 (if (and false (string? arg1r)) (symbol arg1r) arg1r)
+            arg2 (if (and false (string? arg2r)) (symbol arg2r) arg2r)]
         (if (> verbosity 2) (println "in internal-condition-call with pname=" pname
                                      " arg1=" (if arg1-unbound-lvar :unbound arg1)
                                      " arg2=" (if arg2-unbound-lvar :unbound arg2)))
@@ -831,11 +843,11 @@
 
 (declare condition-satisfied?)
 
-(defn compute-prop-matchs
+(defn compute-prop-matches
   "For a binary proposition [:prop arg1 arg2] product arglist for find-binary-propositions"
   [wrtobject propn]
   (let [[_ lookupin [pname a1 a2]] propn]
-    ;; (println "In compu-prop-matches with pname=" pname "a1=" a1 "a2=" a2)
+    (if (> verbosity 2) (println "In compu-prop-matches with pname=" pname "a1=" a1 "a2=" a2))
     (let [arg1 (rtm/evaluate wrtobject "???" a1 nil nil nil nil)
           arg2 (rtm/evaluate wrtobject "???" a2 nil nil nil nil)
           ;;_ (println "arg1=" arg1 "arg2=" arg2)
@@ -861,16 +873,18 @@
               [arg1 arg2 (bs/find-binary-propositions-matching nil nil #{pname} nil nil nil)]
 
               :otherwise (irx/error "compûte-prop-matches: can't get here, arg1=" arg1 " arg2=" arg2))]
-        ;;(println "compute-prop-matchs results=" results)
+        (if (> verbosity 2) (println "compute-prop-matches results=" results))
         results))))
 
 (defn lookup-propositions-aux
   "Recurse down the propositions to find compatible matches that satisfy the condition"
   [pvec path wrtobj condition pmatches]
   (if (empty? pvec)
-    (do ;;(println "found-candidate path=" path "constraint=" condition "=" (condition-satisfied? condition wrtobj) "wrtobject=" wrtobj)
+    (do (if (> verbosity 2)
+          (println "found-candidate path=" path "constraint=" condition "="
+                   (condition-satisfied? condition wrtobj) "wrtobject=" wrtobj))
         (if (condition-satisfied? condition wrtobj) (reset! pmatches (conj @pmatches path)))) ; Success case
-    (let [[arg1 arg2 matches] (compute-prop-matchs wrtobj (first pvec))] ; [a1 a2 matches]
+    (let [[arg1 arg2 matches] (compute-prop-matches wrtobj (first pvec))] ; [a1 a2 matches]
       (when (not (empty? matches))      ; continue if we found at least one match
         (doseq [m matches]
           ;; bind the lvars for a1 and a2 and recurse
@@ -883,7 +897,6 @@
             ;; Any lvars bound on the way in are unbound on the way out
             (if ubarg1 (rtm/unbind-lvar ubarg1))
             (if ubarg2 (rtm/unbind-lvar ubarg2))))))))
-
 
 (defn select-and-bind2-n
   "Given a sequence of n proposition bindings that satisfy the condition, select one and make all necessary bindings"
