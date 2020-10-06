@@ -193,7 +193,7 @@
     (if (= (:type cond) :literal)
       (:value cond)
       (if (or (= (:type cond) :equal)
-              (= (:type cond) :gr)
+              (= (:type cond) :gt)
               (= (:type cond) :ge)
               (= (:type cond) :lt)
               (= (:type cond) :le)
@@ -219,7 +219,7 @@
       :mode-ref       (compile-reference cond)
       :literal        value
 
-      (:equal :gr :ge :lt :le :same)
+      (:equal :gt :ge :lt :le :same)
                       (if (= numargs 2) [type
                                          (compile-reference (first args))
                                          (compile-reference (second args))]

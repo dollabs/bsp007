@@ -452,7 +452,7 @@
   [condition]
   (if (vector? condition)               ;atomic conditions = no influence
     (case (first condition)
-      (:equal :gr :ge :lt :le)
+      (:equal :gt :ge :lt :le)
                    (cond (or (and (vector? (nth condition 1)) (= (first (nth condition 1)) :arg)
                                   (vector? (nth condition 2)) (= (first (nth condition 2)) :mode-of))
                              (and (vector? (nth condition 2)) (= (first (nth condition 2)) :arg)
