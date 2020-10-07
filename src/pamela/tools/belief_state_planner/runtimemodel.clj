@@ -1141,7 +1141,7 @@
 
 ;;; Should have made objects a map
 (defn find-objects-of-name
-  "Find all instantiated objects of a given type"
+  "Find all instantiated objects of a given name"
   [vname]
   (let [objects @(.objects *current-model*)]
     (remove nil? (map (fn [obj]
