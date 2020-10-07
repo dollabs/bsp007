@@ -53,6 +53,7 @@
                   ["-d" "--maxdepth n" "Maximum search depth" :default "20"]
                   ["-r" "--rawp bool" "raw solutions? (otherwise) compiled)" :default "true"]
                   ["-o" "--output file" "output" :default ""]
+                  ["-P" "--propositions file" "File containing propositions to load" :default nil]
                   ["-h" "--host rmqhost" "RMQ Host" :default "localhost"]
                   ["-p" "--port rmqport" "RMQ Port" :default 5672]
                   ["-e" "--exchange name" "RMQ Exchange Name" :default "tpn-updates"]
@@ -276,7 +277,7 @@
         maxd (read-string (get-in parsed [:options :maxdepth]))
         rawp (read-string (get-in parsed [:options :rawp]))
         outfile (get-in parsed [:options :output])
-
+        prop (get-in parsed [:options :propositions])
         ;; For connectivity with another RMQ system
         ch-name (get-in parsed [:options :exchange])
         _ (if (> verbosity 2) (println [ "ch-name = " ch-name]))
@@ -381,6 +382,9 @@
                       (println "File does not exist: " goals)
                       (Thread/sleep 2000)
                       (System/exit 1)))
+                  (if prop
+                    (if (.exists (io/file prop))
+                      (rtm/assert-propositions (read-string (slurp prop)))))
                   (let [solutions (core/solveit :samples samp :max-depth maxd :rawp rawp)]
                     (if (not rawp) (pprint solutions)
                         (let [pamela-solutions (into #{} (map core/compile-actions-to-pamela solutions))

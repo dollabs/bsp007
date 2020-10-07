@@ -936,6 +936,16 @@
     (bs/undef-variable var))            ; Remove the belief in the variable
   :deleted)
 
+(defn assert-propositions
+  [props]
+  (if (> verbosity 0)
+    (println "Installing propositions:"))
+  (pprint props)
+  (doseq [[prop a1 a2] (rest props)]
+    (bs/add-binary-proposition prop a1 a2))
+  (if (> verbosity 2)
+    (bs/print-propositions)))
+
 (defn instantiate-pclass
   "Create an instance of a model class."
   [wrtobject path cname spam class-spam class-bindings args id plant-part]
