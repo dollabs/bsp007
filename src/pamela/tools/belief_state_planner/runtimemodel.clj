@@ -573,7 +573,7 @@
   [modes class-bindings method-bindings cspam spam]
   (let [emodes (remove nil? (map (fn [[mode val]] (if (= val :initial) mode nil)) modes))
         initial (first emodes)]
-    ;; (println "initial-mode-of modes=" modes " emodes =" emodes " initial=" initial)
+    (if (> verbosity 3) (println "initial-mode-of modes=" modes " emodes =" emodes " initial=" initial))
     (or initial (first (first modes)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -581,6 +581,7 @@
 
 (declare instantiate-pclass)
 (declare deref-field)
+(declare find-objects-of-name)
 
 (defn instantiation-error
   [astring]
@@ -603,6 +604,22 @@
             :null))
 
         :unknown))))
+
+(defn maybe-get-named-object
+  [val]
+  (let [res (cond (string? val) ; +++ got to undo this string names and use symbols instead
+                  (let [var (first (find-objects-of-name val))]
+                    (when (nil? var)
+                      (when (> verbosity 3)
+                        (println "Didn't find object named" val)
+                        (doseq [anobj @(.objects *current-model*)]
+                          (println (.variable anobj)))))
+                    (or var val))
+
+                  :otherwise val)]
+    (if (and (> verbosity 3) (not (= val res)))
+      (println "maybe-get-named-object var=" val "val=" res))
+    res))
 
 (defn evaluate
   "Evaluate an expression in the current belief state with args as provided."
@@ -704,7 +721,8 @@
                                  :otherwise
                                  (deref-field (rest object) #_wrtobject (second (first (get-root-objects))) :normal)) ; Force caller to be root+++?
                            - (if (> verbosity 2) (println ":arg-field obj= " obj))
-                           value (deref-field field obj :normal)] ; +++ handle multilevel case
+                           value (maybe-get-named-object (deref-field field obj :normal))
+                           ] ; +++ handle multilevel case
                          (if (not (instance? RTobject value))
                            value
                            (let [variable (.variable value) ; +++ avoid duplication of this idiom
@@ -938,13 +956,11 @@
 
 (defn assert-propositions
   [props]
-  (if (> verbosity 0)
-    (println "Installing propositions:"))
-  (pprint props)
+  (if (> verbosity 0) (println "Installing propositions"))
+  (if (> verbosity 2) (pprint props))
   (doseq [[prop a1 a2] (rest props)]
     (bs/add-binary-proposition prop a1 a2))
-  (if (> verbosity 2)
-    (bs/print-propositions)))
+  (if (> verbosity 2) (bs/print-propositions)))
 
 (defn instantiate-pclass
   "Create an instance of a model class."
