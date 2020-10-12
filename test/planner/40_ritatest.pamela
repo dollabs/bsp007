@@ -930,8 +930,8 @@
                :pre (and
                          (propositions [(:left-path-neighbor nowat newloc)])
                          ;(= newloc (mode-of Room :unvisited))
-                         (= p-location nowat))
-               :post (= p-location newloc)
+                         (same p-location nowat))
+               :post (same p-location newloc)
                :primitive true}
               [newloc])
             ;; (defpmethod right-room      ; skip a room
@@ -944,7 +944,7 @@
             ;;   [newloc])
             (defpmethod arrive
               {:doc "arrived"
-               :pre (= p-location object.t-location)
+               :pre (same p-location object.t-location)
                :post (= object (mode-of DestinationStates :arrived))
                :primitive true}
               [object])])
@@ -958,8 +958,8 @@
                :pre (and
                          (propositions [(:left-path-neighbor nowat newloc)]
                                        where (= newloc (mode-of Room :unvisited)))
-                         (= p-location nowat))
-               :post (= p-location newloc)
+                         (same p-location nowat))
+               :post (same p-location newloc)
                :primitive true}
               [newloc])
             ;; (defpmethod skip-room      ; skip a room
@@ -972,7 +972,7 @@
             ;;   [newloc])
             (defpmethod arrive
               {:doc "arrived"
-               :pre (= p-location object.t-location)
+               :pre (same p-location object.t-location)
                :post (= object (mode-of DestinationStates :arrived))
                :primitive true}
               [object])])
@@ -995,8 +995,8 @@
            }
   :methods [(defpmethod goal
               {:doc "Search the building"
-               :post (and ;(= ldest (mode-of Destination :arrived))
-                          (= rdest (mode-of Destination :arrived)))}
+               :post ;(and ;(= ldest (mode-of Destination :arrived))
+                          (= rdest (mode-of Destination :arrived))}
               [])])
 
 

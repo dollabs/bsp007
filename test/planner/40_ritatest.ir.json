@@ -3262,7 +3262,7 @@
      ":body":null,
      ":display-name":"\"Arrive\"",
      ":pre":
-     {":type":":equal",
+     {":type":":same",
       ":args":
       [{":type":":field-ref", ":names":["p-location"]},
        {":type":":method-arg-ref",
@@ -3301,13 +3301,13 @@
           ":args":
           [{":type":":field-ref", ":names":["nowat"]},
            {":type":":method-arg-ref", ":names":["newloc"]}]}]},
-       {":type":":equal",
+       {":type":":same",
         ":args":
         [{":type":":field-ref", ":names":["p-location"]},
          {":type":":field-ref", ":names":["nowat"]}]}]},
      ":betweens":null,
      ":post":
-     {":type":":equal",
+     {":type":":same",
       ":args":
       [{":type":":field-ref", ":names":["p-location"]},
        {":type":":method-arg-ref", ":names":["newloc"]}]},
@@ -3430,15 +3430,12 @@
      ":pre":true,
      ":betweens":null,
      ":post":
-     {":type":":and",
+     {":type":":equal",
       ":args":
-      [{":type":":equal",
-        ":args":
-        [{":type":":field-ref", ":names":["rdest"]},
-         {":type":":mode-ref",
-          ":mode-ref":
-          {":type":":symbol-ref", ":names":["Destination"]},
-          ":mode":":arrived"}]}]},
+      [{":type":":field-ref", ":names":["rdest"]},
+       {":type":":mode-ref",
+        ":mode-ref":{":type":":symbol-ref", ":names":["Destination"]},
+        ":mode":":arrived"}]},
      ":display-args":null}]},
   ":modes":{":root":true},
   ":type":":pclass"},
@@ -4306,7 +4303,7 @@
      ":body":null,
      ":display-name":"\"Arrive\"",
      ":pre":
-     {":type":":equal",
+     {":type":":same",
       ":args":
       [{":type":":field-ref", ":names":["p-location"]},
        {":type":":method-arg-ref",
@@ -4351,13 +4348,13 @@
           ":args":
           [{":type":":field-ref", ":names":["nowat"]},
            {":type":":method-arg-ref", ":names":["newloc"]}]}]},
-       {":type":":equal",
+       {":type":":same",
         ":args":
         [{":type":":field-ref", ":names":["p-location"]},
          {":type":":field-ref", ":names":["nowat"]}]}]},
      ":betweens":null,
      ":post":
-     {":type":":equal",
+     {":type":":same",
       ":args":
       [{":type":":field-ref", ":names":["p-location"]},
        {":type":":method-arg-ref", ":names":["newloc"]}]},

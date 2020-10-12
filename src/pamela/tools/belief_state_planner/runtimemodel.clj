@@ -452,7 +452,7 @@
   [condition]
   (if (vector? condition)               ;atomic conditions = no influence
     (case (first condition)
-      (:equal :gt :ge :lt :le)
+      (:equal :same :gt :ge :lt :le)
                    (cond (or (and (vector? (nth condition 1)) (= (first (nth condition 1)) :arg)
                                   (vector? (nth condition 2)) (= (first (nth condition 2)) :mode-of))
                              (and (vector? (nth condition 2)) (= (first (nth condition 2)) :arg)
@@ -617,7 +617,7 @@
                     (or var val))
 
                   :otherwise val)]
-    (if (and (> verbosity 3) (not (= val res)))
+    (if (and (> verbosity -1) (not (= val res)))
       (println "maybe-get-named-object var=" val "val=" res))
     res))
 
@@ -727,7 +727,7 @@
                            value
                            (let [variable (.variable value) ; +++ avoid duplication of this idiom
                                  pdf (bs/get-belief-distribution-in-variable variable)]
-                             (if (> verbosity 3) (println "variable=" variable "pdf=" pdf))
+                             (if (> verbosity -1) (println "variable=" variable "pdf=" pdf))
                              (get-likely-value pdf 0.8))))
 
           :mode-of (last expn)
