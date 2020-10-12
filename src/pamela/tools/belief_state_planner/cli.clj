@@ -27,8 +27,11 @@
             [pamela.unparser :as pup]
             ;;[dcrypps.common.core :as dc :refer :all]
             ;;[dcrypps.attack-model-generator.desirable-properties :as dp :refer :all]
+            [pamela.tools.belief-state-planner.coredata :as global]
             [pamela.tools.belief-state-planner.runtimemodel :as rtm]
             [pamela.tools.belief-state-planner.montecarloplanner :as bs]
+            [pamela.tools.belief-state-planner.simplify :as simp]
+            [pamela.tools.belief-state-planner.buildir :as bir]
             [pamela.tools.belief-state-planner.dmcgpcore :as core]
             [pamela.tools.belief-state-planner.expressions :as dxp]
             [pamela.tools.belief-state-planner.ir-extraction :as irx])
@@ -304,8 +307,7 @@
         _ (if (> verbosity 0) (println "DOLL Monte-Carlo Generative Planner" (:options parsed)))
         ]
 
-    (core/set-verbosity verbosity)
-    (rtm/set-verbosity verbosity)
+    (global/set-verbosity verbosity)
     (irx/set-verbosity verbosity)
     ;; Establish initial belief state
     ;; Start off in a clean state
@@ -387,7 +389,7 @@
                       (rtm/assert-propositions (read-string (slurp prop)))))
                   (let [solutions (core/solveit :samples samp :max-depth maxd :rawp rawp)]
                     (if (not rawp) (pprint solutions)
-                        (let [pamela-solutions (into #{} (map core/compile-actions-to-pamela solutions))
+                        (let [pamela-solutions (into #{} (map bir/compile-actions-to-pamela solutions))
                               result (case (count pamela-solutions)
                                        0 "No solutions found"
                                        1 (first (into [] pamela-solutions))

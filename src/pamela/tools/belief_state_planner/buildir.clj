@@ -21,6 +21,8 @@
             [pamela.tools.belief-state-planner.montecarloplanner :as bs]
             [pamela.tools.belief-state-planner.expressions :as dxp]
             [pamela.tools.belief-state-planner.ir-extraction :as irx]
+            [pamela.tools.belief-state-planner.coredata :as global]
+            [pamela.tools.belief-state-planner.evaluation :as eval]
             ;[pamela.tools.belief-state-planner.simplify :as simp :refer :all]
             [pamela.cli :as pcli]
             [pamela.unparser :as pup]
@@ -115,7 +117,7 @@
 (defn get-references-from-value
   [val]
   (cond (keyword? val) nil
-        (rtm/RTobject? val) [[:foo val]])) ; unfinished
+        (global/RTobject? val) [[:foo val]])) ; unfinished
 
 (defn get-references-from-expression
   "Generate the ir for the expression and the mapping from the argument name to the expression and its IR."
@@ -149,20 +151,16 @@
     (if (> verbosity 2) (println "exiting get-references-from-condition, condition=" condition "=" result))
     result))
 
-(defn root-object
-  []
-  (second (first (rtm/get-root-objects))))
-
 (defn get-object-root-name
   [object]
-  (if (rtm/RTobject? object)
+  (if (global/RTobject? object)
     (let [nameparts (string/split (.variable object) #"\.")
           rootname (if (not (empty? (rest nameparts)))
                      (symbol (str (string/join "." (rest nameparts))))
                      nil)]
       (if (> verbosity 3)
         (println "get-object-root-name object=" object "rootname=" rootname))
-      (if rootname [:thunk [:field rootname] (root-object)]))
+      (if rootname [:thunk [:field rootname] (global/root-object)]))
     "error-non-rtobject-value-passed-to-get-object-root-name"))
 
 ;;; (get-object-root-name "/world.foo.bar")
@@ -267,10 +265,10 @@
                                   (if (thunk? object)
                                     (case (first (nth object 1))
                                       :field
-                                      [:arg-field (rtm/deref-field (rest (nth object 1)) (nth object 2) :reference) (nth condit 2)]
+                                      [:arg-field (eval/deref-field (rest (nth object 1)) (nth object 2) :reference) (nth condit 2)]
 
                                       :arg-field
-                                      (rtm/deref-field (rest (nth object 1)) :reference)
+                                      (eval/deref-field (rest (nth object 1)) :reference)
 
                                         ;+++ possibly add other cases here
                                       [:arg-field [:arg-field (nth object 2) (nth object 1)] (nth condit 2)])
@@ -347,7 +345,7 @@
          args :args} call
         {names :names} mref
         argvals (map (fn [anarg]
-                       (let [value (rtm/evaluate-reference nil anarg nil nil nil nil)]
+                       (let [value (eval/evaluate-reference nil anarg nil nil nil nil)]
                          (cond (and (sequential? value)
                                     (= (first value) :value)
                                     (get (second value) :variable))

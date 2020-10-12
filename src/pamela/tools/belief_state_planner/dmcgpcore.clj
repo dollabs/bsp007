@@ -21,8 +21,12 @@
             [pamela.tools.belief-state-planner.montecarloplanner :as bs]
             [pamela.tools.belief-state-planner.expressions :as dxp]
             [pamela.tools.belief-state-planner.ir-extraction :as irx]
-            [pamela.tools.belief-state-planner.simplify :as simp :refer :all]
-            [pamela.tools.belief-state-planner.buildir :as bir :refer :all]
+            [pamela.tools.belief-state-planner.simplify :as simp]
+            [pamela.tools.belief-state-planner.buildir :as bir]
+            [pamela.tools.belief-state-planner.coredata :as global]
+            [pamela.tools.belief-state-planner.evaluation :as eval]
+            [pamela.tools.belief-state-planner.lvarimpl :as lvar]
+
             [pamela.cli :as pcli]
             [pamela.unparser :as pup]
             )
@@ -35,13 +39,13 @@
 
 (def ^:dynamic available-actions nil)
 (def ^:dynamic plan-fragment-library nil)
-;(def ^:dynamic verbosity 0)
+(def ^:dynamic verbosity 0)
 
-;(def ^:dynamic *printdebug* false) ; false
+(def ^:dynamic *printdebug* false) ; false
 
-;; (defn set-verbosity
-;;   [n]
-;;   (def ^:dynamic verbosity n))
+(defn set-verbosity
+  [n]
+  (def ^:dynamic verbosity n))
 
 (defn nyi
   [text]
@@ -140,7 +144,7 @@
 
   (if (> verbosity 3)
     (do (println "In generate-lookup-from-condition: pclass=" pclass "condition: ")
-        (print-condition-tersely condition)))
+        (simp/print-condition-tersely condition)))
 
   (if (sequential? condition)               ;atomic conditions = no influence
     (case (first condition)
@@ -150,19 +154,19 @@
                    arg1 (if (value? arg1) (second arg1) arg1)
                    arg2 (if (value? arg2) (second arg2) arg2)]
                (cond (and ; This doesn't work becquse we want to be qble to use finite values
-                      (or (rtm/RTobject? arg1) (= (first arg1) :field))
+                      (or (global/RTobject? arg1) (= (first arg1) :field))
                       (and (vector? arg2) (= (first arg2) :mode-of)))
                      (list [condition [:any [:arg-mode]]])
 
                      (and
-                      (or (rtm/RTobject? arg2) (and (vector? arg2) (= (first arg2) :field)))
+                      (or (global/RTobject? arg2) (and (vector? arg2) (= (first arg2) :field)))
                       (and (vector? arg1) (= (first arg1) :mode-of)))
                      (list [condition [:any [:arg-mode]]])
 
-                     (rtm/RTobject? arg1)
+                     (global/RTobject? arg1)
                      (list [condition [:object arg1]]) ;+++ surely we want to get both cases
 
-                     (rtm/RTobject? arg2)
+                     (global/RTobject? arg2)
                      (list [condition [:object arg2]])
 
                      (and (vector? arg1) (= (first arg1) :field))
@@ -390,16 +394,16 @@
       false                           ; Nothing found, no variables bound : FAIL
       (let [selection (mcselect matches)
             {ptype :ptype, subj :subject, obj :object} selection]
-        (if (rtm/is-lvar? arg1)
+        (if (lvar/is-lvar? arg1)
           (do
             (if (> verbosity 2) (println "*** Binding LVAR"))
-            (rtm/bind-lvar arg1 subj)
-            (if (> verbosity 2) (rtm/describe-lvar arg1))))
-        (if (rtm/is-lvar? arg2)
+            (lvar/bind-lvar arg1 subj)
+            (if (> verbosity 2) (lvar/describe-lvar arg1))))
+        (if (lvar/is-lvar? arg2)
           (do
             (if (> verbosity 2) (println "*** Binding LVAR"))
-            (rtm/bind-lvar arg2 obj)
-            (if (> verbosity 2) (rtm/describe-lvar arg2))))
+            (lvar/bind-lvar arg2 obj)
+            (if (> verbosity 2) (lvar/describe-lvar arg2))))
         true))))
 
 (defn internal-condition-call
@@ -409,11 +413,11 @@
     (case name
       'find-binary-proposition
       (let [[pname arg1 arg2] args ; Presently pname must be supplied allow lvar for pname later ? +++
-            arg1-unbound-lvar (and (rtm/is-lvar? arg1) (not (rtm/is-bound-lvar? arg1)))
-            arg2-unbound-lvar (and (rtm/is-lvar? arg2) (not (rtm/is-bound-lvar? arg2)))
+            arg1-unbound-lvar (and (lvar/is-lvar? arg1) (not (lvar/is-bound-lvar? arg1)))
+            arg2-unbound-lvar (and (lvar/is-lvar? arg2) (not (lvar/is-bound-lvar? arg2)))
             ;; Dereference bound LVARS
-            arg1r (if (and (rtm/is-lvar? arg1) (rtm/is-bound-lvar? arg1)) (rtm/deref-lvar arg1) arg1)
-            arg2r (if (and (rtm/is-lvar? arg2) (rtm/is-bound-lvar? arg2)) (rtm/deref-lvar arg2) arg2)
+            arg1r (if (and (lvar/is-lvar? arg1) (lvar/is-bound-lvar? arg1)) (lvar/deref-lvar arg1) arg1)
+            arg2r (if (and (lvar/is-lvar? arg2) (lvar/is-bound-lvar? arg2)) (lvar/deref-lvar arg2) arg2)
             arg1 (if (and false (string? arg1r)) (symbol arg1r) arg1r)
             arg2 (if (and false (string? arg2r)) (symbol arg2r) arg2r)]
         (if (> verbosity 2) (println "in internal-condition-call with pname=" pname
@@ -445,14 +449,14 @@
   [wrtobject propn]
   (let [[_ lookupin [pname a1 a2]] propn]
     (if (> verbosity 2) (println "In compu-prop-matches with pname=" pname "a1=" a1 "a2=" a2))
-    (let [arg1 (rtm/evaluate wrtobject "???" a1 nil nil nil nil)
-          arg2 (rtm/evaluate wrtobject "???" a2 nil nil nil nil)
+    (let [arg1 (eval/evaluate wrtobject "???" a1 nil nil nil nil)
+          arg2 (eval/evaluate wrtobject "???" a2 nil nil nil nil)
           ;;_ (println "arg1=" arg1 "arg2=" arg2)
-          arg1-unbound-lvar (and (rtm/is-lvar? arg1) (not (rtm/is-bound-lvar? arg1)))
-          arg2-unbound-lvar (and (rtm/is-lvar? arg2) (not (rtm/is-bound-lvar? arg2)))
+          arg1-unbound-lvar (and (lvar/is-lvar? arg1) (not (lvar/is-bound-lvar? arg1)))
+          arg2-unbound-lvar (and (lvar/is-lvar? arg2) (not (lvar/is-bound-lvar? arg2)))
           ;; Dereference bound LVARS
-          arg1 (if (and (rtm/is-lvar? arg1) (rtm/is-bound-lvar? arg1)) (rtm/deref-lvar arg1) arg1)
-          arg2 (if (and (rtm/is-lvar? arg2) (rtm/is-bound-lvar? arg2)) (rtm/deref-lvar arg2) arg2)]
+          arg1 (if (and (lvar/is-lvar? arg1) (lvar/is-bound-lvar? arg1)) (lvar/deref-lvar arg1) arg1)
+          arg2 (if (and (lvar/is-lvar? arg2) (lvar/is-bound-lvar? arg2)) (lvar/deref-lvar arg2) arg2)]
       ;;(println "arg1=" arg1 "arg1-unbound-lvar=" arg1-unbound-lvar)
       ;;(println "arg2=" arg2 "arg2-unbound-lvar=" arg2-unbound-lvar)
       (let [results
@@ -486,14 +490,14 @@
         (doseq [m matches]
           ;; bind the lvars for a1 and a2 and recurse
           (let [{ptype :ptype, subj :subject, obj :object} m
-                ubarg1 (if (and (rtm/is-lvar? arg1) (not (rtm/is-bound-lvar? arg1)))
-                         (do (rtm/bind-lvar arg1 subj) arg1))
-                ubarg2 (if (and (rtm/is-lvar? arg2) (not (rtm/is-bound-lvar? arg2)))
-                         (do (rtm/bind-lvar arg2 subj) arg2))]
+                ubarg1 (if (and (lvar/is-lvar? arg1) (not (lvar/is-bound-lvar? arg1)))
+                         (do (lvar/bind-lvar arg1 subj) arg1))
+                ubarg2 (if (and (lvar/is-lvar? arg2) (not (lvar/is-bound-lvar? arg2)))
+                         (do (lvar/bind-lvar arg2 subj) arg2))]
             (lookup-propositions-aux (rest pvec) (conj path [arg1 arg2 m]) wrtobj condition pmatches)
             ;; Any lvars bound on the way in are unbound on the way out
-            (if ubarg1 (rtm/unbind-lvar ubarg1))
-            (if ubarg2 (rtm/unbind-lvar ubarg2))))))))
+            (if ubarg1 (lvar/unbind-lvar ubarg1))
+            (if ubarg2 (lvar/unbind-lvar ubarg2))))))))
 
 (defn select-and-bind2-n
   "Given a sequence of n proposition bindings that satisfy the condition, select one and make all necessary bindings"
@@ -505,12 +509,12 @@
       (let [selection (mcselect pmatches)] ; selection is a path of propositions one entry for each proposition
         (doseq [[arg1 arg2 aprop] selection]
           (let [{ptype :ptype, subj :subject, obj :object} aprop]
-            (when (and (rtm/is-lvar? arg1) (rtm/is-unbound-lvar? arg1))
+            (when (and (lvar/is-lvar? arg1) (lvar/is-unbound-lvar? arg1))
               ;; (println "Binding " arg1 "to" subj)
-              (rtm/bind-lvar arg1 subj))
-            (when (and (rtm/is-lvar? arg2) (rtm/is-unbound-lvar? arg2))
+              (lvar/bind-lvar arg1 subj))
+            (when (and (lvar/is-lvar? arg2) (lvar/is-unbound-lvar? arg2))
               ;; (println "Binding " arg2 "to" obj)
-              (rtm/bind-lvar arg2 obj))))
+              (lvar/bind-lvar arg2 obj))))
         selection))))
 
 (defn lookup-propositions
@@ -546,10 +550,10 @@
                                      (with-out-str (print (nth condit 1)))
                                      (with-out-str (print (nth condit 2)))
                                      ")"))
-        (let [first-expn (rtm/evaluate  wrtobject "???" (nth condit 1) nil nil nil nil)
-              first-expn (if (rtm/is-lvar? first-expn) (rtm/deref-lvar first-expn) first-expn)
-              second-expn (rtm/evaluate wrtobject "???" (nth condit 2) nil nil nil nil)
-              second-expn (if (rtm/is-lvar? second-expn) (rtm/deref-lvar second-expn) second-expn)]
+        (let [first-expn (eval/evaluate  wrtobject "???" (nth condit 1) nil nil nil nil)
+              first-expn (if (lvar/is-lvar? first-expn) (lvar/deref-lvar first-expn) first-expn)
+              second-expn (eval/evaluate wrtobject "???" (nth condit 2) nil nil nil nil)
+              second-expn (if (lvar/is-lvar? second-expn) (lvar/deref-lvar second-expn) second-expn)]
           (if (> verbosity 3) (println "(= "
                                        (with-out-str (print (nth condit 1))) "=" first-expn
                                        (with-out-str (print (nth condit 2))) "=" second-expn
@@ -562,10 +566,10 @@
                                      (with-out-str (print (nth condit 1)))
                                      (with-out-str (print (nth condit 2)))
                                      ")"))
-        (let [first-expn (rtm/evaluate-reference  wrtobject (nth condit 1) nil nil nil nil)
-              first-expn (if (rtm/is-lvar? first-expn) (rtm/deref-lvar first-expn) first-expn)
-              second-expn (rtm/evaluate-reference wrtobject (nth condit 2) nil nil nil nil)
-              second-expn (if (rtm/is-lvar? second-expn) (rtm/deref-lvar second-expn) second-expn)]
+        (let [first-expn (eval/evaluate-reference  wrtobject (nth condit 1) nil nil nil nil)
+              first-expn (if (lvar/is-lvar? first-expn) (lvar/deref-lvar first-expn) first-expn)
+              second-expn (eval/evaluate-reference wrtobject (nth condit 2) nil nil nil nil)
+              second-expn (if (lvar/is-lvar? second-expn) (lvar/deref-lvar second-expn) second-expn)]
           (if (> verbosity -1) (println "(same "
                                        (with-out-str (print (nth condit 1))) "=" first-expn
                                        (with-out-str (print (nth condit 2))) "=" second-expn
@@ -575,7 +579,7 @@
       (let [plant (nth condit 1)
             names (nth condit 2)
             args (doall (map (fn [arg]
-                               (rtm/evaluate wrtobject "???" arg nil nil nil nil))
+                               (eval/evaluate wrtobject "???" arg nil nil nil nil))
                              (rest (rest (rest condit)))))]
         (cond (= plant 'dmcp) ;+++ dmcp handled specially
               (internal-condition-call plant (first names) args)
@@ -597,18 +601,18 @@
       (if (> verbosity 0) (do (println "DMCP: Aborting sample because maximum depth of " max-depth " has been reached.")
                               (println "************************************************************************")
                               nil))
-      (let [goals (apply concat (map (fn [agoal] (simplify-cond-top-level agoal (second (first root-objects)))) goals))
+      (let [goals (apply concat (map (fn [agoal] (simp/simplify-cond-top-level agoal (second (first root-objects)))) goals))
             - (if (> verbosity 0)
                 (do (println "Current outstanting goals:"))
-                (describe-goals goals))
+                (bir/describe-goals goals))
             this-goal (first goals)        ; We will solve this goal first
             rootobject (second (first root-objects))
             - (if (> verbosity 0)
                 (do (println "Solving for:")
-                    (describe-goal this-goal)))
+                    (bir/describe-goal this-goal)))
             outstanding-goals (rest goals)] ; Afterwards we will solve the rest
 
-        (rtm/start-plan-bind-set)
+        (lvar/start-plan-bind-set)
 
         (if (condition-satisfied? this-goal rootobject)
           (if (empty? outstanding-goals)
@@ -621,7 +625,7 @@
           ;; Now we have a goal that requires effort to solve.
 
           (do
-            (rtm/stop-plan-bind-set)
+            (lvar/stop-plan-bind-set)
 
             (let [queries (generate-lookup-from-condition pclass this-goal)
                   - (if (> verbosity 1) (println "Root query=" queries))
@@ -639,14 +643,14 @@
                         selected (select-candidate candidates)] ;+++ generate a gap filler if necessary +++
                   (if selected                                ; If we have found an action to try prepare it, otherwise we fail
                     (let [rtos (map (fn [anmq] (.rto anmq)) selected)
-                          actions (compile-calls selected this-goal queries root-objects rtos) ;
+                          actions (bir/compile-calls selected this-goal queries root-objects rtos) ;
                           _ (if (> verbosity 1) (println "ACTIONS=" actions))
                           subgoals (apply concat (map (fn [[call prec] rto]
-                                                        (if (not (rtm/RTobject? rto)) (irx/error "not an RTobject: " rto))
+                                                        (if (not (global/RTobject? rto)) (irx/error "not an RTobject: " rto))
                                                         (map (fn [conj] [:thunk conj rto])
-                                                             (simplify-cond-top-level prec rto)))
+                                                             (simp/simplify-cond-top-level prec rto)))
                                                       actions rtos))
-                          ;;subgoals (apply concat (map (fn [[call prec]] (simplify-cond-top-level prec nil)) actions))
+                          ;;subgoals (apply concat (map (fn [[call prec]] (simp/simplify-cond-top-level prec nil)) actions))
                           outstanding-goals  (remove nil? (concat subgoals outstanding-goals))]
 
                       (if (> verbosity 4) (do (println "selected=") selected))
@@ -661,7 +665,7 @@
                       (if (> verbosity 0) (println "DMCP: sample failed, depth=" depth))
                       (if (> verbosity 0)
                         (do (println "Couldn't find an action to solve for: ")
-                            (describe-goal this-goal)))
+                            (bir/describe-goal this-goal)))
                       (if (> verbosity 2) (println "************************************************************************"))
                       nil)))))))))                     ; We failed to find a solution, return nil
 
@@ -694,7 +698,7 @@
           (if (> verbosity 0) (println "Completed DMCP: " (count solutions) "found out of " sampled " samples."))
           (doall solutions))
         nil)      ; And it turns out that we didn't find any solutions. nil result signifies failure
-      (let [root-objects (rtm/get-root-objects)
+      (let [root-objects (global/get-root-objects)
             ;; - (println "root-objects=" root-objects)
             controllable-objects (rtm/get-controllable-objects)
             ;; - (println "controllable-objects=" controllable-objects)
@@ -704,12 +708,12 @@
                           (map (fn [agoal]
                                  [:thunk agoal (second (first root-objects))]
                                  #_agoal)
-                               (simplify-cond-top-level goal-conds (second (first root-objects))))
+                               (simp/simplify-cond-top-level goal-conds (second (first root-objects))))
                           :max-depth max-depth)
             ;; +++ Now put the call into the solution
             compiled-calls (if actions (if rawp
                                          actions
-                                         (scompile-call-sequence (seq (map first actions)))))]
+                                         (bir/scompile-call-sequence (seq (map first actions)))))]
         ;;(pprint actions)
         (recur (if compiled-calls (cons compiled-calls solutions) solutions) (+ 1 sampled))))))
 

@@ -21,6 +21,8 @@
             [pamela.tools.belief-state-planner.montecarloplanner :as bs]
             [pamela.tools.belief-state-planner.expressions :as dxp]
             [pamela.tools.belief-state-planner.ir-extraction :as irx]
+            [pamela.tools.belief-state-planner.lvarimpl :as lvar]
+            [pamela.tools.belief-state-planner.evaluation :as eval]
             [pamela.cli :as pcli]
             [pamela.unparser :as pup]
             )
@@ -86,10 +88,10 @@
 
 (defn un-lvar-expression
   [exprn wrtobject]
-  (let [evaluated (rtm/evaluate-reference wrtobject exprn nil nil nil nil)
-        bound-value (if (and (rtm/is-lvar? evaluated) (rtm/is-bound-lvar? evaluated)) (rtm/deref-lvar evaluated) false)
+  (let [evaluated (eval/evaluate-reference wrtobject exprn nil nil nil nil)
+        bound-value (if (and (lvar/is-lvar? evaluated) (lvar/is-bound-lvar? evaluated)) (lvar/deref-lvar evaluated) false)
         - (if (> verbosity 3) (println "In un-lvar-expression with exprn=" exprn "evaluates to " evaluated))
-        - (if (> verbosity 3) (if bound-value (println "****" (.name evaluated) "=" bound-value)))
+        - (if (> verbosity 3) (if bound-value (println "****" (lvar/.name evaluated) "=" bound-value)))
         result (if (sequential? exprn)
                  (case (first exprn)
                    :field (if bound-value [:field [:value bound-value]] exprn) ; was [:field [:value bound-value]] [:value bound-value]
