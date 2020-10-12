@@ -26,6 +26,7 @@
             [pamela.tools.belief-state-planner.coredata :as global]
             [pamela.tools.belief-state-planner.evaluation :as eval]
             [pamela.tools.belief-state-planner.lvarimpl :as lvar]
+            [pamela.tools.belief-state-planner.prop :as prop]
 
             [pamela.cli :as pcli]
             [pamela.unparser :as pup]
@@ -35,21 +36,20 @@
 
 ;;;(in-ns 'pamela.tools.belief-state-planner.dmcgpcore)
 
-(defrecord MethodQuery [pclass methodsig rootobject rto])
 
 (def ^:dynamic available-actions nil)
 (def ^:dynamic plan-fragment-library nil)
-(def ^:dynamic verbosity 0)
+;(def ^:dynamic verbosity 0)
 
-(def ^:dynamic *printdebug* false) ; false
+;(def ^:dynamic *printdebug* false) ; false
 
-(defn set-verbosity
-  [n]
-  (def ^:dynamic verbosity n))
+;(defn set-verbosity
+;  [n]
+;  (def ^:dynamic verbosity n))
 
 (defn nyi
   [text]
-  (if (> verbosity 2) (println "NYI called with: " text))
+  (if (> global/verbosity 2) (println "NYI called with: " text))
   nil)
 
 
@@ -116,12 +116,12 @@
 (defn generate-plan-sample
   "Given a set of goal state constraints, produce a sample plan."
   [goal-constraints]
-  (let [- (if (> verbosity 0) (println "New Sample"))
+  (let [- (if (> global/verbosity 0) (println "New Sample"))
         ;;  Snapshot the state in order to be able to replay for other samples.
         virtual-state-snapshot (snapshot-modeled-state)
         ;; For each goal constraint, find an action likely to achieve it chosen by Monte-Carlo weighted random selection.
         actions (seq (map (fn [goal] (find-an-action-to-achieve goal goal-constraints)) goal-constraints))
-        - (if (> verbosity 0) (println "Top-level-actions: " actions)) ; debugging statement
+        - (if (> global/verbosity 0) (println "Top-level-actions: " (prop/prop-readable-form actions))) ; debugging statement
         ;; Order the actions in order to optimize the progression towards the overall goal state.
         sorted-actions (select-preferred-order-of-actions actions goal-constraints)
         ;; For each action, establish a list of unsatisfied prerequisites and establish them as subgoals.
@@ -142,9 +142,9 @@
   "Translate a goal condition into lookups for the inverse influence table."
   [pclass condition]
 
-  (if (> verbosity 3)
-    (do (println "In generate-lookup-from-condition: pclass=" pclass "condition: ")
-        (simp/print-condition-tersely condition)))
+  (if (> global/verbosity 3)
+    (do (println "In generate-lookup-from-condition: pclass=" pclass
+                 "condition=" (prop/prop-readable-form condition))))
 
   (if (sequential? condition)               ;atomic conditions = no influence
     (case (first condition)
@@ -222,7 +222,7 @@
     #_(println ".methodsig=" (.methodsig anmq) " .postc=" (irx/.postc (.methodsig anmq)))
     (guaranteed-modes-aux (irx/.postc (.methodsig anmq)))))
 
-#_(guaranteed-modes (MethodQuery.
+#_(guaranteed-modes (global/make-method-query
                      'Robot
                      (irx/MethodSignature.
                       'eat
@@ -277,7 +277,8 @@
 ;;; +++ we need to handle all of the cases here +++
 (defn match-goal-query-aux
   [goal postconds]
-  (if (> verbosity 2) (println "in match-goal-query-aux with (" goal "," postconds ")"))
+  (if (> global/verbosity 2) (println "in match-goal-query-aux with (" (prop/prop-readable-form goal)
+                               "," (prop/prop-readable-form postconds) ")"))
   (cond
     (= goal postconds)
     (list (first goal) (first postconds))
@@ -286,24 +287,30 @@
     (case (first goal)
       (:equal :same) ;+++ is this right?  Does :same belong here?
              (let [argcondpart (argpart postconds)
-                   -  (if (> verbosity 3) (println "argcondpart=" argcondpart))
+                   -  (if (> global/verbosity 3) (println "argcondpart=" (prop/prop-readable-form argcondpart)))
                    matchcondpart (nonargpart postconds)
-                   - (if (> verbosity 3) (println "matchcondpart=" matchcondpart))
+                   - (if (> global/verbosity 3) (println "matchcondpart=" (prop/prop-readable-form matchcondpart)))
                    matchresult (if (and argcondpart matchcondpart)
                                  (if (= matchcondpart (nth goal 1))
                                    (into {} (list [(second argcondpart) (nth goal 2)]))
                                    (if (= matchcondpart (nth goal 2))
                                      (into {} (list [(second argcondpart) (nth goal 1)]))
                                      nil)))]
-               (if (> verbosity 3) (println "match " matchcondpart " with " goal " goal =" matchresult))
+               (if (> global/verbosity 3) (println "match " (prop/prop-readable-form matchcondpart)
+                                            " with " (prop/prop-readable-form goal)
+                                            " goal =" (prop/prop-readable-form matchresult)))
                matchresult)
 
-      (do (if (> verbosity 0) (println "match-goal-query-aux unhandled case 1: goal=" goal " posts=" postconds))
+             (do (if (> global/verbosity 0)
+                   (println "match-goal-query-aux unhandled case 1: goal="
+                            (prop/prop-readable-form goal)
+                            " posts=" (prop/prop-readable-form postconds)))
           nil))
 
     :otherwise
-    (do (if (> verbosity 0)
-          (println "match-goal-query-aux unhandled case 2: goal=" goal " posts=" postconds))
+    (do (if (> global/verbosity 0)
+          (println "match-goal-query-aux unhandled case 2: goal=" (prop/prop-readable-form goal)
+                   " posts=" (prop/prop-readable-form postconds)))
       nil)))
 
 (defn match-goal-query?
@@ -314,20 +321,27 @@
                    (match-goal-query-aux goal postconds)
                  :and
                    (some (fn [apost] (match-goal-query-aux goal apost)) (rest postconds))
-                 (do (if (> verbosity 0)
-                       (println "match-goal-query? unhandled case: goal=" goal " posts=" postconds))
+                 (do (if (> global/verbosity 0)
+                       (println "match-goal-query? unhandled case: goal=" (prop/prop-readable-form goal)
+                                " posts=" (prop/prop-readable-form postconds)))
                      nil))]
-    (if (> verbosity 2)
-      (println "match-goal-query? goal=" goal "query=" query "posts=" postconds "amatch=" amatch))
+    (if (> global/verbosity 2)
+      (println "match-goal-query? goal=" (prop/prop-readable-form goal)
+               "query=" (prop/prop-readable-form query)
+               "posts=" (prop/prop-readable-form postconds)
+               "amatch=" (prop/prop-readable-form amatch)))
     amatch))
 
 (defn verify-candidate
   [acand]
   (let [[goal signature cmethods rootobj rtobj] acand
         rtotype (get rtobj :type)
-        - (if (> verbosity 2) (println "verify-candidate goal=" goal " sign=" signature " methods=" cmethods))
+        - (if (> global/verbosity 2)
+            (println "verify-candidate goal=" (prop/prop-readable-form goal)
+                     " sign=" (prop/prop-readable-form signature)
+                     " methods=" (prop/prop-readable-form cmethods)))
         methods (rtm/get-controllable-methods) ; Cache this, no need to recompute all the time.+++
-        _ (if (> verbosity 2) (do (println "Controllable-methods:") (pprint methods)))
+        _ (if (> global/verbosity 2) (do (println "Controllable-methods:" (prop/prop-readable-form  methods))))
         ;; Step 1: Filter out methods that dont match either by pclass or by name
         matchingmethods (remove nil? (map (fn [[pclass pmethod rtobj]]
                                             (if (and (= pclass rtotype)
@@ -336,13 +350,13 @@
                                                          (= (first signature) (rtm/get-root-class-name)))
                                                      (some #{(irx/.mname pmethod)} cmethods))
                                               (do
-                                                (if (> verbosity 3) (println "pc= " pclass " pm=" (.mname pmethod)))
-                                                (MethodQuery. pclass pmethod rootobj rtobj))
+                                                (if (> global/verbosity 3) (println "pc= " pclass " pm=" (.mname pmethod)))
+                                                (global/make-method-query pclass pmethod rootobj rtobj))
                                               nil))
                                           methods))
-        _ (if (> verbosity 2) (do (println "matchingmethods1:") (pprint matchingmethods)))
+        _ (if (> global/verbosity 2) (do (println "matchingmethods1:" (prop/prop-readable-form matchingmethods))))
         desired-mode (if (mode-signature signature) (get-desired-mode goal) nil)
-        _ (if (> verbosity 2) (if desired-mode (println "matchingmethods1b - desired-mode=" desired-mode)))
+        _ (if (> global/verbosity 2) (if desired-mode (println "matchingmethods1b - desired-mode=" desired-mode)))
 
         ;; Step 2: for mode comparisons filter out cases that don't guarantee the desired mode
         matchingmethods (if (not (nil? desired-mode))
@@ -364,7 +378,7 @@
                                                 query
                                                 nil))
                                             matchingmethods)))
-        _ (if (> verbosity 2) (do (println "matchingmethods2:") (pprint matchingmethods)))
+        _ (if (> global/verbosity 2) (do (println "matchingmethods2:" (prop/prop-readable-form matchingmethods))))
         ]
     matchingmethods))
 
@@ -389,21 +403,22 @@
 (defn select-and-bind2
   [arg1 arg2 matches]
   (let [num-matches (count matches)]
-    (if (> verbosity 3) (println "In select-and-bind2: num-matches=" num-matches "here: " matches))
+    (if (> global/verbosity 3) (println "In select-and-bind2: num-matches=" num-matches
+                                 "here: " (prop/prop-readable-form matches)))
     (if (empty? matches)
       false                           ; Nothing found, no variables bound : FAIL
       (let [selection (mcselect matches)
             {ptype :ptype, subj :subject, obj :object} selection]
         (if (lvar/is-lvar? arg1)
           (do
-            (if (> verbosity 2) (println "*** Binding LVAR"))
+            (if (> global/verbosity 2) (println "*** Binding LVAR"))
             (lvar/bind-lvar arg1 subj)
-            (if (> verbosity 2) (lvar/describe-lvar arg1))))
+            (if (> global/verbosity 2) (lvar/describe-lvar arg1))))
         (if (lvar/is-lvar? arg2)
           (do
-            (if (> verbosity 2) (println "*** Binding LVAR"))
+            (if (> global/verbosity 2) (println "*** Binding LVAR"))
             (lvar/bind-lvar arg2 obj)
-            (if (> verbosity 2) (lvar/describe-lvar arg2))))
+            (if (> global/verbosity 2) (lvar/describe-lvar arg2))))
         true))))
 
 (defn internal-condition-call
@@ -420,7 +435,7 @@
             arg2r (if (and (lvar/is-lvar? arg2) (lvar/is-bound-lvar? arg2)) (lvar/deref-lvar arg2) arg2)
             arg1 (if (and false (string? arg1r)) (symbol arg1r) arg1r)
             arg2 (if (and false (string? arg2r)) (symbol arg2r) arg2r)]
-        (if (> verbosity 2) (println "in internal-condition-call with pname=" pname
+        (if (> global/verbosity 2) (println "in internal-condition-call with pname=" pname
                                      " arg1=" (if arg1-unbound-lvar :unbound arg1)
                                      " arg2=" (if arg2-unbound-lvar :unbound arg2)))
         (cond ;; There are 4 cases, one bound, the other bound, both bound, neither bound
@@ -448,7 +463,9 @@
   "For a binary proposition [:prop arg1 arg2] product arglist for find-binary-propositions"
   [wrtobject propn]
   (let [[_ lookupin [pname a1 a2]] propn]
-    (if (> verbosity 2) (println "In compu-prop-matches with pname=" pname "a1=" a1 "a2=" a2))
+    (if (> global/verbosity 2) (println "In compu-prop-matches with pname=" pname
+                                        "a1=" (prop/prop-readable-form a1)
+                                        "a2=" (prop/prop-readable-form a2)))
     (let [arg1 (eval/evaluate wrtobject "???" a1 nil nil nil nil)
           arg2 (eval/evaluate wrtobject "???" a2 nil nil nil nil)
           ;;_ (println "arg1=" arg1 "arg2=" arg2)
@@ -474,15 +491,16 @@
               [arg1 arg2 (bs/find-binary-propositions-matching nil nil #{pname} nil nil nil)]
 
               :otherwise (irx/error "compûte-prop-matches: can't get here, arg1=" arg1 " arg2=" arg2))]
-        (if (> verbosity 2) (println "compute-prop-matches results=" results))
+        (if (> global/verbosity 2) (println "compute-prop-matches results=" (prop/prop-readable-form results)))
         results))))
 
 (defn lookup-propositions-aux
   "Recurse down the propositions to find compatible matches that satisfy the condition"
   [pvec path wrtobj condition pmatches]
   (if (empty? pvec)
-    (do (if (> verbosity 2)
-          (println "found-candidate path=" path "constraint=" condition "="
+    (do (if (> global/verbosity 2)
+          (println "found-candidate path=" path "constraint=" (prop/prop-readable-form condition)
+                   "="
                    (condition-satisfied? condition wrtobj) "wrtobject=" wrtobj))
         (if (condition-satisfied? condition wrtobj) (reset! pmatches (conj @pmatches path)))) ; Success case
     (let [[arg1 arg2 matches] (compute-prop-matches wrtobj (first pvec))] ; [a1 a2 matches]
@@ -503,7 +521,8 @@
   "Given a sequence of n proposition bindings that satisfy the condition, select one and make all necessary bindings"
   [pmatches]
   (let [num-matches (count pmatches)]
-    (if (> verbosity 4) (println "In select-and-bind2-n: num-matches=" num-matches "here: " pmatches))
+    (if (> global/verbosity 4) (println "In select-and-bind2-n: num-matches=" num-matches
+                                 "here: " (prop/prop-readable-form pmatches)))
     (if (empty? pmatches)
       false                                ; Nothing found, no variables bound : FAIL
       (let [selection (mcselect pmatches)] ; selection is a path of propositions one entry for each proposition
@@ -546,33 +565,33 @@
       ;; EQUAL -
       :equal ;(y-or-n? (str "(condition-satisfied? " (with-out-str (print condit)) ")"))
       (do
-        (if (> verbosity 3) (println "In condition-satisfied? with (= "
-                                     (with-out-str (print (nth condit 1)))
-                                     (with-out-str (print (nth condit 2)))
+        (if (> global/verbosity 3) (println "In condition-satisfied? with (= "
+                                     (prop/prop-readable-form (nth condit 1))
+                                     (prop/prop-readable-form (nth condit 2))
                                      ")"))
         (let [first-expn (eval/evaluate  wrtobject "???" (nth condit 1) nil nil nil nil)
               first-expn (if (lvar/is-lvar? first-expn) (lvar/deref-lvar first-expn) first-expn)
               second-expn (eval/evaluate wrtobject "???" (nth condit 2) nil nil nil nil)
               second-expn (if (lvar/is-lvar? second-expn) (lvar/deref-lvar second-expn) second-expn)]
-          (if (> verbosity 3) (println "(= "
-                                       (with-out-str (print (nth condit 1))) "=" first-expn
-                                       (with-out-str (print (nth condit 2))) "=" second-expn
+          (if (> global/verbosity 3) (println "(= "
+                                       (prop/prop-readable-form (nth condit 1)) "=" (prop/prop-readable-form first-expn)
+                                       (prop/prop-readable-form (nth condit 2)) "=" (prop/prop-readable-form second-expn)
                                        ")"))
           (= first-expn second-expn)))
       ;; SAME -
       :same ;(y-or-n? (str "(condition-satisfied? " (with-out-str (print condit)) ")"))
       (do
-        (if (> verbosity 3) (println "In condition-satisfied? with (= "
-                                     (with-out-str (print (nth condit 1)))
-                                     (with-out-str (print (nth condit 2)))
+        (if (> global/verbosity 3) (println "In condition-satisfied? with (= "
+                                     (prop/prop-readable-form (nth condit 1))
+                                     (prop/prop-readable-form (nth condit 2))
                                      ")"))
         (let [first-expn (eval/evaluate-reference  wrtobject (nth condit 1) nil nil nil nil)
               first-expn (if (lvar/is-lvar? first-expn) (lvar/deref-lvar first-expn) first-expn)
               second-expn (eval/evaluate-reference wrtobject (nth condit 2) nil nil nil nil)
               second-expn (if (lvar/is-lvar? second-expn) (lvar/deref-lvar second-expn) second-expn)]
-          (if (> verbosity -1) (println "(same "
-                                       (with-out-str (print (nth condit 1))) "=" first-expn
-                                       (with-out-str (print (nth condit 2))) "=" second-expn
+          (if (> global/verbosity -1) (println "(same "
+                                       (prop/prop-readable-form (nth condit 1)) "=" (prop/prop-readable-form first-expn)
+                                       (prop/prop-readable-form (nth condit 2)) "=" (prop/prop-readable-form second-expn)
                                        ")"))
           (= first-expn second-expn)))
       :call
@@ -598,26 +617,25 @@
          complete-plan []           ; List of actions collected so far
          depth 0]
     (if (>= depth max-depth)
-      (if (> verbosity 0) (do (println "DMCP: Aborting sample because maximum depth of " max-depth " has been reached.")
-                              (println "************************************************************************")
-                              nil))
+      (if (> global/verbosity 0)
+        (do (println "DMCP: Aborting sample because maximum depth of " max-depth " has been reached.")
+            (println "************************************************************************")
+            nil))
       (let [goals (apply concat (map (fn [agoal] (simp/simplify-cond-top-level agoal (second (first root-objects)))) goals))
-            - (if (> verbosity 0)
-                (do (println "Current outstanting goals:"))
-                (bir/describe-goals goals))
+            - (if (> global/verbosity 0)
+                (do (println "Current outstanting goals:" (prop/prop-readable-form goals))))
             this-goal (first goals)        ; We will solve this goal first
             rootobject (second (first root-objects))
-            - (if (> verbosity 0)
-                (do (println "Solving for:")
-                    (bir/describe-goal this-goal)))
+            - (if (> global/verbosity 0)
+                (do (println "Solving for:" (prop/prop-readable-form this-goal))))
             outstanding-goals (rest goals)] ; Afterwards we will solve the rest
 
         (lvar/start-plan-bind-set)
 
         (if (condition-satisfied? this-goal rootobject)
           (if (empty? outstanding-goals)
-            (do (if (> verbosity 0) (println "***Solution found!"))
-                (if (> verbosity 1)
+            (do (if (> global/verbosity 0) (println "***Solution found!"))
+                (if (> global/verbosity 1)
                   (do (pprint complete-plan)
                       (println "************************************************************************")))
                 complete-plan)                 ; The last outstanding goal was satisfied, return the completed plan SUCCESS
@@ -628,23 +646,23 @@
             (lvar/stop-plan-bind-set)
 
             (let [queries (generate-lookup-from-condition pclass this-goal)
-                  - (if (> verbosity 1) (println "Root query=" queries))
+                  - (if (> global/verbosity 1) (println "Root query=" (prop/prop-readable-form queries)))
                   iitab (rtm/inverted-influence-table)
-                  - (if (> verbosity 2) (println "iitab=" iitab))
+                  - (if (> global/verbosity 2) (println "iitab=" iitab))
                         candidates (apply concat (map (fn [[agoal aquery]]
                                                         (map (fn [[coid ctrlobj]]
                                                                [agoal aquery (get iitab aquery) rootobject ctrlobj])
                                                              controllable-objects))
                                                       queries))    ;+++ need to handle nested queries+++
-                        _ (if (> verbosity 1) (do (println "candidates=") (pprint candidates)))
+                        _ (if (> global/verbosity 1) (do (println "candidates=" (prop/prop-readable-form candidates))))
                         candidates (apply concat (map (fn [cand] (verify-candidate cand)) candidates))
-                        _  (if (> verbosity 1) (do (println "good candidates=") (pprint candidates)))
+                        _  (if (> global/verbosity 1) (do (println "good candidates=" (prop/prop-readable-form  candidates))))
                         ;; Now select a method if no match, generate a gap filler
                         selected (select-candidate candidates)] ;+++ generate a gap filler if necessary +++
                   (if selected                                ; If we have found an action to try prepare it, otherwise we fail
                     (let [rtos (map (fn [anmq] (.rto anmq)) selected)
                           actions (bir/compile-calls selected this-goal queries root-objects rtos) ;
-                          _ (if (> verbosity 1) (println "ACTIONS=" actions))
+                          _ (if (> global/verbosity 1) (println "ACTIONS=" (prop/prop-readable-form actions)))
                           subgoals (apply concat (map (fn [[call prec] rto]
                                                         (if (not (global/RTobject? rto)) (irx/error "not an RTobject: " rto))
                                                         (map (fn [conj] [:thunk conj rto])
@@ -653,20 +671,20 @@
                           ;;subgoals (apply concat (map (fn [[call prec]] (simp/simplify-cond-top-level prec nil)) actions))
                           outstanding-goals  (remove nil? (concat subgoals outstanding-goals))]
 
-                      (if (> verbosity 4) (do (println "selected=") selected))
-                      (if (> verbosity 2) (println "actions=" actions))
-                      (if (> verbosity 2) (println "subgoals=" subgoals))
+                      (if (> global/verbosity 4) (do (println "selected=" (prop/prop-readable-form selected))))
+                      (if (> global/verbosity 2) (println "actions=" (prop/prop-readable-form actions)))
+                      (if (> global/verbosity 2) (println "subgoals=" (prop/prop-readable-form subgoals)))
                       (let [plan-part (concat actions complete-plan)]
-                        (if (> verbosity 1) (println "ACTION-ADDED-TO-PARTIAL-PLAN: " actions))
+                        (if (> global/verbosity 1) (println "ACTION-ADDED-TO-PARTIAL-PLAN: " (prop/prop-readable-form actions)))
                         (if (empty? outstanding-goals)
                           plan-part             ; Current action has no prerequisited (rare) and there are none outstanding SUCCESS
                           (recur outstanding-goals plan-part (+ 1 depth)))))
                     (do
-                      (if (> verbosity 0) (println "DMCP: sample failed, depth=" depth))
-                      (if (> verbosity 0)
+                      (if (> global/verbosity 0) (println "DMCP: sample failed, depth=" depth))
+                      (if (> global/verbosity 0)
                         (do (println "Couldn't find an action to solve for: ")
                             (bir/describe-goal this-goal)))
-                      (if (> verbosity 2) (println "************************************************************************"))
+                      (if (> global/verbosity 2) (println "************************************************************************"))
                       nil)))))))))                     ; We failed to find a solution, return nil
 
 (defn plan
@@ -687,15 +705,15 @@
 (defn solveit
   "Generate a plan for the goals specified in the model."
   [& {:keys [samples max-depth rawp] :or {samples 10 max-depth 10 rawp false}}]
-  (if (> verbosity 0) (println "DMCP: solving with " samples "samples, max-depth=" max-depth))
+  (if (> global/verbosity 0) (println "DMCP: solving with " samples "samples, max-depth=" max-depth))
   (loop [solutions ()
          sampled 0]
-    (if (and (> verbosity 1) (> sampled 0))
+    (if (and (> global/verbosity 1) (> sampled 0))
       (println "DMCP: " (count solutions) "found so far out of " sampled " samples."))
     (if (>= sampled samples)
       (if (not (empty? solutions))                         ; We have done enough, return what we have
         (do
-          (if (> verbosity 0) (println "Completed DMCP: " (count solutions) "found out of " sampled " samples."))
+          (if (> global/verbosity 0) (println "Completed DMCP: " (count solutions) "found out of " sampled " samples."))
           (doall solutions))
         nil)      ; And it turns out that we didn't find any solutions. nil result signifies failure
       (let [root-objects (global/get-root-objects)
@@ -703,7 +721,7 @@
             controllable-objects (rtm/get-controllable-objects)
             ;; - (println "controllable-objects=" controllable-objects)
             [pclass goal-conds] (rtm/goal-post-conditions)
-            - (if (> verbosity 0) (do (println "Root PCLASS=" pclass "GOAL:")(pprint goal-conds)))
+            - (if (> global/verbosity 0) (do (println "Root PCLASS=" pclass "GOAL:" (prop/prop-readable-form goal-conds))))
             actions (plan root-objects controllable-objects pclass
                           (map (fn [agoal]
                                  [:thunk agoal (second (first root-objects))]

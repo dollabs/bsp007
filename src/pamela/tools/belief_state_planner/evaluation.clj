@@ -18,6 +18,7 @@
             [pamela.tools.belief-state-planner.ir-extraction :as irx]
             [pamela.tools.belief-state-planner.coredata :as global]
             [pamela.tools.belief-state-planner.lvarimpl :as lvar]
+            [pamela.tools.belief-state-planner.prop :as prop]
 
             [clojure.data.json :as json])
   (:gen-class))
@@ -77,14 +78,14 @@
                   (let [var (first (find-objects-of-name val))]
                     (when (nil? var)
                       (when (> verbosity 3)
-                        (println "Didn't find object named" val)
+                        (println "Didn't find object named" (prop/prop-readable-form val))
                         (doseq [anobj @(global/.objects global/*current-model*)]
                           (println (.variable anobj)))))
                     (or var val))
 
                   :otherwise val)]
     (if (and (> verbosity -1) (not (= val res)))
-      (println "maybe-get-named-object var=" val "val=" res))
+      (println "maybe-get-named-object var=" (prop/prop-readable-form val) "val=" (prop/prop-readable-form res)))
     res))
 
 
@@ -202,7 +203,8 @@
                        (get-likely-value pdf 0.8))))  ; +++ where did 0.8 come from!!!
 
           :arg-field (let [[object & field] (rest expn)
-                           - (if (> verbosity 2) (println ":arg-field object= " object "field=" field "expn=" expn))
+                           - (if (> verbosity 2) (println ":arg-field object= " (prop/prop-readable-form object)
+                                                          "field=" field "expn=" (prop/prop-readable-form expn)))
                            obj (cond
                                  (global/RTobject? object)
                                  object
@@ -212,7 +214,7 @@
 
                                  :otherwise
                                  (deref-field (rest object) #_wrtobject (second (first (global/get-root-objects))) :normal)) ; Force caller to be root+++?
-                           - (if (> verbosity 2) (println ":arg-field obj= " obj))
+                           - (if (> verbosity 2) (println ":arg-field obj= " (prop/prop-readable-form obj)))
                            value (maybe-get-named-object (deref-field field obj :normal))
                            ] ; +++ handle multilevel case
                          (if (not (global/RTobject? value))
@@ -272,7 +274,8 @@
                      [:value value]))
 
           :arg-field (let [[object & field] (rest expn)
-                           - (if (> verbosity 2) (println ":arg-field object= " object "field=" field "expn=" expn))
+                           - (if (> verbosity 2) (println ":arg-field object= " (prop/prop-readable-form object)
+                                                          "field=" field "expn=" (prop/prop-readable-form expn)))
                            obj (cond
                                    (global/RTobject? object)
                                    object
@@ -285,7 +288,7 @@
 
                                    :otherwise
                                    (deref-field (rest object) (second (first (global/get-root-objects))) :reference)) ; Force caller to be root+++?
-                           - (if (> verbosity 2) (println ":arg-field obj= " obj))
+                           - (if (> verbosity 2) (println ":arg-field obj= " (prop/prop-readable-form obj)))
                            value (deref-field field obj :reference)] ; +++ handle multilevel case
                          (if (not (global/RTobject? value))
                            value

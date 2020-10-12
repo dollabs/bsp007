@@ -127,3 +127,11 @@
   (let [plantmap @(.plantmap *current-model*)
         object (get plantmap (name id))]
     object))
+
+(defrecord MethodQuery [pclass methodsig rootobject rto])
+
+(defn MethodQuery? [obj] (instance? MethodQuery obj))
+
+(defn make-method-query
+  [pclass methodsig rootobject rto]
+  (MethodQuery. pclass methodsig rootobject rto))

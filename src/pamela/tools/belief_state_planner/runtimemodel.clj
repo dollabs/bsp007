@@ -19,6 +19,7 @@
             [pamela.tools.belief-state-planner.lvarimpl :as lvar]
             [pamela.tools.belief-state-planner.evaluation :as eval]
             [pamela.tools.belief-state-planner.coredata :as global]
+            [pamela.tools.belief-state-planner.prop :as prop]
             [clojure.data.json :as json])
   (:gen-class))
 
@@ -416,10 +417,11 @@
                   root-class (irx/get-spamela-class-from-ir ir sroot)
                   ;; _ (pprint root-class)
                   root-methods (get root-class :methods)
-                  _ (if (> global/verbosity 3) (pprint root-methods))
+                  _ (if (> global/verbosity 3) (pprint (prop/prop-readable-form root-methods)))
                   goal-method (last root-methods) ; +++ was first
-                  _ (if (> global/verbosity 3) (pprint  goal-method))
-                  _ (if (> global/verbosity 3) (println :pre (irx/.prec goal-method) :post (irx/.postc goal-method)))
+                  _ (if (> global/verbosity 3) (pprint  (prop/prop-readable-form goal-method)))
+                  _ (if (> global/verbosity 3) (println :pre (prop/prop-readable-form (irx/.prec goal-method))
+                                                        :post (prop/prop-readable-form (irx/.postc goal-method))))
                   pre-and-post (if (and root-class goal-method)
                                  [[rootsym (irx/.prec goal-method)] [rootsym (irx/.postc goal-method)]])]
               (if root-class

@@ -23,6 +23,9 @@
             [pamela.tools.belief-state-planner.ir-extraction :as irx]
             [pamela.tools.belief-state-planner.lvarimpl :as lvar]
             [pamela.tools.belief-state-planner.evaluation :as eval]
+            [pamela.tools.belief-state-planner.coredata :as global]
+
+            [pamela.tools.belief-state-planner.prop :as prop]
             [pamela.cli :as pcli]
             [pamela.unparser :as pup]
             )
@@ -31,17 +34,13 @@
 
 ;;;(in-ns 'pamela.tools.belief-state-planner.simplify)
 
-(def ^:dynamic verbosity 0)
 
 (def ^:dynamic *printdebug* false) ; false
 
-(defn set-verbosity
-  [n]
-  (def ^:dynamic verbosity n))
 
 (defn nyi
   [text]
-  (if (> verbosity 2) (println "NYI called with: " text))
+  (if (> global/verbosity 2) (println "NYI called with: " text))
   nil)
 
 ;;; simplify condition always returns a list representing a conjunction.
@@ -90,8 +89,9 @@
   [exprn wrtobject]
   (let [evaluated (eval/evaluate-reference wrtobject exprn nil nil nil nil)
         bound-value (if (and (lvar/is-lvar? evaluated) (lvar/is-bound-lvar? evaluated)) (lvar/deref-lvar evaluated) false)
-        - (if (> verbosity 3) (println "In un-lvar-expression with exprn=" exprn "evaluates to " evaluated))
-        - (if (> verbosity 3) (if bound-value (println "****" (lvar/.name evaluated) "=" bound-value)))
+        - (if (> global/verbosity 3) (println "In un-lvar-expression with exprn=" (prop/prop-readable-form exprn)
+                                       "evaluates to " (prop/prop-readable-form evaluated)))
+        - (if (> global/verbosity 3) (if bound-value (println "****" (lvar/.name evaluated) "=" bound-value)))
         result (if (sequential? exprn)
                  (case (first exprn)
                    :field (if bound-value [:field [:value bound-value]] exprn) ; was [:field [:value bound-value]] [:value bound-value]
@@ -99,11 +99,22 @@
                    :arg-field exprn
                    exprn)
                  exprn)]
-    (if (not (= exprn result)) (if (> verbosity 3) (println "LVAR binding applied: was: " exprn "now: result")))
+    (if (not (= exprn result)) (if (> global/verbosity 3) (println "LVAR binding applied: was: " (prop/prop-readable-form exprn)
+                                                            "now:" (prop/prop-readable-form  result))))
     result))
 
 
 (defn print-condition-tersely
+  [condition]
+  (if (= (first condition) :thunk)
+    (do
+      (print "[:thunk ")
+      (pprint (second condition))
+      (println (.variable (nth condition 2)) "]"))
+    (println condition))
+  nil)
+
+(defn pprint-condition-tersely
   [condition]
   (if (= (first condition) :thunk)
     (do
@@ -116,7 +127,7 @@
 (defn simplify-condition
   "maniulate the condition into conjunctive normal form and return a list of conjunctions."
   [condit wrtobject]
-  (if (> verbosity 3) (println "In simplify condition with: " condit))
+  (if (> global/verbosity 3) (println "In simplify condition with: " (prop/prop-readable-form condit)))
   (if (not (or (list? condit) (vector? condit)))
     (list condit)
     (let [result (case (first condit)
@@ -157,14 +168,14 @@
                    [condit])
           simpres (remove (fn [x] (= x true)) result)]
       ;; (println "simplified=" result "simpres=" simpres)
-      (if (> verbosity 3)
-        (do (println "In simplify-condition: simpres: ")
-            (print-condition-tersely simpres)))
+      (if (> global/verbosity 3)
+        (do (println "In simplify-condition: simpres" (prop/prop-readable-form simpres))))
       simpres)))
 
 (defn simplify-cond-top-level
   [condit wrtobject]
-  (if (> verbosity 3) (println "In Simplify with condit=" condit " wrtobject=" (.variable wrtobject)))
+  (if (> global/verbosity 3) (println "In Simplify with condit=" (prop/prop-readable-form condit)
+                               " wrtobject=" (.variable wrtobject)))
   (let [simplified (simplify-condition condit wrtobject)
         terms (count simplified)]
     (if (> terms 1)
