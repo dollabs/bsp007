@@ -3432,6 +3432,93 @@
      ":post":
      {":type":":equal",
       ":args":
+      [{":type":":field-ref", ":names":["ldest"]},
+       {":type":":mode-ref",
+        ":mode-ref":{":type":":symbol-ref", ":names":["Destination"]},
+        ":mode":":arrived"}]},
+     ":display-args":null}]},
+  ":modes":{":root":true},
+  ":type":":pclass"},
+ "Main2":
+ {":args":null,
+  ":fields":
+  {"ldest":
+   {":access":":private",
+    ":initial":
+    {":args":["\"\/Main.theBuilding.RoomJ\""],
+     ":pclass":"Destination",
+     ":plant-id":"\"targetdestination1\"",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "observer":
+   {":access":":private",
+    ":initial":
+    {":args":["\"Ed\"", 0, ":testbed-observer", ":robot", 0, 0, 0, 0],
+     ":pclass":"ParticipantProfile",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "p1":
+   {":access":":private",
+    ":initial":
+    {":args":
+     ["\"Player396\"", 18, ":male", ":american", 50, 50, 80,
+      {":type":":field-ref", ":names":["p1-survey"]}],
+     ":pclass":"ParticipantProfile",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "p1-survey":
+   {":access":":private",
+    ":initial":
+    {":args":null, ":pclass":"PreTrialSurvey", ":type":
+                                               ":pclass-ctor"},
+    ":observable":false},
+   "rdest":
+   {":access":":private",
+    ":initial":
+    {":args":["\"\/Main.theBuilding.SCR2\""],
+     ":pclass":"Destination",
+     ":plant-id":"\"targetdestination2\"",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "rita":
+   {":access":":private",
+    ":initial":
+    {":args":
+     ["\"Rita\"", 0, ":asist-assistant", ":robot", 0, 0, 0, 0],
+     ":pclass":"ParticipantProfile",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "srplayer":
+   {":access":":private",
+    ":initial":
+    {":args":["\"\/Main.theBuilding.StagingArea\""],
+     ":pclass":"RPlayer",
+     ":plant-id":"\"Player-right\"",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "theBuilding":
+   {":access":":private",
+    ":initial":
+    {":args":null, ":pclass":"Falcon", ":type":":pclass-ctor"},
+    ":observable":false}},
+  ":methods":
+  {"goal":
+   [{":doc":"\"Search the building\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Goal\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
       [{":type":":field-ref", ":names":["rdest"]},
        {":type":":mode-ref",
         ":mode-ref":{":type":":symbol-ref", ":names":["Destination"]},
@@ -4334,17 +4421,11 @@
      {":type":":and",
       ":args":
       [{":type":":lookup-propositions",
-        ":where":
-        {":type":":equal",
-         ":args":
-         [{":type":":method-arg-ref", ":names":["newloc"]},
-          {":type":":mode-ref",
-           ":mode-ref":{":type":":symbol-ref", ":names":["Room"]},
-           ":mode":":unvisited"}]},
+        ":where":null,
         ":propositions":
         [{":type":":proposition-pattern",
           ":look-where":null,
-          ":prop-name":":left-path-neighbor",
+          ":prop-name":":right-path-neighbor",
           ":args":
           [{":type":":field-ref", ":names":["nowat"]},
            {":type":":method-arg-ref", ":names":["newloc"]}]}]},

@@ -7,6 +7,7 @@
    (:right-path-neighbor "/Main.theBuilding.WomRR" "/Main.theBuilding.SCR1")
    (:right-path-neighbor "/Main.theBuilding.Room107" "/Main.theBuilding.Room106")
    (:right-path-neighbor "/Main.theBuilding.ExecS1" "/Main.theBuilding.BreakR")
+   (:right-path-neighbor "/Main.theBuilding.BreakR" "/Main.theBuilding.RoomJ")
    (:right-path-neighbor "/Main.theBuilding.Room105" "/Main.theBuilding.Room104")
    (:right-path-neighbor "/Main.theBuilding.Room108" "/Main.theBuilding.Room107")
    (:right-path-neighbor "/Main.theBuilding.SCR1" "/Main.theBuilding.SCR2")
@@ -22,6 +23,7 @@
    (:right-path-neighbor "/Main.theBuilding.Cfarm" "/Main.theBuilding.Room111")
    (:right-path-neighbor "/Main.theBuilding.MCR" "/Main.theBuilding.MenRR")
    (:right-path-neighbor "/Main.theBuilding.Room106" "/Main.theBuilding.Room105")
+
    (:left-path-neighbor "/Main.theBuilding.ExecS2" "/Main.theBuilding.CSNorth")
    (:left-path-neighbor "/Main.theBuilding.Room109" "/Main.theBuilding.Room110")
    (:left-path-neighbor "/Main.theBuilding.MenRR" "/Main.theBuilding.SCR2")

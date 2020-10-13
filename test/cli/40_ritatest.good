@@ -20,4 +20,7 @@
  (slplayer.goto-room "/Main.theBuilding.WomRR")
  (slplayer.goto-room "/Main.theBuilding.MenRR")
  (slplayer.goto-room "/Main.theBuilding.SCR2")
- (slplayer.arrive rdest))
+ (slplayer.goto-room "/Main.theBuilding.SCR1")
+ (slplayer.goto-room "/Main.theBuilding.MCR")
+ (slplayer.goto-room "/Main.theBuilding.RoomJ")
+ (slplayer.arrive ldest))

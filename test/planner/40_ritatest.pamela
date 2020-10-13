@@ -956,8 +956,9 @@
   :methods [(defpmethod goto-room      ; Goto a room
               {:doc "Move to another room"
                :pre (and
-                         (propositions [(:left-path-neighbor nowat newloc)]
-                                       where (= newloc (mode-of Room :unvisited)))
+                         (propositions [(:right-path-neighbor nowat newloc)]
+                                        ;;where (= newloc (mode-of Room :unvisited))
+                                       )
                          (same p-location nowat))
                :post (same p-location newloc)
                :primitive true}
@@ -995,8 +996,32 @@
            }
   :methods [(defpmethod goal
               {:doc "Search the building"
-               :post ;(and ;(= ldest (mode-of Destination :arrived))
-                          (= rdest (mode-of Destination :arrived))}
+               :post (= ldest (mode-of Destination :arrived))
+                   ;;(= rdest (mode-of Destination :arrived))
+               }
+              [])])
+
+(defpclass Main2 []
+  :modes [ :root ]
+  :fields {theBuilding (Falcon)
+           ;slplayer (LPlayer "/Main.theBuilding.StagingArea" :id "Player-left")
+           srplayer (RPlayer "/Main.theBuilding.StagingArea" :id "Player-right")
+           ldest (Destination "/Main.theBuilding.RoomJ" :id "targetdestination1")
+           rdest (Destination "/Main.theBuilding.SCR2" :id "targetdestination2")
+
+           rita (ParticipantProfile "Rita"       0 :asist-assistant    :robot    0  0  0  0)
+           observer (ParticipantProfile "Ed"     0 :testbed-observer   :robot    0  0  0  0)
+           p1-survey (PreTrialSurvey)
+           p1   (ParticipantProfile "Player396" 18 :male               :american 50 50 80 p1-survey)
+           ;; p2
+           ;; p3
+           ;; p4
+           }
+  :methods [(defpmethod goal
+              {:doc "Search the building"
+               :post ;(= ldest (mode-of Destination :arrived))
+                      (= rdest (mode-of Destination :arrived))
+              }
               [])])
 
 
