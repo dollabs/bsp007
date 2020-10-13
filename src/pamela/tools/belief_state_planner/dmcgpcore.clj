@@ -438,9 +438,13 @@
             arg2r (if (and (lvar/is-lvar? arg2) (lvar/is-bound-lvar? arg2)) (lvar/deref-lvar arg2) arg2)
             arg1 (if (and false (string? arg1r)) (symbol arg1r) arg1r)
             arg2 (if (and false (string? arg2r)) (symbol arg2r) arg2r)]
-        (if (> global/verbosity 2) (println "in internal-condition-call with pname=" pname
-                                     " arg1=" (if arg1-unbound-lvar :unbound arg1)
-                                     " arg2=" (if arg2-unbound-lvar :unbound arg2)))
+        ;; (if (and (not arg1-unbound-lvar) (not (string? arg1)))
+        ;;   (println "arg1 is not a string" arg1))
+        ;; (if (and (not arg2-unbound-lvar) (not (string? arg2)))
+        ;;   (println "arg2 is not a string" arg2))
+        (if (> global/verbosity 2) (println "in internal-condition-call with pname=" (pr-str pname)
+                                     " arg1=" (if arg1-unbound-lvar :unbound (pr-str arg1))
+                                     " arg2=" (if arg2-unbound-lvar :unbound (pr-str arg2))))
         (cond ;; There are 4 cases, one bound, the other bound, both bound, neither bound
           (not (or arg1-unbound-lvar arg2-unbound-lvar)) ; both bound
           (select-and-bind2 arg1 arg2 (bs/find-binary-propositions-matching #{arg1} nil #{pname} nil #{arg2} nil))
@@ -466,9 +470,9 @@
   "For a binary proposition [:prop arg1 arg2] product arglist for find-binary-propositions"
   [wrtobject propn]
   (let [[_ lookupin [pname a1 a2]] propn]
-    (if (> global/verbosity 2) (println "In compu-prop-matches with pname=" pname
-                                        "a1=" (prop/prop-readable-form a1)
-                                        "a2=" (prop/prop-readable-form a2)))
+    (if (> global/verbosity 2) (println "In compu-prop-matches with pname=" (pr-str pname)
+                                        "a1=" (prop/prop-readable-form (pr-str a1))
+                                        "a2=" (prop/prop-readable-form (pr-str a2))))
     (let [arg1 (eval/evaluate-reference wrtobject a1 nil nil nil nil) ; was evaluate
           arg2 (eval/evaluate-reference wrtobject a2 nil nil nil nil)
           _ (if (> global/verbosity 2) (println "arg1=" (prop/prop-readable-form arg1) "arg2=" (prop/prop-readable-form arg2)))
@@ -477,6 +481,10 @@
           ;; Dereference bound LVARS
           arg1 (if (and (lvar/is-lvar? arg1) (lvar/is-bound-lvar? arg1)) (lvar/deref-lvar arg1) arg1)
           arg2 (if (and (lvar/is-lvar? arg2) (lvar/is-bound-lvar? arg2)) (lvar/deref-lvar arg2) arg2)]
+      ;; (if (and (not arg1-unbound-lvar) (not (string? arg1)))
+      ;;   (println "arg1 is not a string" arg1))
+      ;; (if (and (not arg2-unbound-lvar) (not (string? arg2)))
+      ;;   (println "arg2 is not a string" arg2))
       (if (> global/verbosity 2)
         (println "arg1=" (prop/prop-readable-form arg1) "arg1-unbound-lvar=" (prop/prop-readable-form arg1-unbound-lvar)))
       (if (> global/verbosity 2)
@@ -607,7 +615,13 @@
       (let [plant (nth condit 1)
             names (nth condit 2)
             args (doall (map (fn [arg]
-                               (eval/evaluate-reference wrtobject arg nil nil nil nil)) ;was evaluate +++
+                               ;; This forces objects to be passed instead of their modes, but
+                               ;; unpeals [:value ...] wrapper.  A tad inelegant
+                               (let [refval (eval/evaluate-reference wrtobject arg nil nil nil nil)]
+                                 (if (and (vector? refval)
+                                          (= (first refval) :value))
+                                   (second refval)
+                                   refval)))
                              (rest (rest (rest condit)))))]
         (cond (= plant 'dmcp) ;+++ dmcp handled specially
               (internal-condition-call plant (first names) args)

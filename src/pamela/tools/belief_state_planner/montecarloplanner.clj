@@ -654,7 +654,12 @@
 
 (defn filter-binary-propositions ;; and not excluded, (or not restricted, matching)
   [a not-a relation not-relation b not-b props]
-  (if *print-debugging* (println "In filter-binary-propositions with:" a not-a relation not-relation b not-b "matching props="))
+  (if *print-debugging*
+    (println "In filter-binary-propositions with:"
+             (pr-str a) (pr-str not-a)
+             (pr-str relation) (pr-str not-relation)
+             (pr-str b) (pr-str not-b)
+             "matching props="))
 
   (let [matches (seq (remove nil? (map (fn [aprop]
                                          (let [{pt :ptype, sj :subject, obj :object} aprop]
