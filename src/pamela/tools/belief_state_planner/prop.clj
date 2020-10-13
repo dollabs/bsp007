@@ -60,7 +60,9 @@
       :field-ref
       (apply str (map (fn[name] (str "." name)) (:names object)))
 
-      (into {} (map (fn [[k v]] [k (prop-readable-form v)]) object)))
+      (if (:mname object)
+        (str "m{" (:mname object) "}")
+        (into {} (map (fn [[k v]] [k (prop-readable-form v)]) object))))
 
     :otherwise
     (do ;(println "**** WHAT IS THIS? " object)

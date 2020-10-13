@@ -822,7 +822,7 @@
 
             (defpmethod launch-traffic-injection-attack
               {:doc "attack the device with false commands"
-               :pre (= TA-location object.T-location)
+               :pre (same TA-location object.T-location)
                :post (= object (mode-of TargetStates :attacked))
                :primitive true}
               [object])

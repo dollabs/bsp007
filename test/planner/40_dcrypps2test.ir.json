@@ -2697,7 +2697,7 @@
      ":body":null,
      ":display-name":"\"Launch Traffic Injection Attack\"",
      ":pre":
-     {":type":":equal",
+     {":type":":same",
       ":args":
       [{":type":":field-ref", ":names":["TA-location"]},
        {":type":":method-arg-ref",

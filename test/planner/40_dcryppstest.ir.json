@@ -2555,13 +2555,13 @@
           ":mode":":is-part-of"},
          {":type":":method-arg-ref", ":names":["newloc"]},
          {":type":":field-ref", ":names":["p2"]}]},
-       {":type":":equal",
+       {":type":":same",
         ":args":
         [{":type":":field-ref", ":names":["TA-location"]},
          {":type":":field-ref", ":names":["p2"]}]}]},
      ":betweens":null,
      ":post":
-     {":type":":equal",
+     {":type":":same",
       ":args":
       [{":type":":field-ref", ":names":["TA-location"]},
        {":type":":method-arg-ref", ":names":["newloc"]}]},
@@ -2596,13 +2596,13 @@
         ":args":
         [{":type":":field-ref", ":names":["connected"]},
          {":type":":field-ref", ":names":["p1"]}]},
-       {":type":":equal",
+       {":type":":same",
         ":args":
         [{":type":":field-ref", ":names":["TA-location"]},
          {":type":":field-ref", ":names":["p1"]}]}]},
      ":betweens":null,
      ":post":
-     {":type":":equal",
+     {":type":":same",
       ":args":
       [{":type":":field-ref", ":names":["TA-location"]},
        {":type":":method-arg-ref", ":names":["newloc"]}]},
@@ -2725,7 +2725,7 @@
      ":body":null,
      ":display-name":"\"Launch Traffic Injection Attack\"",
      ":pre":
-     {":type":":equal",
+     {":type":":same",
       ":args":
       [{":type":":field-ref", ":names":["TA-location"]},
        {":type":":method-arg-ref",
@@ -2766,13 +2766,13 @@
           ":mode":":is-part-of"},
          {":type":":field-ref", ":names":["p3"]},
          {":type":":method-arg-ref", ":names":["newloc"]}]},
-       {":type":":equal",
+       {":type":":same",
         ":args":
         [{":type":":field-ref", ":names":["TA-location"]},
          {":type":":field-ref", ":names":["p3"]}]}]},
      ":betweens":null,
      ":post":
-     {":type":":equal",
+     {":type":":same",
       ":args":
       [{":type":":field-ref", ":names":["TA-location"]},
        {":type":":method-arg-ref", ":names":["newloc"]}]},

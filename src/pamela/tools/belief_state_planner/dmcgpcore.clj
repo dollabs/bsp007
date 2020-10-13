@@ -341,7 +341,9 @@
                      " sign=" (prop/prop-readable-form signature)
                      " methods=" (prop/prop-readable-form cmethods)))
         methods (rtm/get-controllable-methods) ; Cache this, no need to recompute all the time.+++
-        _ (if (> global/verbosity 2) (do (println "Controllable-methods:" (prop/prop-readable-form  methods))))
+        _ (if (> global/verbosity 2)
+            (do
+              (println "Controllable-methods:" (prop/prop-readable-form  methods))))
         ;; Step 1: Filter out methods that dont match either by pclass or by name
         matchingmethods (remove nil? (map (fn [[pclass pmethod rtobj]]
                                             (if (and (= pclass rtotype)
@@ -354,7 +356,8 @@
                                                 (global/make-method-query pclass pmethod rootobj rtobj))
                                               nil))
                                           methods))
-        _ (if (> global/verbosity 2) (do (println "matchingmethods1:" (prop/prop-readable-form matchingmethods))))
+        _ (if (> global/verbosity 2)
+            (do (println "matchingmethods1:" (prop/prop-readable-form matchingmethods))))
         desired-mode (if (mode-signature signature) (get-desired-mode goal) nil)
         _ (if (> global/verbosity 2) (if desired-mode (println "matchingmethods1b - desired-mode=" desired-mode)))
 
@@ -466,16 +469,18 @@
     (if (> global/verbosity 2) (println "In compu-prop-matches with pname=" pname
                                         "a1=" (prop/prop-readable-form a1)
                                         "a2=" (prop/prop-readable-form a2)))
-    (let [arg1 (eval/evaluate wrtobject "???" a1 nil nil nil nil)
-          arg2 (eval/evaluate wrtobject "???" a2 nil nil nil nil)
-          ;;_ (println "arg1=" arg1 "arg2=" arg2)
+    (let [arg1 (eval/evaluate-reference wrtobject a1 nil nil nil nil) ; was evaluate
+          arg2 (eval/evaluate-reference wrtobject a2 nil nil nil nil)
+          _ (if (> global/verbosity 2) (println "arg1=" (prop/prop-readable-form arg1) "arg2=" (prop/prop-readable-form arg2)))
           arg1-unbound-lvar (and (lvar/is-lvar? arg1) (not (lvar/is-bound-lvar? arg1)))
           arg2-unbound-lvar (and (lvar/is-lvar? arg2) (not (lvar/is-bound-lvar? arg2)))
           ;; Dereference bound LVARS
           arg1 (if (and (lvar/is-lvar? arg1) (lvar/is-bound-lvar? arg1)) (lvar/deref-lvar arg1) arg1)
           arg2 (if (and (lvar/is-lvar? arg2) (lvar/is-bound-lvar? arg2)) (lvar/deref-lvar arg2) arg2)]
-      ;;(println "arg1=" arg1 "arg1-unbound-lvar=" arg1-unbound-lvar)
-      ;;(println "arg2=" arg2 "arg2-unbound-lvar=" arg2-unbound-lvar)
+      (if (> global/verbosity 2)
+        (println "arg1=" (prop/prop-readable-form arg1) "arg1-unbound-lvar=" (prop/prop-readable-form arg1-unbound-lvar)))
+      (if (> global/verbosity 2)
+        (println "arg2=" (prop/prop-readable-form arg2) "arg2-unbound-lvar=" (prop/prop-readable-form arg2-unbound-lvar)))
       (let [results
             (cond ;; There are 4 cases, one bound, the other bound, both bound, neither bound
               (not (or arg1-unbound-lvar arg2-unbound-lvar)) ; both bound
@@ -490,7 +495,8 @@
               (and arg1-unbound-lvar arg2-unbound-lvar) ; This is a strange request, but not illegal
               [arg1 arg2 (bs/find-binary-propositions-matching nil nil #{pname} nil nil nil)]
 
-              :otherwise (irx/error "compûte-prop-matches: can't get here, arg1=" arg1 " arg2=" arg2))]
+              :otherwise (irx/error "compute-prop-matches: can't get here, arg1=" (prop/prop-readable-form arg1)
+                                    " arg2=" (prop/prop-readable-form arg2)))]
         (if (> global/verbosity 2) (println "compute-prop-matches results=" (prop/prop-readable-form results)))
         results))))
 
@@ -500,8 +506,8 @@
   (if (empty? pvec)
     (do (if (> global/verbosity 2)
           (println "found-candidate path=" path "constraint=" (prop/prop-readable-form condition)
-                   "="
-                   (condition-satisfied? condition wrtobj) "wrtobject=" wrtobj))
+                   "=" (condition-satisfied? condition wrtobj)
+                   "wrtobject=" wrtobj))
         (if (condition-satisfied? condition wrtobj) (reset! pmatches (conj @pmatches path)))) ; Success case
     (let [[arg1 arg2 matches] (compute-prop-matches wrtobj (first pvec))] ; [a1 a2 matches]
       (when (not (empty? matches))      ; continue if we found at least one match
@@ -521,25 +527,28 @@
   "Given a sequence of n proposition bindings that satisfy the condition, select one and make all necessary bindings"
   [pmatches]
   (let [num-matches (count pmatches)]
-    (if (> global/verbosity 4) (println "In select-and-bind2-n: num-matches=" num-matches
-                                 "here: " (prop/prop-readable-form pmatches)))
+    (if (> global/verbosity 2)
+      (println "In select-and-bind2-n: num-matches=" num-matches
+               "here: " (prop/prop-readable-form pmatches)))
     (if (empty? pmatches)
-      false                                ; Nothing found, no variables bound : FAIL
+      (do                                ; Nothing found, no variables bound : FAIL
+        (if (> global/verbosity 2) (println "Nothing found"))
+        false)
       (let [selection (mcselect pmatches)] ; selection is a path of propositions one entry for each proposition
         (doseq [[arg1 arg2 aprop] selection]
           (let [{ptype :ptype, subj :subject, obj :object} aprop]
             (when (and (lvar/is-lvar? arg1) (lvar/is-unbound-lvar? arg1))
-              ;; (println "Binding " arg1 "to" subj)
+              (if (> global/verbosity 2) (println "Binding " arg1 "to" subj))
               (lvar/bind-lvar arg1 subj))
             (when (and (lvar/is-lvar? arg2) (lvar/is-unbound-lvar? arg2))
-              ;; (println "Binding " arg2 "to" obj)
+              (if (> global/verbosity 2) (println "Binding " arg2 "to" obj))
               (lvar/bind-lvar arg2 obj))))
         selection))))
 
 (defn lookup-propositions
   "Find all possible sequences of n propositions that satisfy the condition, select one and make bindings"
   [wrtobj condit]
-  ;; (println "In lookup-propositions with:" condit)
+  (if (> global/verbosity 2) (println "In lookup-propositions with:" (prop/prop-readable-form condit)))
   (let [pmatches (atom [])
         [type pvec constraint] condit] ; [:lookup-propositions vector-of-propositions condition]
     (lookup-propositions-aux pvec [] wrtobj constraint pmatches)
@@ -563,7 +572,7 @@
       ;; OR - true if at least one subexpression is satisfied
       :or (some (fn [condit] (condition-satisfied? condit wrtobject)) (rest condit))
       ;; EQUAL -
-      :equal ;(y-or-n? (str "(condition-satisfied? " (with-out-str (print condit)) ")"))
+      :equal
       (do
         (if (> global/verbosity 3) (println "In condition-satisfied? with (= "
                                      (prop/prop-readable-form (nth condit 1))
@@ -579,9 +588,9 @@
                                        ")"))
           (= first-expn second-expn)))
       ;; SAME -
-      :same ;(y-or-n? (str "(condition-satisfied? " (with-out-str (print condit)) ")"))
+      :same
       (do
-        (if (> global/verbosity 3) (println "In condition-satisfied? with (= "
+        (if (> global/verbosity 3) (println "In condition-satisfied? with (same "
                                      (prop/prop-readable-form (nth condit 1))
                                      (prop/prop-readable-form (nth condit 2))
                                      ")"))
@@ -589,7 +598,7 @@
               first-expn (if (lvar/is-lvar? first-expn) (lvar/deref-lvar first-expn) first-expn)
               second-expn (eval/evaluate-reference wrtobject (nth condit 2) nil nil nil nil)
               second-expn (if (lvar/is-lvar? second-expn) (lvar/deref-lvar second-expn) second-expn)]
-          (if (> global/verbosity -1) (println "(same "
+          (if (> global/verbosity 3) (println "(same "
                                        (prop/prop-readable-form (nth condit 1)) "=" (prop/prop-readable-form first-expn)
                                        (prop/prop-readable-form (nth condit 2)) "=" (prop/prop-readable-form second-expn)
                                        ")"))
@@ -598,7 +607,7 @@
       (let [plant (nth condit 1)
             names (nth condit 2)
             args (doall (map (fn [arg]
-                               (eval/evaluate wrtobject "???" arg nil nil nil nil))
+                               (eval/evaluate-reference wrtobject arg nil nil nil nil)) ;was evaluate +++
                              (rest (rest (rest condit)))))]
         (cond (= plant 'dmcp) ;+++ dmcp handled specially
               (internal-condition-call plant (first names) args)
@@ -623,11 +632,11 @@
             nil))
       (let [goals (apply concat (map (fn [agoal] (simp/simplify-cond-top-level agoal (second (first root-objects)))) goals))
             - (if (> global/verbosity 0)
-                (do (println "Current outstanting goals:" (prop/prop-readable-form goals))))
+                (do (println "Current outstanding goals:" (prop/prop-readable-form goals))))
             this-goal (first goals)        ; We will solve this goal first
             rootobject (second (first root-objects))
             - (if (> global/verbosity 0)
-                (do (println "Solving for:" (prop/prop-readable-form this-goal))))
+                (do (println) (println "Solving for:" (prop/prop-readable-form this-goal))))
             outstanding-goals (rest goals)] ; Afterwards we will solve the rest
 
         (lvar/start-plan-bind-set)

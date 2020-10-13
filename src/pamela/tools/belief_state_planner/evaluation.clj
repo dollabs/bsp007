@@ -84,7 +84,7 @@
                     (or var val))
 
                   :otherwise val)]
-    (if (and (> verbosity -1) (not (= val res)))
+    (if (and (> verbosity 3) (not (= val res)))
       (println "maybe-get-named-object var=" (prop/prop-readable-form val) "val=" (prop/prop-readable-form res)))
     res))
 
@@ -221,7 +221,7 @@
                            value
                            (let [variable (.variable value) ; +++ avoid duplication of this idiom
                                  pdf (bs/get-belief-distribution-in-variable variable)]
-                             (if (> verbosity -1) (println "variable=" variable "pdf=" pdf))
+                             (if (> verbosity 3) (println "variable=" variable "pdf=" pdf))
                              (get-likely-value pdf 0.8))))
 
           :mode-of (last expn)
