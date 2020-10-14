@@ -277,8 +277,9 @@
 ;;; +++ we need to handle all of the cases here +++
 (defn match-goal-query-aux
   [goal postconds]
-  (if (> global/verbosity 2) (println "in match-goal-query-aux with (" (prop/prop-readable-form goal)
-                               "," (prop/prop-readable-form postconds) ")"))
+  (if (> global/verbosity 2)
+    (println "in match-goal-query-aux with (" (prop/prop-readable-form goal)
+             "," (prop/prop-readable-form postconds) ")"))
   (cond
     (= goal postconds)
     (list (first goal) (first postconds))
@@ -287,18 +288,21 @@
     (case (first goal)
       (:equal :same) ;+++ is this right?  Does :same belong here?
              (let [argcondpart (argpart postconds)
-                   -  (if (> global/verbosity 3) (println "argcondpart=" (prop/prop-readable-form argcondpart)))
+                   -  (if (> global/verbosity 3)
+                        (println "argcondpart=" (prop/prop-readable-form argcondpart)))
                    matchcondpart (nonargpart postconds)
-                   - (if (> global/verbosity 3) (println "matchcondpart=" (prop/prop-readable-form matchcondpart)))
+                   - (if (> global/verbosity 3)
+                       (println "matchcondpart=" (prop/prop-readable-form matchcondpart)))
                    matchresult (if (and argcondpart matchcondpart)
                                  (if (= matchcondpart (nth goal 1))
                                    (into {} (list [(second argcondpart) (nth goal 2)]))
                                    (if (= matchcondpart (nth goal 2))
                                      (into {} (list [(second argcondpart) (nth goal 1)]))
                                      nil)))]
-               (if (> global/verbosity 3) (println "match " (prop/prop-readable-form matchcondpart)
-                                            " with " (prop/prop-readable-form goal)
-                                            " goal =" (prop/prop-readable-form matchresult)))
+               (if (> global/verbosity 3)
+                 (println "match " (prop/prop-readable-form matchcondpart)
+                          " with " (prop/prop-readable-form goal)
+                          " goal =" (prop/prop-readable-form matchresult)))
                matchresult)
 
              (do (if (> global/verbosity 0)
@@ -342,8 +346,7 @@
                      " methods=" (prop/prop-readable-form cmethods)))
         methods (rtm/get-controllable-methods) ; Cache this, no need to recompute all the time.+++
         _ (if (> global/verbosity 2)
-            (do
-              (println "Controllable-methods:" (prop/prop-readable-form  methods))))
+            (println "Controllable-methods:" (prop/prop-readable-form  methods)))
         ;; Step 1: Filter out methods that dont match either by pclass or by name
         matchingmethods (remove nil? (map (fn [[pclass pmethod rtobj]]
                                             (if (and (= pclass rtotype)
@@ -352,14 +355,16 @@
                                                          (= (first signature) (rtm/get-root-class-name)))
                                                      (some #{(irx/.mname pmethod)} cmethods))
                                               (do
-                                                (if (> global/verbosity 3) (println "pc= " pclass " pm=" (.mname pmethod)))
+                                                (if (> global/verbosity 3)
+                                                  (println "pc= " pclass " pm=" (.mname pmethod)))
                                                 (global/make-method-query pclass pmethod rootobj rtobj))
                                               nil))
                                           methods))
         _ (if (> global/verbosity 2)
             (do (println "matchingmethods1:" (prop/prop-readable-form matchingmethods))))
         desired-mode (if (mode-signature signature) (get-desired-mode goal) nil)
-        _ (if (> global/verbosity 2) (if desired-mode (println "matchingmethods1b - desired-mode=" desired-mode)))
+        _ (if (> global/verbosity 2)
+            (if desired-mode (println "matchingmethods1b - desired-mode=" desired-mode)))
 
         ;; Step 2: for mode comparisons filter out cases that don't guarantee the desired mode
         matchingmethods (if (not (nil? desired-mode))
@@ -381,7 +386,8 @@
                                                 query
                                                 nil))
                                             matchingmethods)))
-        _ (if (> global/verbosity 2) (do (println "matchingmethods2:" (prop/prop-readable-form matchingmethods))))
+        _ (if (> global/verbosity 2)
+            (println "matchingmethods2:" (prop/prop-readable-form matchingmethods)))
         ]
     matchingmethods))
 
@@ -406,8 +412,9 @@
 (defn select-and-bind2
   [arg1 arg2 matches]
   (let [num-matches (count matches)]
-    (if (> global/verbosity 3) (println "In select-and-bind2: num-matches=" num-matches
-                                 "here: " (prop/prop-readable-form matches)))
+    (if (> global/verbosity 3)
+      (println "In select-and-bind2: num-matches=" num-matches
+               "here: " (prop/prop-readable-form matches)))
     (if (empty? matches)
       false                           ; Nothing found, no variables bound : FAIL
       (let [selection (mcselect matches)
@@ -442,9 +449,10 @@
         ;;   (println "arg1 is not a string" arg1))
         ;; (if (and (not arg2-unbound-lvar) (not (string? arg2)))
         ;;   (println "arg2 is not a string" arg2))
-        (if (> global/verbosity 2) (println "in internal-condition-call with pname=" (pr-str pname)
-                                     " arg1=" (if arg1-unbound-lvar :unbound (pr-str arg1))
-                                     " arg2=" (if arg2-unbound-lvar :unbound (pr-str arg2))))
+        (if (> global/verbosity 2)
+          (println "in internal-condition-call with pname=" (pr-str pname)
+                   " arg1=" (if arg1-unbound-lvar :unbound (pr-str arg1))
+                   " arg2=" (if arg2-unbound-lvar :unbound (pr-str arg2))))
         (cond ;; There are 4 cases, one bound, the other bound, both bound, neither bound
           (not (or arg1-unbound-lvar arg2-unbound-lvar)) ; both bound
           (select-and-bind2 arg1 arg2 (bs/find-binary-propositions-matching #{arg1} nil #{pname} nil #{arg2} nil))
@@ -481,16 +489,21 @@
   "For a binary proposition [:prop arg1 arg2] product arglist for find-binary-propositions"
   [wrtobject propn]
   (let [[_ lookupin [pname a1 a2]] propn]
-    (if (> global/verbosity 2) (println "In compu-prop-matches with pname=" (pr-str pname)
-                                        "a1=" (prop/prop-readable-form (pr-str a1))
-                                        "a2=" (prop/prop-readable-form (pr-str a2))))
+    (if (> global/verbosity 2)
+      (println "In compu-prop-matches with pname=" (pr-str pname)
+               "a1=" (prop/prop-readable-form (pr-str a1))
+               "a2=" (prop/prop-readable-form (pr-str a2))))
     (let [arg1 (eval/evaluate-reference wrtobject a1 nil nil nil nil) ; was evaluate
           arg2 (eval/evaluate-reference wrtobject a2 nil nil nil nil)
-          _ (if (> global/verbosity 2) (println "arg1=" (prop/prop-readable-form arg1) "arg2=" (prop/prop-readable-form arg2)))
+          _ (if (> global/verbosity 2)
+              (println "arg1=" (prop/prop-readable-form arg1)
+                       "arg2=" (prop/prop-readable-form arg2)))
           arg1 (devalue wrtobject arg1)
           arg2 (devalue wrtobject arg2)
           pname (devalue wrtobject pname)
-          _ (if (> global/verbosity 2) (println "arg1=" (prop/prop-readable-form arg1) "arg2=" (prop/prop-readable-form arg2)))
+          _ (if (> global/verbosity 2)
+              (println "arg1=" (prop/prop-readable-form arg1)
+                       "arg2=" (prop/prop-readable-form arg2)))
           arg1-unbound-lvar (and (lvar/is-lvar? arg1) (not (lvar/is-bound-lvar? arg1)))
           arg2-unbound-lvar (and (lvar/is-lvar? arg2) (not (lvar/is-bound-lvar? arg2)))
           ;; Dereference bound LVARS
@@ -501,9 +514,11 @@
       ;; (if (and (not arg2-unbound-lvar) (not (string? arg2)))
       ;;   (println "arg2 is not a string" arg2))
       (if (> global/verbosity 2)
-        (println "arg1=" (prop/prop-readable-form arg1) "arg1-unbound-lvar=" (prop/prop-readable-form arg1-unbound-lvar)))
+        (println "arg1=" (prop/prop-readable-form arg1)
+                 "arg1-unbound-lvar=" (prop/prop-readable-form arg1-unbound-lvar)))
       (if (> global/verbosity 2)
-        (println "arg2=" (prop/prop-readable-form arg2) "arg2-unbound-lvar=" (prop/prop-readable-form arg2-unbound-lvar)))
+        (println "arg2=" (prop/prop-readable-form arg2)
+                 "arg2-unbound-lvar=" (prop/prop-readable-form arg2-unbound-lvar)))
       (let [results
             (cond ;; There are 4 cases, one bound, the other bound, both bound, neither bound
               (not (or arg1-unbound-lvar arg2-unbound-lvar)) ; both bound
@@ -520,7 +535,8 @@
 
               :otherwise (irx/error "compute-prop-matches: can't get here, arg1=" (prop/prop-readable-form arg1)
                                     " arg2=" (prop/prop-readable-form arg2)))]
-        (if (> global/verbosity 2) (println "compute-prop-matches results=" (prop/prop-readable-form results)))
+        (if (> global/verbosity 2)
+          (println "compute-prop-matches results=" (prop/prop-readable-form results)))
         results))))
 
 (defn lookup-propositions-aux
@@ -571,7 +587,8 @@
 (defn lookup-propositions
   "Find all possible sequences of n propositions that satisfy the condition, select one and make bindings"
   [wrtobj condit]
-  (if (> global/verbosity 2) (println "In lookup-propositions with:" (prop/prop-readable-form condit)))
+  (if (> global/verbosity 2)
+    (println "In lookup-propositions with:" (prop/prop-readable-form condit)))
   (let [pmatches (atom [])
         [type pvec constraint] condit] ; [:lookup-propositions vector-of-propositions condition]
     (lookup-propositions-aux pvec [] wrtobj constraint pmatches)
@@ -597,47 +614,51 @@
       ;; EQUAL -
       :equal
       (do
-        (if (> global/verbosity 3) (println "In condition-satisfied? with (= "
-                                     (prop/prop-readable-form (nth condit 1))
-                                     (prop/prop-readable-form (nth condit 2))
-                                     ")"))
+        (if (> global/verbosity 3)
+          (println "In condition-satisfied? with (= "
+                   (prop/prop-readable-form (nth condit 1))
+                   (prop/prop-readable-form (nth condit 2))
+                   ")"))
         (let [first-expn (eval/evaluate  wrtobject "???" (nth condit 1) nil nil nil nil)
               first-expn (if (lvar/is-lvar? first-expn) (lvar/deref-lvar first-expn) first-expn)
               second-expn (eval/evaluate wrtobject "???" (nth condit 2) nil nil nil nil)
               second-expn (if (lvar/is-lvar? second-expn) (lvar/deref-lvar second-expn) second-expn)]
-          (if (> global/verbosity 3) (println "(= "
-                                       (prop/prop-readable-form (nth condit 1)) "=" (prop/prop-readable-form first-expn)
-                                       (prop/prop-readable-form (nth condit 2)) "=" (prop/prop-readable-form second-expn)
-                                       ")"))
+          (if (> global/verbosity 3)
+            (println "(= "
+                     (prop/prop-readable-form (nth condit 1)) "=" (prop/prop-readable-form first-expn)
+                     (prop/prop-readable-form (nth condit 2)) "=" (prop/prop-readable-form second-expn)
+                     ")"))
           (= first-expn second-expn)))
       ;; SAME -
       :same
       (do
-        (if (> global/verbosity 3) (println "In condition-satisfied? with (same "
-                                     (prop/prop-readable-form (nth condit 1))
-                                     (prop/prop-readable-form (nth condit 2))
-                                     ")"))
+        (if (> global/verbosity 3)
+          (println "In condition-satisfied? with (same "
+                   (prop/prop-readable-form (nth condit 1))
+                   (prop/prop-readable-form (nth condit 2))
+                   ")"))
         (let [first-expn (eval/evaluate-reference  wrtobject (nth condit 1) nil nil nil nil)
               first-expn (if (lvar/is-lvar? first-expn) (lvar/deref-lvar first-expn) first-expn)
               second-expn (eval/evaluate-reference wrtobject (nth condit 2) nil nil nil nil)
               second-expn (if (lvar/is-lvar? second-expn) (lvar/deref-lvar second-expn) second-expn)]
-          (if (> global/verbosity 3) (println "(same "
-                                       (prop/prop-readable-form (nth condit 1)) "=" (prop/prop-readable-form first-expn)
-                                       (prop/prop-readable-form (nth condit 2)) "=" (prop/prop-readable-form second-expn)
-                                       ")"))
+          (if (> global/verbosity 3)
+            (println "(same "
+                     (prop/prop-readable-form (nth condit 1)) "=" (prop/prop-readable-form first-expn)
+                     (prop/prop-readable-form (nth condit 2)) "=" (prop/prop-readable-form second-expn)
+                     ")"))
           (= first-expn second-expn)))
       :call
       (let [plant (nth condit 1)
             names (nth condit 2)
             args (into [] (map (fn [arg]
-                                      ;; This forces objects to be passed instead of their modes, but
-                                      ;; unpeals [:value ...] wrapper.  A tad inelegant
-                                      (let [refval (eval/evaluate-reference wrtobject arg nil nil nil nil)]
-                                        (if (and (vector? refval)
-                                                 (= (first refval) :value))
-                                          (second refval)
-                                          refval)))
-                                    (rest (rest (rest condit)))))]
+                                 ;; This forces objects to be passed instead of their modes, but
+                                 ;; unpeals [:value ...] wrapper.  A tad inelegant
+                                 (let [refval (eval/evaluate-reference wrtobject arg nil nil nil nil)]
+                                   (if (and (vector? refval)
+                                            (= (first refval) :value))
+                                     (second refval)
+                                     refval)))
+                               (rest (rest (rest condit)))))]
         (cond (= plant 'dmcp) ;+++ dmcp handled specially
               (internal-condition-call plant (first names) args)
 

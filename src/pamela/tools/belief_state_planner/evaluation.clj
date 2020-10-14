@@ -269,8 +269,9 @@
                      [:value value]))
 
           :arg-field (let [[object & field] (rest expn)
-                           - (if (> global/verbosity 2) (println ":arg-field object= " (prop/prop-readable-form object)
-                                                          "field=" field "expn=" (prop/prop-readable-form expn)))
+                           - (if (> global/verbosity 2)
+                               (println ":arg-field object= " (prop/prop-readable-form object)
+                                        "field=" field "expn=" (prop/prop-readable-form expn)))
                            obj (cond
                                    (global/RTobject? object)
                                    object
@@ -283,7 +284,8 @@
 
                                    :otherwise
                                    (deref-field (rest object) (second (first (global/get-root-objects))) :reference)) ; Force caller to be root+++?
-                           - (if (> global/verbosity 2) (println ":arg-field obj= " (prop/prop-readable-form obj)))
+                           - (if (> global/verbosity 2)
+                               (println ":arg-field obj= " (prop/prop-readable-form obj)))
                            value (deref-field field obj :reference)] ; +++ handle multilevel case
                          (if (not (global/RTobject? value))
                            value
@@ -316,7 +318,8 @@
   [modes class-bindings method-bindings cspam spam]
   (let [emodes (remove nil? (map (fn [[mode val]] (if (= val :initial) mode nil)) modes))
         initial (first emodes)]
-    (if (> global/verbosity 3) (println "initial-mode-of modes=" modes " emodes =" emodes " initial=" initial))
+    (if (> global/verbosity 3)
+      (println "initial-mode-of modes=" modes " emodes =" emodes " initial=" initial))
     (or initial (first (first modes)))))
 
 
@@ -444,13 +447,14 @@
 
         :otherwise
         (let [fields (.fields wrtobject)
-              _ (println "***!!! namelist=" namelist " fields = " @fields)
+              ;; _ (println "***!!! namelist=" namelist " fields = " @fields)
               match (get @fields (first namelist) )
-              _ (println "***!!! found match for" (first namelist)  " = " match)
+              ;; _ (println "***!!! found match for" (first namelist)  " = " match)
               remaining (rest namelist)]
           (if (empty? remaining)
             (do
-              (println "***!!! dereferenced " (first namelist) "=" match)
+              ;; (println "***!!! dereferenced " (first namelist)
+              ;;          "=" (prop/prop-readable-form match))
               (if (= match nil)
                 (irx/error "DEREF ERROR: [:not-found" namelist ":in" wrtobject "]")
                 @match))
@@ -462,7 +466,7 @@
                       (deref-field remaining (maybe-get-named-object (lvar/deref-lvar @match)) mode)
                       (irx/error "DEREF ERROR: attempt to dereference unbound LVAR:" (lvar/lvar-string @match)))
                     (do
-                      (println "***!!! recursive dereference with object=" @match)
+                      ;; (println "***!!! recursive dereference with object=" @match)
                       (deref-field remaining @match mode))))
                 [:not-found namelist :in wrtobject]))))))
 
