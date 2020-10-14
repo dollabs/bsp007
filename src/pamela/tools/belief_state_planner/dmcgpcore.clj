@@ -466,6 +466,17 @@
 
 (declare condition-satisfied?)
 
+(defn devalue
+  [wrtobject arg]
+  (cond (vector? arg)
+        (case (first arg)
+          :value (second arg)
+          :field (eval/evaluate  wrtobject "???" arg nil nil nil nil)
+          ;; +++ other cases go here
+          arg)
+        :otherwise
+        arg))
+
 (defn compute-prop-matches
   "For a binary proposition [:prop arg1 arg2] product arglist for find-binary-propositions"
   [wrtobject propn]
@@ -475,6 +486,10 @@
                                         "a2=" (prop/prop-readable-form (pr-str a2))))
     (let [arg1 (eval/evaluate-reference wrtobject a1 nil nil nil nil) ; was evaluate
           arg2 (eval/evaluate-reference wrtobject a2 nil nil nil nil)
+          _ (if (> global/verbosity 2) (println "arg1=" (prop/prop-readable-form arg1) "arg2=" (prop/prop-readable-form arg2)))
+          arg1 (devalue wrtobject arg1)
+          arg2 (devalue wrtobject arg2)
+          pname (devalue wrtobject pname)
           _ (if (> global/verbosity 2) (println "arg1=" (prop/prop-readable-form arg1) "arg2=" (prop/prop-readable-form arg2)))
           arg1-unbound-lvar (and (lvar/is-lvar? arg1) (not (lvar/is-bound-lvar? arg1)))
           arg2-unbound-lvar (and (lvar/is-lvar? arg2) (not (lvar/is-bound-lvar? arg2)))
@@ -614,15 +629,15 @@
       :call
       (let [plant (nth condit 1)
             names (nth condit 2)
-            args (doall (map (fn [arg]
-                               ;; This forces objects to be passed instead of their modes, but
-                               ;; unpeals [:value ...] wrapper.  A tad inelegant
-                               (let [refval (eval/evaluate-reference wrtobject arg nil nil nil nil)]
-                                 (if (and (vector? refval)
-                                          (= (first refval) :value))
-                                   (second refval)
-                                   refval)))
-                             (rest (rest (rest condit)))))]
+            args (into [] (map (fn [arg]
+                                      ;; This forces objects to be passed instead of their modes, but
+                                      ;; unpeals [:value ...] wrapper.  A tad inelegant
+                                      (let [refval (eval/evaluate-reference wrtobject arg nil nil nil nil)]
+                                        (if (and (vector? refval)
+                                                 (= (first refval) :value))
+                                          (second refval)
+                                          refval)))
+                                    (rest (rest (rest condit)))))]
         (cond (= plant 'dmcp) ;+++ dmcp handled specially
               (internal-condition-call plant (first names) args)
 

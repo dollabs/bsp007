@@ -27,12 +27,6 @@
 
 (declare deref-field)
 
-(def ^:dynamic verbosity 0) ; 0
-
-(defn set-verbosity
-  [n]
-  (def ^:dynamic verbosity n))
-
 (defn lookup-lvar
   "Search LVARS for a match with instance and name"
   [instance name]
@@ -74,17 +68,18 @@
 
 (defn maybe-get-named-object
   [val]
+   (if (> global/verbosity 3) (println "In maybe-get-named-object with val=" val))
   (let [res (cond (string? val) ; +++ got to undo this string names and use symbols instead
                   (let [var (first (find-objects-of-name val))]
                     (when (nil? var)
-                      (when (> verbosity 3)
+                      (when (> global/verbosity 3)
                         (println "Didn't find object named" (prop/prop-readable-form val))
                         (doseq [anobj @(global/.objects global/*current-model*)]
                           (println (.variable anobj)))))
                     (or var val))
 
                   :otherwise val)]
-    (if (and (> verbosity 3) (not (= val res)))
+    (if (and (> global/verbosity 3) (not (= val res)))
       (println "maybe-get-named-object var=" (prop/prop-readable-form val) "val=" (prop/prop-readable-form res)))
     res))
 
@@ -180,7 +175,7 @@
                      val
                      (let [variable (.variable val) ; +++ avoid duplication of this idiom
                            pdf (bs/get-belief-distribution-in-variable variable)]
-                       (if (> verbosity 3) (println "variable=" variable "pdf=" pdf))
+                       (if (> global/verbosity 3) (println "variable=" variable "pdf=" pdf))
                        (get-likely-value pdf 0.8))))
           :thunk (evaluate (nth expn 2) path (second expn) class-bindings method-bindings cspam spam)
           :or (some #(evaluate wrtobject path % class-bindings method-bindings cspam spam) (rest expn))
@@ -199,11 +194,11 @@
                      value
                      (let [variable (.variable value)
                            pdf (bs/get-belief-distribution-in-variable variable)]
-                       (if (> verbosity 3) (println "variable=" variable "pdf=" pdf))
+                       (if (> global/verbosity 3) (println "variable=" variable "pdf=" pdf))
                        (get-likely-value pdf 0.8))))  ; +++ where did 0.8 come from!!!
 
           :arg-field (let [[object & field] (rest expn)
-                           - (if (> verbosity 2) (println ":arg-field object= " (prop/prop-readable-form object)
+                           - (if (> global/verbosity 2) (println ":arg-field object= " (prop/prop-readable-form object)
                                                           "field=" field "expn=" (prop/prop-readable-form expn)))
                            obj (cond
                                  (global/RTobject? object)
@@ -214,14 +209,14 @@
 
                                  :otherwise
                                  (deref-field (rest object) #_wrtobject (second (first (global/get-root-objects))) :normal)) ; Force caller to be root+++?
-                           - (if (> verbosity 2) (println ":arg-field obj= " (prop/prop-readable-form obj)))
+                           - (if (> global/verbosity 2) (println ":arg-field obj= " (prop/prop-readable-form obj)))
                            value (maybe-get-named-object (deref-field field obj :normal))
                            ] ; +++ handle multilevel case
                          (if (not (global/RTobject? value))
                            value
                            (let [variable (.variable value) ; +++ avoid duplication of this idiom
                                  pdf (bs/get-belief-distribution-in-variable variable)]
-                             (if (> verbosity 3) (println "variable=" variable "pdf=" pdf))
+                             (if (> global/verbosity 3) (println "variable=" variable "pdf=" pdf))
                              (get-likely-value pdf 0.8))))
 
           :mode-of (last expn)
@@ -274,7 +269,7 @@
                      [:value value]))
 
           :arg-field (let [[object & field] (rest expn)
-                           - (if (> verbosity 2) (println ":arg-field object= " (prop/prop-readable-form object)
+                           - (if (> global/verbosity 2) (println ":arg-field object= " (prop/prop-readable-form object)
                                                           "field=" field "expn=" (prop/prop-readable-form expn)))
                            obj (cond
                                    (global/RTobject? object)
@@ -288,7 +283,7 @@
 
                                    :otherwise
                                    (deref-field (rest object) (second (first (global/get-root-objects))) :reference)) ; Force caller to be root+++?
-                           - (if (> verbosity 2) (println ":arg-field obj= " (prop/prop-readable-form obj)))
+                           - (if (> global/verbosity 2) (println ":arg-field obj= " (prop/prop-readable-form obj)))
                            value (deref-field field obj :reference)] ; +++ handle multilevel case
                          (if (not (global/RTobject? value))
                            value
@@ -426,8 +421,12 @@
 
 (defn deref-field
   [namelist wrtobject mode]
-  (if (> verbosity 2)
-    (println "deref-field: " namelist "wrt-object=" (if (global/RTobject? wrtobject) (.variable wrtobject) [:oops wrtobject]) "mode=" mode))
+  (if (> global/verbosity 2)
+    (println "deref-field: " namelist
+             "wrt-object=" (if (global/RTobject? wrtobject)
+                             (.variable wrtobject)
+                             [:oops wrtobject])
+             "mode=" mode))
   (cond ;;RTobject? (first namelist)) ; Obsolete
         ;;(first namelist)
 
@@ -445,21 +444,26 @@
 
         :otherwise
         (let [fields (.fields wrtobject)
-              ;; - (println "***!!! fields = " @fields)
+              _ (println "***!!! namelist=" namelist " fields = " @fields)
               match (get @fields (first namelist) )
-              ;; - (println "***!!! found match for" (first namelist)  " = " match)
+              _ (println "***!!! found match for" (first namelist)  " = " match)
               remaining (rest namelist)]
           (if (empty? remaining)
             (do
-              ;; (println "***!!! dereferenced " (first namelist) "=" match)
+              (println "***!!! dereferenced " (first namelist) "=" match)
               (if (= match nil)
                 (irx/error "DEREF ERROR: [:not-found" namelist ":in" wrtobject "]")
-                (maybe-deref match mode)))
+                @match))
             (do
               (if (not (= match nil))
                 (do
-                  ;; (println "***!!! recursive dereference with object=" @match)
-                  (deref-field remaining @match mode))
+                  (if (lvar/is-lvar? @match)
+                    (if (lvar/is-bound-lvar? @match)
+                      (deref-field remaining (maybe-get-named-object (lvar/deref-lvar @match)) mode)
+                      (irx/error "DEREF ERROR: attempt to dereference unbound LVAR:" (lvar/lvar-string @match)))
+                    (do
+                      (println "***!!! recursive dereference with object=" @match)
+                      (deref-field remaining @match mode))))
                 [:not-found namelist :in wrtobject]))))))
 
 (defn field-exists
