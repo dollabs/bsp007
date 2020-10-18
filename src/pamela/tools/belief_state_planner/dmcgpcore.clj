@@ -27,6 +27,7 @@
             [pamela.tools.belief-state-planner.evaluation :as eval]
             [pamela.tools.belief-state-planner.lvarimpl :as lvar]
             [pamela.tools.belief-state-planner.prop :as prop]
+            [pamela.tools.belief-state-planner.imagine :as imag]
 
             [pamela.cli :as pcli]
             [pamela.unparser :as pup]

@@ -19,6 +19,7 @@
             [pamela.tools.belief-state-planner.coredata :as global]
             [pamela.tools.belief-state-planner.lvarimpl :as lvar]
             [pamela.tools.belief-state-planner.prop :as prop]
+            [pamela.tools.belief-state-planner.imagine :as imag]
 
             [clojure.data.json :as json])
   (:gen-class))
@@ -109,6 +110,21 @@
 
         :unknown))))
 
+(defn get-object-value
+  "Gets the likely mode of the object - which must be an RTobject"
+  [obj]
+  (let [variable (.variable obj)
+        imagined (imag/get-mode variable)]
+    (if imagined
+      (do
+        (if (> global/verbosity 3)
+          (println "variable=" variable "imagined to have mode=" imagined))
+        imagined)
+      (let [pdf (bs/get-belief-distribution-in-variable variable)]
+        (if (> global/verbosity 3)
+          (println "variable=" variable "pdf=" pdf))
+        (get-likely-value pdf 0.8)))))
+
 (defn evaluate
   "Evaluate an expression in the current belief state with args as provided."
   [wrtobject path expn class-bindings method-bindings cspam spam]
@@ -141,6 +157,10 @@
                   expn)))
           (irx/error "In evaluate: unexpected expression found: " expn))
         (case (first expn)
+          ;; Constructors
+
+          :make-lvar (lvar/make-lvar (second expn))
+
           :make-instance ; (:make-instance pname plant-id ... args)
           (let [cname (second expn)
                 plant-id (nth expn 2)
@@ -170,36 +190,32 @@
              class-args ;(rest (rest expn))
              plant-id ;(last expn)
              plant-part)) ;+++ plant-part not implemented +++
+
           :value (let [val (second expn)]
-                   (if (not (global/RTobject? val))
-                     val
-                     (let [variable (.variable val) ; +++ avoid duplication of this idiom
-                           pdf (bs/get-belief-distribution-in-variable variable)]
-                       (if (> global/verbosity 3) (println "variable=" variable "pdf=" pdf))
-                       (get-likely-value pdf 0.8))))
+                   (if (not (global/RTobject? val)) val (get-object-value val)))
+
           :thunk (evaluate (nth expn 2) path (second expn) class-bindings method-bindings cspam spam)
+
           :or (some #(evaluate wrtobject path % class-bindings method-bindings cspam spam) (rest expn))
+
           :and (every? #(evaluate wrtobject path % class-bindings method-bindings cspam spam) (rest expn))
+
           ;; :or (if (= (count (rest expn)) 1)
           ;;       (evaluate wrtobject path (second expn) class-bindings method-bindings cspam spam)
           ;;       :true) ;+++ this is not finished +++ only the trivial case is implemented
-          :arg nil                            ; method arg NYI
+
           :class-arg (let [res (get class-bindings (second expn))]
                        (if (and (not (number? res)) (not (symbol? res)) (not (keyword? res)) (empty? res))
                          (irx/error "In evaluate with " expn "class-bindings=" class-bindings "res=" res))
                        res)
-          :field-ref (do (irx/error "UNEXPECTED: Found a field ref: " expn) nil)
+
           :field (let [value (deref-field (rest expn) wrtobject :normal)]
-                   (if (not (global/RTobject? value))
-                     value
-                     (let [variable (.variable value)
-                           pdf (bs/get-belief-distribution-in-variable variable)]
-                       (if (> global/verbosity 3) (println "variable=" variable "pdf=" pdf))
-                       (get-likely-value pdf 0.8))))  ; +++ where did 0.8 come from!!!
+                   (if (not (global/RTobject? value)) value (get-object-value value)))
 
           :arg-field (let [[object & field] (rest expn)
-                           - (if (> global/verbosity 2) (println ":arg-field object= " (prop/prop-readable-form object)
-                                                          "field=" field "expn=" (prop/prop-readable-form expn)))
+                           - (if (> global/verbosity 2)
+                               (println ":arg-field object= " (prop/prop-readable-form object)
+                                        "field=" field "expn=" (prop/prop-readable-form expn)))
                            obj (cond
                                  (global/RTobject? object)
                                  object
@@ -212,19 +228,18 @@
                            - (if (> global/verbosity 2) (println ":arg-field obj= " (prop/prop-readable-form obj)))
                            value (maybe-get-named-object (deref-field field obj :normal))
                            ] ; +++ handle multilevel case
-                         (if (not (global/RTobject? value))
-                           value
-                           (let [variable (.variable value) ; +++ avoid duplication of this idiom
-                                 pdf (bs/get-belief-distribution-in-variable variable)]
-                             (if (> global/verbosity 3) (println "variable=" variable "pdf=" pdf))
-                             (get-likely-value pdf 0.8))))
+                         (if (not (global/RTobject? value)) value (get-object-value value)))
 
           :mode-of (last expn)
-          :make-lvar (lvar/make-lvar (second expn))
+
           :function-call (do
                            (println "evaluate: :function-call")
                            (pprint expn)
                            true)
+
+          :arg nil                            ; method arg NYI
+          :field-ref (do (irx/error "UNEXPECTED: Found a field ref: " expn) nil)
+
           (do
             (irx/error "Unknown case: " expn)
             nil))))))                               ; unrecognised defaults to nil
@@ -238,24 +253,26 @@
   ;; (pprint spam)
   (case expn
     :true [:value true]
+
     :false [:value false]
+
     (if (or (string? expn) (number? expn))
       [:value expn]
       (if (not (or (seq? expn) (vector? expn)))
         (if (map? expn)
           (let [vtype (get expn :type)]
             (case vtype
-              :lvar (irx/error "evaluate-reference: lvar constructor found where it wasn't expected: " expn)
               :mode-ref expn
-              (do (irx/error "evaluate-reference: Unknown form in Evaluate: " expn)
-                  expn)))
-          (irx/error "evaluate-reference: unexpected expression: expn"))
+
+              :lvar (irx/error "evaluate-reference: lvar constructor found where it wasn't expected: " expn)
+              (do (irx/error "evaluate-reference: Unknown form in Evaluate: " expn) expn)))
+          (irx/error "evaluate-reference: unexpected expression:" expn))
+
         (case (first expn)
           :thunk (evaluate-reference (nth expn 2) (second expn) class-bindings method-bindings cspam spam)
           :make-instance (irx/error "evaluate-reference: constructor found where it wasn't expected: expn")
 
           ;; :or (some #(evaluate wrtobject "???" % class-bindings method-bindings cspam spam) (rest expn))
-
           ;; :and (every? #(evaluate wrtobject "???" % class-bindings method-bindings cspam spam) (rest expn))
 
           :class-arg (let [res (get class-bindings (second expn))]
@@ -264,9 +281,7 @@
                        res)
 
           :field (let [value (deref-field (rest expn) wrtobject :reference)]
-                   (if (not (global/RTobject? value))
-                     value
-                     [:value value]))
+                   (if (not (global/RTobject? value)) value [:value value]))
 
           :arg-field (let [[object & field] (rest expn)
                            - (if (> global/verbosity 2)
@@ -277,7 +292,7 @@
                                    object
 
                                    (and (vector? object) (= (first object) :value))
-                                   (second object)
+                                   (second object) ;+++ Surely, t his should be object, not second object
 
                                    (and (vector? object) (= (first object) :arg-field))
                                    (evaluate-reference wrtobject object class-bindings method-bindings cspam spam)
@@ -286,16 +301,16 @@
                                    (deref-field (rest object) (second (first (global/get-root-objects))) :reference)) ; Force caller to be root+++?
                            - (if (> global/verbosity 2)
                                (println ":arg-field obj= " (prop/prop-readable-form obj)))
-                           value (deref-field field obj :reference)] ; +++ handle multilevel case
-                         (if (not (global/RTobject? value))
-                           value
-                           [:value value]))
+                           value (deref-field field obj :reference)] ; +++ handle multilevel case NYI
+                         (if (not (global/RTobject? value)) value [:value value]))
 
           :mode-of [:value (last expn)]
 
           :value expn
 
-          :function-call (irx/error "Unknown case: " expn))))))
+          :function-call (irx/error "Unhandled case: " expn)
+
+          (irx/error "Unknown case: " expn))))))
 
 
 (defn evaluate-arg
@@ -313,7 +328,6 @@
     ;; +++ need to enumerate all possible cases, here
     arg))
 
-
 (defn initial-mode-of
   [modes class-bindings method-bindings cspam spam]
   (let [emodes (remove nil? (map (fn [[mode val]] (if (= val :initial) mode nil)) modes))
@@ -321,7 +335,6 @@
     (if (> global/verbosity 3)
       (println "initial-mode-of modes=" modes " emodes =" emodes " initial=" initial))
     (or initial (first (first modes)))))
-
 
 (defn compute-dependencies
   [init]
@@ -430,45 +443,44 @@
                              (.variable wrtobject)
                              [:oops wrtobject])
              "mode=" mode))
-  (cond ;;RTobject? (first namelist)) ; Obsolete
-        ;;(first namelist)
+  (cond
+    (and (vector? (first namelist)) (= (first (first namelist)) :value))
+    (second (first namelist))
 
-        (and (vector? (first namelist)) (= (first (first namelist)) :value))
-        (second (first namelist))
+    (vector? wrtobject)
+    (do (irx/error "dereference failed on bad wrtobject=" wrtobject)
+        [:not-found namelist])
 
-        (vector? wrtobject)
-        (do (irx/error "dereference failed on bad wrtobject=" wrtobject)
-            [:not-found namelist])
+    (empty? wrtobject)
+    (do
+      (irx/error "trying to dereference " namelist "with null wrtobject!")
+      [:not-found namelist])
 
-        (empty? wrtobject)
+    :otherwise
+    (let [fields (.fields wrtobject)
+          ;; _ (println "***!!! namelist=" namelist " fields = " @fields)
+          match (get @fields (first namelist))
+          imagined (imag/get-field-value (global/RTobject-variable wrtobject) (first namelist))
+          ;; _ (println "***!!! found match for" (first namelist)  " = " match)
+          remaining (rest namelist)]
+      (if (empty? remaining)
         (do
-          (irx/error "trying to dereference " namelist "with null wrtobject!")
-          [:not-found namelist])
-
-        :otherwise
-        (let [fields (.fields wrtobject)
-              ;; _ (println "***!!! namelist=" namelist " fields = " @fields)
-              match (get @fields (first namelist) )
-              ;; _ (println "***!!! found match for" (first namelist)  " = " match)
-              remaining (rest namelist)]
-          (if (empty? remaining)
+          ;; (println "***!!! dereferenced " (first namelist)
+          ;;          "=" (prop/prop-readable-form match))
+          (if (= match nil)
+            (irx/error "DEREF ERROR: [:not-found" namelist ":in" wrtobject "]")
+            (or imagined @match)))
+        (do
+          (if (not (= match nil))
             (do
-              ;; (println "***!!! dereferenced " (first namelist)
-              ;;          "=" (prop/prop-readable-form match))
-              (if (= match nil)
-                (irx/error "DEREF ERROR: [:not-found" namelist ":in" wrtobject "]")
-                @match))
-            (do
-              (if (not (= match nil))
+              (if (lvar/is-lvar? @match)
+                (if (lvar/is-bound-lvar? @match)
+                  (deref-field remaining (maybe-get-named-object (lvar/deref-lvar @match)) mode)
+                  (irx/error "DEREF ERROR: attempt to dereference unbound LVAR:" (lvar/lvar-string @match)))
                 (do
-                  (if (lvar/is-lvar? @match)
-                    (if (lvar/is-bound-lvar? @match)
-                      (deref-field remaining (maybe-get-named-object (lvar/deref-lvar @match)) mode)
-                      (irx/error "DEREF ERROR: attempt to dereference unbound LVAR:" (lvar/lvar-string @match)))
-                    (do
-                      ;; (println "***!!! recursive dereference with object=" @match)
-                      (deref-field remaining @match mode))))
-                [:not-found namelist :in wrtobject]))))))
+                  ;; (println "***!!! recursive dereference with object=" @match)
+                  (deref-field remaining (or imagined @match) mode))))
+            [:not-found namelist :in wrtobject]))))))
 
 (defn field-exists
   [names wrtobject]
