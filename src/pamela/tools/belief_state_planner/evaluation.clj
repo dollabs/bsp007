@@ -125,6 +125,8 @@
           (println "variable=" variable "pdf=" pdf))
         (get-likely-value pdf 0.8)))))
 
+(declare evaluate-reference)
+
 (defn evaluate
   "Evaluate an expression in the current belief state with args as provided."
   [wrtobject path expn class-bindings method-bindings cspam spam]
@@ -134,8 +136,10 @@
              " method-bindings=" method-bindings)
   ;; (pprint spam)
   (case expn
+    ;; Logical expressions
     :true true
     :false false
+
     (if (or (string? expn) (number? expn) (symbol? expn) (keyword? expn))
       expn
       (if (not (or (seq? expn) (vector? expn)))
@@ -191,14 +195,40 @@
              plant-id ;(last expn)
              plant-part)) ;+++ plant-part not implemented +++
 
+          ;; logical Expressions
+          :equal
+          (let [res1 (evaluate wrtobject path (nth expn 1) class-bindings method-bindings cspam spam)
+                res2 (evaluate wrtobject path (nth expn 2) class-bindings method-bindings cspam spam)]
+            (if (= res1 res2) true false))
+
+          :same
+          (let [res1pre (evaluate-reference wrtobject (nth expn 1) class-bindings method-bindings cspam spam)
+                res1 (if (global/RTobject? res1pre)
+                       res1pre
+                       (evaluate wrtobject path res1pre class-bindings method-bindings cspam spam))
+                res2pre (evaluate-reference wrtobject (nth expn 2) class-bindings method-bindings cspam spam)
+                res2 (if (global/RTobject? res2pre)
+                       res2pre
+                       (evaluate wrtobject path res2pre class-bindings method-bindings cspam spam))]
+            (if (= res1 res2) true false))
+
+          :not
+          (let [res (evaluate wrtobject path (nth expn 1) class-bindings method-bindings cspam spam)]
+            (if res false true))
+
+          :or (if (some #(evaluate wrtobject path % class-bindings method-bindings cspam spam) (rest expn))
+                true
+                false)
+
+          :and (if (every? #(evaluate wrtobject path % class-bindings method-bindings cspam spam) (rest expn))
+                 true
+                 false)
+
+          ;; General Expressions
           :value (let [val (second expn)]
                    (if (not (global/RTobject? val)) val (get-object-value val)))
 
           :thunk (evaluate (nth expn 2) path (second expn) class-bindings method-bindings cspam spam)
-
-          :or (some #(evaluate wrtobject path % class-bindings method-bindings cspam spam) (rest expn))
-
-          :and (every? #(evaluate wrtobject path % class-bindings method-bindings cspam spam) (rest expn))
 
           ;; :or (if (= (count (rest expn)) 1)
           ;;       (evaluate wrtobject path (second expn) class-bindings method-bindings cspam spam)
@@ -240,8 +270,11 @@
           :arg nil                            ; method arg NYI
           :field-ref (do (irx/error "UNEXPECTED: Found a field ref: " expn) nil)
 
+          ;; Arithmetic Expressions
+          ;; goe here!
+
           (do
-            (irx/error "Unknown case: " expn)
+            (irx/error "Evaluate: Unknown case: " expn)
             nil))))))                               ; unrecognised defaults to nil
 
 (defn evaluate-reference
@@ -310,7 +343,7 @@
 
           :function-call (irx/error "Unhandled case: " expn)
 
-          (irx/error "Unknown case: " expn))))))
+          (irx/error "Evaluate-reference Unknown case: " expn))))))
 
 
 (defn evaluate-arg

@@ -305,7 +305,8 @@
   (let [[args argmap] (compile-arglist action goal (second query) wrtobject)  ;+++ kludge "second" +++ was (first root-objects)
         object (compile-controllable-object action goal (second query))] ;+++ kludge "second"
     [(ir-method-call (ir-field-ref [object (irx/.mname (.methodsig action))]) args)
-     (replace-args-with-bindings (irx/.mname (.methodsig action)) (irx/.prec (.methodsig action)) argmap)]))
+     (replace-args-with-bindings (irx/.mname (.methodsig action)) (irx/.prec (.methodsig action)) argmap)
+     (replace-args-with-bindings (irx/.mname (.methodsig action)) (irx/.postc (.methodsig action)) argmap)]))
 
 (defn compile-calls
   [actions goal queries root-objects rtos]

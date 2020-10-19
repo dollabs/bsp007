@@ -928,9 +928,9 @@
   :methods [(defpmethod goto-room      ; Goto a room
               {:doc "Move to another room"
                :pre (and
-                         (propositions [(:left-path-neighbor nowat newloc)])
+                     (propositions [(:left-path-neighbor nowat newloc)])
                          ;(= newloc (mode-of Room :unvisited))
-                         (same p-location nowat))
+                     (same p-location nowat))
                :post (same p-location newloc)
                :primitive true}
               [newloc])
@@ -956,10 +956,10 @@
   :methods [(defpmethod goto-room      ; Goto a room
               {:doc "Move to another room"
                :pre (and
-                         (propositions [(:right-path-neighbor nowat newloc)]
-                                        ;;where (= newloc (mode-of Room :unvisited))
-                                       )
-                         (same p-location nowat))
+                     (propositions [(:right-path-neighbor nowat newloc)]
+                                   ;;where (= newloc (mode-of Room :unvisited))
+                                   )
+                     (same p-location nowat))
                :post (same p-location newloc)
                :primitive true}
               [newloc])

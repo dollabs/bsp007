@@ -544,8 +544,8 @@
   "Recurse down the propositions to find compatible matches that satisfy the condition"
   [pvec path wrtobj condition pmatches]
   (if (empty? pvec)
-    (do (if (> global/verbosity 2)
-          (println "found-candidate path=" path "constraint=" (prop/prop-readable-form condition)
+    (do (if (> global/verbosity 2) ; normally 2
+          (println "found-candidate path=" (prop/prop-readable-form path) "constraint=" (prop/prop-readable-form condition)
                    "=" (condition-satisfied? condition wrtobj)
                    "wrtobject=" wrtobj))
         (if (condition-satisfied? condition wrtobj) (reset! pmatches (conj @pmatches path)))) ; Success case
@@ -681,7 +681,7 @@
         (do (println "DMCP: Aborting sample because maximum depth of " max-depth " has been reached.")
             (println "************************************************************************")
             nil))
-      (let [goals (apply concat (map (fn [agoal] (simp/simplify-cond-top-level agoal (second (first root-objects)))) goals))
+      (let [goals (apply concat (map (fn [agoal] (simp/simplify-cond-top-level agoal (second (first root-objects)))) goals)) ;+++ Unnecessarily simplifying twice on recur...
             - (if (> global/verbosity 0)
                 (do (println "Current outstanding goals:" (prop/prop-readable-form goals))))
             this-goal (first goals)        ; We will solve this goal first
@@ -703,8 +703,6 @@
           ;; Now we have a goal that requires effort to solve.
 
           (do
-            (lvar/stop-plan-bind-set)
-
             (let [queries (generate-lookup-from-condition pclass this-goal)
                   - (if (> global/verbosity 1) (println "Root query=" (prop/prop-readable-form queries)))
                   iitab (rtm/inverted-influence-table)
@@ -723,17 +721,31 @@
                     (let [rtos (map (fn [anmq] (.rto anmq)) selected)
                           actions (bir/compile-calls selected this-goal queries root-objects rtos) ;
                           _ (if (> global/verbosity 1) (println "ACTIONS=" (prop/prop-readable-form actions)))
-                          subgoals (apply concat (map (fn [[call prec] rto]
-                                                        (if (not (global/RTobject? rto)) (irx/error "not an RTobject: " rto))
-                                                        (map (fn [conj] [:thunk conj rto])
-                                                             (simp/simplify-cond-top-level prec rto)))
-                                                      actions rtos))
+                          subgoals (into []
+                                         (apply concat
+                                                (map (fn [[call prec postc] rto]
+                                                       (if (not (global/RTobject? rto)) (irx/error "RTO not an RTobject in plan-generate: " rto))
+                                                       (map (fn [conj] [:thunk conj rto])
+                                                            (simp/simplify-cond-top-level prec rto)))
+                                                     actions rtos)))
+                          ;;_ (println "After action subgoals:" (prop/prop-readable-form subgoals))
+                          unsatsubgoals (into [] (apply concat
+                                                        (map (fn [agoal]
+                                                               (let [res (condition-satisfied? agoal rootobject)]
+                                                                 #_(if true (println "Evaluating" (prop/prop-readable-form agoal) "result=" res))
+                                                                 (if res nil (simp/simplify-cond-top-level agoal rootobject))))
+                                                             (remove nil? subgoals))))
                           ;;subgoals (apply concat (map (fn [[call prec]] (simp/simplify-cond-top-level prec nil)) actions))
-                          outstanding-goals  (remove nil? (concat subgoals outstanding-goals))]
+                          outstanding-goals  (remove nil? (concat unsatsubgoals outstanding-goals))
+                          ;;_ (println "After action unsatsubgoals:" (prop/prop-readable-form unsatsubgoals))
+                          ]
 
                       (if (> global/verbosity 4) (do (println "selected=" (prop/prop-readable-form selected))))
                       (if (> global/verbosity 2) (println "actions=" (prop/prop-readable-form actions)))
                       (if (> global/verbosity 2) (println "subgoals=" (prop/prop-readable-form subgoals)))
+
+                      (lvar/stop-plan-bind-set)
+
                       (let [plan-part (concat actions complete-plan)]
                         (if (> global/verbosity 1) (println "ACTION-ADDED-TO-PARTIAL-PLAN: " (prop/prop-readable-form actions)))
                         (if (empty? outstanding-goals)
@@ -745,7 +757,7 @@
                         (do (println "Couldn't find an action to solve for: ")
                             (bir/describe-goal this-goal)))
                       (if (> global/verbosity 2) (println "************************************************************************"))
-                      nil)))))))))                     ; We failed to find a solution, return nil
+                      nil)))))))))
 
 (defn plan
   [root-objects controllable-objects pclass list-of-goals & {:keys [max-depth] :or {max-depth 10}}]

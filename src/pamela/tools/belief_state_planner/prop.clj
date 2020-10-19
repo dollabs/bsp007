@@ -49,7 +49,7 @@
     (into [] (map prop-readable-form object))
 
     (sequential? object)
-    (into () (map prop-readable-form object))
+    (into [] (map prop-readable-form object))
 
     (map? object)
     (case (:type object)

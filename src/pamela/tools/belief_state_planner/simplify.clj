@@ -131,18 +131,15 @@
   (if (not (or (list? condit) (vector? condit)))
     (list condit)
     (let [result (case (first condit)
-                   :thunk (list
-                           (into [:thunk] (into (into [] (simplify-condition (nth condit 1) (nth condit 2))) [(nth condit 2)])))
+                   :thunk [(into [:thunk] (into (into [] (simplify-condition (nth condit 1) (nth condit 2))) [(nth condit 2)]))]
 
-                   :equal (list
-                           [:equal
+                   :equal [[:equal
                             (un-lvar-expression (nth condit 1) wrtobject)
-                            (un-lvar-expression (nth condit 2) wrtobject)])
+                            (un-lvar-expression (nth condit 2) wrtobject)]]
 
-                   :same (list
-                           [:same
+                   :same [[:same
                             (un-lvar-expression (nth condit 1) wrtobject)
-                            (un-lvar-expression (nth condit 2) wrtobject)])
+                            (un-lvar-expression (nth condit 2) wrtobject)]]
 
                    ;; NOT negate the simplified subexpression
                    :not (conjunctive-list (simplify-negate (second condit) wrtobject) wrtobject)
@@ -176,11 +173,11 @@
   [condit wrtobject]
   (if (> global/verbosity 3) (println "In Simplify with condit=" (prop/prop-readable-form condit)
                                " wrtobject=" (.variable wrtobject)))
-  (let [simplified (simplify-condition condit wrtobject)
-        terms (count simplified)]
-    (if (> terms 1)
-      simplified ;(list (into [:and] simplified))
-      simplified)))
+  (let [simplified (simplify-condition condit wrtobject)]
+    #_(println "In simplify-cond-top-level" (prop/prop-readable-form condit)
+             "wrt" (prop/prop-readable-form wrtobject)
+             "result=" (prop/prop-readable-form condit))
+    simplified))
 
-;;; (simplify-condition '[:and [:same [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]])
-;;; (simplify-condition '[:or [:same [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]])
+;;; (simplify-condition '[:and [:same [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]] nil)
+;;; (simplify-condition '[:or [:same [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]] nil)
