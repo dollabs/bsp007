@@ -103,7 +103,8 @@
 
 
 (defpclass Building [c1 c2 c3 c4 c5]
-  :modes [:electricity-on :no-power]
+  :modes {:electricity-on (or (mode-of General :initial))
+          :no-power true}
   :meta {:doc "The SAR building"}
   :fields {corridor1 c1
            corridor2 c2
@@ -119,7 +120,8 @@
 ;;   :inherit [RectangularVolume])
 ;;   :fields {myName cname})
 
-(defpclass Illumination [] :modes [:dark :light])
+(defpclass Illumination [] :modes {:dark true
+                                   :light (or (mode-of General :initial))})
 
 (defpclass NorthCorridor [iblx ibly iblz itrx itry itrz vname
                           ;; Rooms
@@ -189,7 +191,8 @@
                  cx]
   :meta {:doc "A Single Door Room"}
   :inherit [RectangularVolume]
-  :modes [:unvisited :visited]
+  :modes {:unvisited (or (mode-of General :initial))
+          :visited true}
   :fields {doorcx cx})
 
 (defpclass TwoDoorRoom [iblx ibly iblz itrx itry itrz vname
@@ -225,14 +228,18 @@
                  cx]
   :meta {:doc "A Blockage"}
   :inherit [Portal]
-  :modes [:blocked :unblocked])
+  :modes {:blocked (or (mode-of General :initial))
+          :unblocked true})
 
 (defpclass Door-commands [] :modes [:open :close :lock :unlock :leave :enter])
 
 (defpclass Door [iblx ibly iblz itrx itry itrz vname
                  cx]
   :meta {:doc "A Door"}
-  :modes [:open :closed :locked :blocked]
+  :modes {:open true
+          :closed (or (mode-of General :initial))
+          :locked true
+          :blocked true}
   :inherit [Portal]
   :methods [(defpmethod open
               {:pre (and :closed (= command (mode-of Door-commands :open)))
@@ -289,7 +296,10 @@
 
 ;;; Victim types
 (defpclass Minecraft-object-prismarine       [iblx ibly iblz itrx itry itrz vname]     :inherit [RectangularVolume]
-  :modes [:awaiting-triage :being-triaged :saved :dead]
+  :modes {:awaiting-triage (or (mode-of General :initial))
+          :being-triaged true
+          :saved true
+          :dead true}
   :fields {model-state :good}
   :methods [(defpmethod triage
               {:pre (and :awaiting-triage
@@ -299,7 +309,10 @@
               [command])])
 
 (defpclass block_victim_1       [iblx ibly iblz itrx itry itrz vname]     :inherit [RectangularVolume]
-  :modes [:awaiting-triage :being-triaged :saved :dead]
+  :modes {:awaiting-triage (or (mode-of General :initial))
+          :being-triaged true
+          :saved true
+          :dead true}
   :fields {model-state :good}
   :methods [(defpmethod triage
               {:pre (and :awaiting-triage
@@ -309,7 +322,10 @@
               [command])])
 
 (defpclass Minecraft-object-gold_block       [iblx ibly iblz itrx itry itrz vname]     :inherit [RectangularVolume]
-  :modes [:awaiting-triage :being-triaged :saved :dead]
+  :modes {:awaiting-triage (or (mode-of General :initial))
+          :being-triaged true
+          :saved true
+          :dead true}
   :fields {model-state :urgent}
   :methods [(defpmethod triage
               {:pre (and :awaiting-triage
@@ -319,7 +335,10 @@
               [command])])
 
 (defpclass block_victim_2       [iblx ibly iblz itrx itry itrz vname]     :inherit [RectangularVolume]
-  :modes [:awaiting-triage :being-triaged :saved :dead]
+  :modes {:awaiting-triage (or (mode-of General :initial))
+          :being-triaged true
+          :saved true
+          :dead true}
   :fields {model-state :urgent}
   :methods [(defpmethod triage
               {:pre (and :awaiting-triage
@@ -356,7 +375,9 @@
 ;;               [command])])
 
 (defpclass Minecraft-object-lever          [iblx ibly iblz itrx itry itrz vname cx] :inherit [RectangularVolume]
-  :modes [:on :off :failed]
+  :modes {:on (or (mode-of General :initial))
+          :off true
+          :failed true}
   :fields {connections cx}
   :methods [(defpmethod switch
               {:pre (and :off (or (= command :on) (= command :off)))
@@ -365,7 +386,9 @@
               [command])])
 
 (defpclass Light                           [iblx ibly iblz itrx itry itrz vname cx] :inherit [RectangularVolume]
-  :modes [:dark :light :failed]
+  :modes {:dark true
+          :light (or (mode-of General :initial))
+          :failed true}
   :fields {connections cx})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -907,7 +930,7 @@
 )
 
 (defpclass General []           :modes [:initial :nothing])
-(defpclass DestinationStates [] :modes [:normal :attacked])
+(defpclass DestinationStates [] :modes [:normal :arrived])
 
 (defpclass Destination [adest]
   :modes {:normal (or (mode-of General :initial)) :arrived true} ; crappy way of specifying initial

@@ -22,7 +22,14 @@
     ":initial":{":names":["c5"], ":type":":pclass-arg-ref"},
     ":observable":false}},
   ":meta":{":doc":"\"The SAR building\""},
-  ":modes":{":electricity-on":true, ":no-power":true},
+  ":modes":
+  {":electricity-on":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"},
+   ":no-power":true},
   ":type":":pclass"},
  "CenterCorridor":
  {":args":
@@ -195,7 +202,7 @@
   ":type":":pclass"},
  "DestinationStates":
  {":args":null,
-  ":modes":{":attacked":true, ":normal":true},
+  ":modes":{":arrived":true, ":normal":true},
   ":type":":pclass"},
  "Door":
  {":args":
@@ -398,7 +405,15 @@
       ":mode":":closed"},
      ":display-args":["command"]}]},
   ":modes":
-  {":blocked":true, ":closed":true, ":locked":true, ":open":true},
+  {":blocked":true,
+   ":closed":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"},
+   ":locked":true,
+   ":open":true},
   ":type":":pclass"},
  "Door-commands":
  {":args":null,
@@ -683,7 +698,15 @@
       ":mode":":closed"},
      ":display-args":["command"]}]},
   ":modes":
-  {":blocked":true, ":closed":true, ":locked":true, ":open":true},
+  {":blocked":true,
+   ":closed":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"},
+   ":locked":true,
+   ":open":true},
   ":type":":pclass"},
  "EastCorridor":
  {":args":
@@ -3235,7 +3258,14 @@
   ":type":":pclass"},
  "Illumination":
  {":args":null,
-  ":modes":{":dark":true, ":light":true},
+  ":modes":
+  {":dark":true,
+   ":light":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"}},
   ":type":":pclass"},
  "LPlayer":
  {":args":["endat"],
@@ -3350,7 +3380,15 @@
     ":initial":{":names":["vname"], ":type":":pclass-arg-ref"},
     ":observable":false}},
   ":inherit":["RectangularVolume"],
-  ":modes":{":dark":true, ":failed":true, ":light":true},
+  ":modes":
+  {":dark":true,
+   ":failed":true,
+   ":light":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"}},
   ":type":":pclass"},
  "Main":
  {":args":null,
@@ -3824,7 +3862,12 @@
       ":mode":":saved"},
      ":display-args":["command"]}]},
   ":modes":
-  {":awaiting-triage":true,
+  {":awaiting-triage":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"},
    ":being-triaged":true,
    ":dead":true,
    ":saved":true},
@@ -3935,7 +3978,15 @@
      ":betweens":null,
      ":post":true,
      ":display-args":["command"]}]},
-  ":modes":{":failed":true, ":off":true, ":on":true},
+  ":modes":
+  {":failed":true,
+   ":off":true,
+   ":on":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"}},
   ":type":":pclass"},
  "Minecraft-object-prismarine":
  {":args":["iblx", "ibly", "iblz", "itrx", "itry", "itrz", "vname"],
@@ -4004,7 +4055,12 @@
       ":mode":":saved"},
      ":display-args":["command"]}]},
   ":modes":
-  {":awaiting-triage":true,
+  {":awaiting-triage":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"},
    ":being-triaged":true,
    ":dead":true,
    ":saved":true},
@@ -4511,7 +4567,14 @@
     ":observable":false}},
   ":inherit":["RectangularVolume"],
   ":meta":{":doc":"\"A Single Door Room\""},
-  ":modes":{":unvisited":true, ":visited":true},
+  ":modes":
+  {":unvisited":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"},
+   ":visited":true},
   ":type":":pclass"},
  "SituatedObject":
  {":args":null,
@@ -4646,7 +4709,14 @@
     ":observable":false}},
   ":inherit":["Room"],
   ":meta":{":doc":"\"A Three Door Room\""},
-  ":modes":{":unvisited":true, ":visited":true},
+  ":modes":
+  {":unvisited":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"},
+   ":visited":true},
   ":type":":pclass"},
  "TwoDoorRoom":
  {":args":
@@ -4691,7 +4761,14 @@
     ":observable":false}},
   ":inherit":["Room"],
   ":meta":{":doc":"\"A Two Door Room\""},
-  ":modes":{":unvisited":true, ":visited":true},
+  ":modes":
+  {":unvisited":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"},
+   ":visited":true},
   ":type":":pclass"},
  "Victim-commands":
  {":args":null, ":modes":{":triage":true}, ":type":":pclass"},
@@ -4813,7 +4890,12 @@
       ":mode":":saved"},
      ":display-args":["command"]}]},
   ":modes":
-  {":awaiting-triage":true,
+  {":awaiting-triage":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"},
    ":being-triaged":true,
    ":dead":true,
    ":saved":true},
@@ -4885,7 +4967,12 @@
       ":mode":":saved"},
      ":display-args":["command"]}]},
   ":modes":
-  {":awaiting-triage":true,
+  {":awaiting-triage":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"},
    ":being-triaged":true,
    ":dead":true,
    ":saved":true},
@@ -4928,7 +5015,15 @@
     ":observable":false}},
   ":inherit":["Portal"],
   ":meta":{":doc":"\"A Blockage\""},
-  ":modes":{":blocked":true, ":open":true, ":unblocked":true},
+  ":modes":
+  {":blocked":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"},
+   ":open":true,
+   ":unblocked":true},
   ":type":":pclass"},
  "hole-in-the-wall":
  {":args":
