@@ -90,7 +90,7 @@
 ;;; Returning NIl means that it was not found and hence the world-state value should be used.
 (defn get-field-value
   [obj field]
-  #_(println "Looking for " obj "." field)
+  ;; (println "Looking for " obj "." field)
   (locking field-lock
     (let [source (get *imagined-objects* (keyword obj))]
       (if source
@@ -107,7 +107,7 @@
     (let [kobj (keyword obj)
           kfield (keyword field)
           known-source (get *imagined-objects* kobj)] ; nil or an atom
-      #_(println (format "Setting %s.%s=%s" (name kobj) (name kfield) (str value)))
+      ;; (println (format "Setting %s.%s=%s" (name kobj) (name kfield) (str value)))
       (if known-source
         (let [known-field (get (deref known-source) kfield)] ; The source is known, but what about the field?
           (if known-field
@@ -133,3 +133,11 @@
   [obj value probability]
   ;; +++ not using probability yet -- fixme +++
   (imagine-changed-field-value obj :mode value))
+
+(defn print-imagination
+  "Print out everything that is in the imagination"
+  []
+  (println "Contents of imagination:")
+  (doseq [[name value] *imagined-objects*]
+    (doseq [[field val] @value]
+      (println name "." field "=" @val))))

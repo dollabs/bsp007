@@ -27,6 +27,7 @@
             [pamela.unparser :as pup]
             ;;[dcrypps.common.core :as dc :refer :all]
             ;;[dcrypps.attack-model-generator.desirable-properties :as dp :refer :all]
+            [pamela.tools.belief-state-planner.imagine :as imag]
             [pamela.tools.belief-state-planner.coredata :as global]
             [pamela.tools.belief-state-planner.runtimemodel :as rtm]
             [pamela.tools.belief-state-planner.montecarloplanner :as bs]
@@ -413,6 +414,6 @@
 ;;; (def repl true)
 ;;; (montecarloplanner  "-g" "test/planner/40_dcrypps2test.ir.json" "-G" "AttackPlanner" "-v" "0" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "test/planner/40_dcryppstest.ir.json" "-G" "AttackPlanner" "-v" "0" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "test/planner/40_simple.ir.json" "-G" "world" "-v" "0" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_simple.ir.json" "-G" "world" "-v" "0" "-d" "20" "-s" "1" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "test/planner/40_plannertest.ir.json" "-G" "world" "-v" "4" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "test/planner/40_ritatest.ir.json" "-G" "Main" "-v" "0" "-d" "50" "-P" "test/planner/40_ritatest.ppr" "-s" "1" "-r" "true" "make-plan")

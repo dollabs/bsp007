@@ -670,6 +670,33 @@
 
       (irx/error "(condition-satisfied? " condit ")"))))
 
+(defn process-post-conditions
+  [postcs wrtobj]
+  (cond (and (vector? postcs) (not (empty? postcs)))
+        (case (first postcs)
+          :thunk (println ":thunk NYI")
+          :equal (let [a1 (devalue wrtobj (eval/evaluate-reference wrtobj (nth postcs 1) nil nil nil nil))
+                       a2 (devalue wrtobj (eval/evaluate-reference wrtobj (nth postcs 2) nil nil nil nil))]
+                   #_(println "In process-post-conditions postcs="     (prop/prop-readable-form postcs)
+                            "a1=" (prop/prop-readable-form a1) "a2=" (prop/prop-readable-form a2))
+                   (cond (and (keyword? a1) (global/RTobject? a2))
+                         (imag/imagine-changed-object-mode a2 a1 1.0) ;+++ probability should come from somewhere
+
+                         (and (keyword? a2) (global/RTobject? a1))
+                         (imag/imagine-changed-object-mode a1 a2 1.0) ;+++ probability should come from somewhere
+
+                         :otherwise nil))
+          :same nil ;(println ":same NYI")
+          :not (println "not NYI")
+          :and (println "conjunctive post-conditions NYI")
+          :or (println "disjunctive post-conditions NYI")
+          :lookup-propositions (println "lookup-propositions in post conditions NYI")
+          :call (println "function-calls in post conditions NYI")
+          nil)
+
+        :otherwise ; do nothing
+        nil))
+
 (defn plan-generate
   [root-objects controllable-objects pclass list-of-goals max-depth]
   (loop [goals list-of-goals        ; List of things to accomplish
@@ -721,14 +748,16 @@
                     (let [rtos (map (fn [anmq] (.rto anmq)) selected)
                           actions (bir/compile-calls selected this-goal queries root-objects rtos) ;
                           _ (if (> global/verbosity 1) (println "ACTIONS=" (prop/prop-readable-form actions)))
-                          subgoals (into []
-                                         (apply concat
-                                                (map (fn [[call prec postc] rto]
-                                                       (if (not (global/RTobject? rto)) (irx/error "RTO not an RTobject in plan-generate: " rto))
-                                                       (map (fn [conj] [:thunk conj rto])
-                                                            (simp/simplify-cond-top-level prec rto)))
-                                                     actions rtos)))
-                          ;;_ (println "After action subgoals:" (prop/prop-readable-form subgoals))
+                          [subgoals postcs rto] (into []
+                                                      (apply concat
+                                                             (map (fn [[call prec postc] rto]
+                                                                    (if (not (global/RTobject? rto)) (irx/error "RTO not an RTobject in plan-generate: " rto))
+                                                                    [(map (fn [conj] [:thunk conj rto])
+                                                                          (simp/simplify-cond-top-level prec rto))
+                                                                     postc
+                                                                     rto])
+                                                                  actions rtos)))
+                          ;;_ (println "After action subgoals-postcs:" (prop/prop-readable-form [subgoals postcs]))
                           unsatsubgoals (into [] (apply concat
                                                         (map (fn [agoal]
                                                                (let [res (condition-satisfied? agoal rootobject)]
@@ -739,6 +768,8 @@
                           outstanding-goals  (remove nil? (concat unsatsubgoals outstanding-goals))
                           ;;_ (println "After action unsatsubgoals:" (prop/prop-readable-form unsatsubgoals))
                           ]
+
+                      (process-post-conditions postcs rto)
 
                       (if (> global/verbosity 4) (do (println "selected=" (prop/prop-readable-form selected))))
                       (if (> global/verbosity 2) (println "actions=" (prop/prop-readable-form actions)))
@@ -780,12 +811,14 @@
   (if (> global/verbosity 0) (println "DMCP: solving with " samples "samples, max-depth=" max-depth))
   (loop [solutions ()
          sampled 0]
+    (imag/reset-imagination)
     (if (and (> global/verbosity 1) (> sampled 0))
       (println "DMCP: " (count solutions) "found so far out of " sampled " samples."))
     (if (>= sampled samples)
       (if (not (empty? solutions))                         ; We have done enough, return what we have
         (do
           (if (> global/verbosity 0) (println "Completed DMCP: " (count solutions) "found out of " sampled " samples."))
+          (if (> global/verbosity 0) (imag/print-imagination))
           (doall solutions))
         nil)      ; And it turns out that we didn't find any solutions. nil result signifies failure
       (let [root-objects (global/get-root-objects)

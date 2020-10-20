@@ -501,7 +501,7 @@
           ;; (println "***!!! dereferenced " (first namelist)
           ;;          "=" (prop/prop-readable-form match))
           (if (= match nil)
-            (irx/error "DEREF ERROR: [:not-found" namelist ":in" wrtobject "]")
+            (irx/error "DEREF ERROR: [:not-found" namelist ":in" (prop/prop-readable-form wrtobject) "]")
             (or imagined @match)))
         (do
           (if (not (= match nil))
