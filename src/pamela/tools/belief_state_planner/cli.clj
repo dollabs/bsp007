@@ -416,4 +416,5 @@
 ;;; (montecarloplanner  "-g" "test/planner/40_dcryppstest.ir.json" "-G" "AttackPlanner" "-v" "0" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "test/planner/40_simple.ir.json" "-G" "world" "-v" "0" "-d" "20" "-s" "1" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "test/planner/40_plannertest.ir.json" "-G" "world" "-v" "4" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "test/planner/40_ritatest.ir.json" "-G" "Main" "-v" "0" "-d" "50" "-P" "test/planner/40_ritatest.ppr" "-s" "1" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_ritatest.ir.json" "-G" "Main" "-v" "2" "-d" "50" "-P" "test/planner/40_ritatest.ppr" "-s" "1" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_ritatest.ir.json" "-G" "Main2" "-v" "2" "-d" "50" "-P" "test/planner/40_ritatest.ppr" "-s" "1" "-r" "true" "make-plan")

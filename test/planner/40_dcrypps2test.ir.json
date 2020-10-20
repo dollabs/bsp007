@@ -2257,7 +2257,7 @@
   ":type":":pclass"},
  "TargetStates":
  {":args":null,
-  ":modes":{":attacked":true, ":normal":true},
+  ":modes":{":attacked":true, ":normal":true, ":visited":true},
   ":type":":pclass"},
  "ThreeAxisAccelerometer":
  {":args":null,
@@ -2529,16 +2529,34 @@
           ":args":
           [{":type":":method-arg-ref", ":names":["newloc"]},
            {":type":":field-ref", ":names":["p2"]}]}]},
+       {":type":":not",
+        ":args":
+        [{":type":":equal",
+          ":args":
+          [{":type":":method-arg-ref", ":names":["newloc"]},
+           {":type":":mode-ref",
+            ":mode-ref":
+            {":type":":symbol-ref", ":names":["TargetStates"]},
+            ":mode":":visited"}]}]},
        {":type":":same",
         ":args":
         [{":type":":field-ref", ":names":["TA-location"]},
          {":type":":field-ref", ":names":["p2"]}]}]},
      ":betweens":null,
      ":post":
-     {":type":":same",
+     {":type":":and",
       ":args":
-      [{":type":":field-ref", ":names":["TA-location"]},
-       {":type":":method-arg-ref", ":names":["newloc"]}]},
+      [{":type":":same",
+        ":args":
+        [{":type":":field-ref", ":names":["TA-location"]},
+         {":type":":method-arg-ref", ":names":["newloc"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":method-arg-ref", ":names":["newloc"]},
+         {":type":":mode-ref",
+          ":mode-ref":
+          {":type":":symbol-ref", ":names":["TargetStates"]},
+          ":mode":":visited"}]}]},
      ":display-args":["newloc"]}],
    "lateral":
    [{":doc":"\"Move to another host in the same subnet\"",
@@ -2568,16 +2586,34 @@
         ":args":
         [{":type":":field-ref", ":names":["connected"]},
          {":type":":field-ref", ":names":["p1"]}]},
+       {":type":":not",
+        ":args":
+        [{":type":":equal",
+          ":args":
+          [{":type":":method-arg-ref", ":names":["newloc"]},
+           {":type":":mode-ref",
+            ":mode-ref":
+            {":type":":symbol-ref", ":names":["TargetStates"]},
+            ":mode":":visited"}]}]},
        {":type":":same",
         ":args":
         [{":type":":field-ref", ":names":["TA-location"]},
          {":type":":field-ref", ":names":["p1"]}]}]},
      ":betweens":null,
      ":post":
-     {":type":":same",
+     {":type":":and",
       ":args":
-      [{":type":":field-ref", ":names":["TA-location"]},
-       {":type":":method-arg-ref", ":names":["newloc"]}]},
+      [{":type":":same",
+        ":args":
+        [{":type":":field-ref", ":names":["TA-location"]},
+         {":type":":method-arg-ref", ":names":["newloc"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":method-arg-ref", ":names":["newloc"]},
+         {":type":":mode-ref",
+          ":mode-ref":
+          {":type":":symbol-ref", ":names":["TargetStates"]},
+          ":mode":":visited"}]}]},
      ":display-args":["newloc"]}],
    "launch-PW-guessing":
    [{":doc":
@@ -2736,16 +2772,34 @@
           ":args":
           [{":type":":field-ref", ":names":["p3"]},
            {":type":":method-arg-ref", ":names":["newloc"]}]}]},
+       {":type":":not",
+        ":args":
+        [{":type":":equal",
+          ":args":
+          [{":type":":method-arg-ref", ":names":["newloc"]},
+           {":type":":mode-ref",
+            ":mode-ref":
+            {":type":":symbol-ref", ":names":["TargetStates"]},
+            ":mode":":visited"}]}]},
        {":type":":same",
         ":args":
         [{":type":":field-ref", ":names":["TA-location"]},
          {":type":":field-ref", ":names":["p3"]}]}]},
      ":betweens":null,
      ":post":
-     {":type":":same",
+     {":type":":and",
       ":args":
-      [{":type":":field-ref", ":names":["TA-location"]},
-       {":type":":method-arg-ref", ":names":["newloc"]}]},
+      [{":type":":same",
+        ":args":
+        [{":type":":field-ref", ":names":["TA-location"]},
+         {":type":":method-arg-ref", ":names":["newloc"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":method-arg-ref", ":names":["newloc"]},
+         {":type":":mode-ref",
+          ":mode-ref":
+          {":type":":symbol-ref", ":names":["TargetStates"]},
+          ":mode":":visited"}]}]},
      ":display-args":["newloc"]}]},
   ":modes":{":ready":true},
   ":type":":pclass"},

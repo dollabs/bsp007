@@ -672,11 +672,15 @@
 
 (defn process-post-conditions
   [postcs wrtobj]
+  ;; (println "In process-post-conditions postcs=" (prop/prop-readable-form postcs))
   (cond (and (vector? postcs) (not (empty? postcs)))
         (case (first postcs)
           :thunk (println ":thunk NYI")
-          :equal (let [a1 (devalue wrtobj (eval/evaluate-reference wrtobj (nth postcs 1) nil nil nil nil))
-                       a2 (devalue wrtobj (eval/evaluate-reference wrtobj (nth postcs 2) nil nil nil nil))]
+
+          :equal (let [a1 (eval/maybe-get-named-object
+                           (devalue wrtobj (eval/evaluate-reference wrtobj (nth postcs 1) nil nil nil nil)))
+                       a2 (eval/maybe-get-named-object
+                           (devalue wrtobj (eval/evaluate-reference wrtobj (nth postcs 2) nil nil nil nil)))]
                    #_(println "In process-post-conditions postcs="     (prop/prop-readable-form postcs)
                             "a1=" (prop/prop-readable-form a1) "a2=" (prop/prop-readable-form a2))
                    (cond (and (keyword? a1) (global/RTobject? a2))
@@ -686,12 +690,19 @@
                          (imag/imagine-changed-object-mode a1 a2 1.0) ;+++ probability should come from somewhere
 
                          :otherwise nil))
+
           :same nil ;(println ":same NYI")
+
           :not (println "not NYI")
-          :and (println "conjunctive post-conditions NYI")
-          :or (println "disjunctive post-conditions NYI")
+
+          :and (doseq [arg (rest postcs)] (process-post-conditions arg wrtobj))
+
+          :or (println "disjunctive post-conditions NYI") ; This shouldn't happen
+
           :lookup-propositions (println "lookup-propositions in post conditions NYI")
+
           :call (println "function-calls in post conditions NYI")
+
           nil)
 
         :otherwise ; do nothing
@@ -811,17 +822,17 @@
   (if (> global/verbosity 0) (println "DMCP: solving with " samples "samples, max-depth=" max-depth))
   (loop [solutions ()
          sampled 0]
-    (imag/reset-imagination)
     (if (and (> global/verbosity 1) (> sampled 0))
       (println "DMCP: " (count solutions) "found so far out of " sampled " samples."))
     (if (>= sampled samples)
       (if (not (empty? solutions))                         ; We have done enough, return what we have
         (do
           (if (> global/verbosity 0) (println "Completed DMCP: " (count solutions) "found out of " sampled " samples."))
-          (if (> global/verbosity 0) (imag/print-imagination))
+          (if (> global/verbosity -1) (imag/print-imagination))
           (doall solutions))
         nil)      ; And it turns out that we didn't find any solutions. nil result signifies failure
-      (let [root-objects (global/get-root-objects)
+      (let [_ (imag/reset-imagination)
+            root-objects (global/get-root-objects)
             ;; - (println "root-objects=" root-objects)
             controllable-objects (rtm/get-controllable-objects)
             ;; - (println "controllable-objects=" controllable-objects)

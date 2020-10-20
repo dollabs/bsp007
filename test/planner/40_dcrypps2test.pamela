@@ -728,7 +728,7 @@
 
 (defpclass General [] :modes [:initial :nothing])
 
-(defpclass TargetStates [] :modes [:normal :attacked])
+(defpclass TargetStates [] :modes [:normal :attacked :visited])
 
 (defpclass BinaryPropositionTypes [] :modes [:connects-to :is-part-of :is-a :is-of-dcrypps-category])
 
@@ -770,23 +770,29 @@
               {:doc "Move to another host in the same subnet"
                :pre (and (propositions [(:connects-with p1 newloc)])
                          (= connected p1)
+                         (not (= newloc (mode-of TargetStates :visited)))
                          (same TA-location p1))
-               :post (same TA-location newloc)
+               :post (and (same TA-location newloc)
+                          (= newloc (mode-of TargetStates :visited)))
                :primitive true}
               [newloc])
             (defpmethod down            ;move-to-subsystem
               {:doc "move down in a system to a subcomponent"
                :pre (and (propositions [(:is-part-of newloc p2)])
+                         (not (= newloc (mode-of TargetStates :visited)))
                          (same TA-location p2))
-               :post (same TA-location newloc)
+               :post (and (same TA-location newloc)
+                          (= newloc (mode-of TargetStates :visited)))
                :primitive true}
               [newloc])
 
             (defpmethod up              ; move-to-supersystem
               {:doc "move up in a system to a containing supercomponent"
                :pre (and (propositions [(:is-part-of p3 newloc)])
+                         (not (= newloc (mode-of TargetStates :visited)))
                          (same TA-location p3))
-               :post (same TA-location newloc)
+               :post (and (same TA-location newloc)
+                          (= newloc (mode-of TargetStates :visited)))
                :primitive true}
               [newloc])
 
