@@ -1,11 +1,15 @@
 {"Banana":
- {":args":["pos", "hgt", "onwhat"],
+ {":args":["pos", "hgt", "onwhat", "mobility"],
   ":fields":
   {"edible":
    {":access":":private", ":initial":":true", ":observable":false},
    "height":
    {":access":":private",
     ":initial":{":names":["hgt"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "mobile":
+   {":access":":private",
+    ":initial":{":names":["mobility"], ":type":":pclass-arg-ref"},
     ":observable":false},
    "on":
    {":access":":private",
@@ -74,14 +78,22 @@
    ":spoiled":true,
    ":young":true},
   ":type":":pclass"},
+ "BinaryPropositionTypes":
+ {":args":null,
+  ":modes":{":is-a":true, ":is-part-of":true},
+  ":type":":pclass"},
  "Chair":
- {":args":["pos", "hgt", "onwhat"],
+ {":args":["pos", "hgt", "onwhat", "mobility"],
   ":fields":
   {"edible":
    {":access":":private", ":initial":":false", ":observable":false},
    "height":
    {":access":":private",
     ":initial":{":names":["hgt"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "mobile":
+   {":access":":private",
+    ":initial":{":names":["mobility"], ":type":":pclass-arg-ref"},
     ":observable":false},
    "on":
    {":access":":private",
@@ -123,14 +135,18 @@
  {":args":null,
   ":modes":{":initial":true, ":nothing":true},
   ":type":":pclass"},
- "Height":
+ "Mobility":
  {":args":null,
-  ":modes":{":ground":true, ":high":true, ":very-high":true},
+  ":modes":{":autonomous":true, ":fixed":true, ":pushable":true},
   ":type":":pclass"},
  "Robot":
- {":args":["pos", "hgt", "onwhat"],
+ {":args":["pos", "hgt", "onwhat", "mobility"],
   ":fields":
-  {"handholds":
+  {"achair":
+   {":access":":private",
+    ":initial":{":name":"\"a chair\"", ":type":":lvar"},
+    ":observable":false},
+   "handholds":
    {":access":":private",
     ":initial":
     {":mode":":nothing",
@@ -141,6 +157,10 @@
    {":access":":private",
     ":initial":{":names":["hgt"], ":type":":pclass-arg-ref"},
     ":observable":false},
+   "mobile":
+   {":access":":private",
+    ":initial":{":names":["mobility"], ":type":":pclass-arg-ref"},
+    ":observable":false},
    "on":
    {":access":":private",
     ":initial":{":names":["onwhat"], ":type":":pclass-arg-ref"},
@@ -150,7 +170,48 @@
     ":initial":{":names":["pos"], ":type":":pclass-arg-ref"},
     ":observable":false}},
   ":methods":
-  {"eat":
+  {"climb-onto-chair":
+   [{":doc":"\"find a chair and climb on to it\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["object"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Climb Onto Chair\"",
+     ":pre":
+     {":type":":and",
+      ":args":
+      [{":type":":lookup-propositions",
+        ":where":null,
+        ":propositions":
+        [{":type":":proposition-pattern",
+          ":look-where":null,
+          ":prop-name":":is-a",
+          ":args":
+          [{":type":":field-ref", ":names":["achair"]},
+           {":type":":literal", ":value":"\"Chair\""}]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["position"]},
+         {":type":":field-ref", ":names":["achair", "position"]}]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":and",
+      ":args":
+      [{":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["height"]},
+         {":type":":method-arg-ref", ":names":["object", "height"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["on"]},
+         {":type":":method-arg-ref", ":names":["object"]}]}]},
+     ":display-args":["object"]}],
+   "eat":
    [{":doc":"\"eat an edible object\"",
      ":probability":1.0,
      ":reward":0,
@@ -221,6 +282,36 @@
       [{":type":":field-ref", ":names":["position"]},
        {":type":":method-arg-ref", ":names":["nupos"]}]},
      ":display-args":["me", "nupos"]}],
+   "push":
+   [{":doc":"\"push an object to the designated position\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["object", "toposition"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Push\"",
+     ":pre":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["position"]},
+       {":type":":method-arg-ref", ":names":["object", "position"]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":and",
+      ":args":
+      [{":type":":equal",
+        ":args":
+        [{":type":":method-arg-ref", ":names":["object", "position"]},
+         {":type":":method-arg-ref", ":names":["toposition"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":field-ref", ":names":["position"]},
+         {":type":":method-arg-ref", ":names":["toposition"]}]}]},
+     ":display-args":["object", "toposition"]}],
    "take":
    [{":doc":"\"take an object by hand\"",
      ":probability":1.0,
@@ -272,7 +363,7 @@
   {"abanana":
    {":access":":private",
     ":initial":
-    {":args":["\"10,10\"", ":ground", ":ground"],
+    {":args":["\"10,10\"", 6, ":unknown", ":autonomous"],
      ":pclass":"Banana",
      ":plant-id":"\"banana1\"",
      ":type":":pclass-ctor"},
@@ -280,7 +371,7 @@
    "achair":
    {":access":":private",
     ":initial":
-    {":args":["\"0,5\"", ":ground", ":ground"],
+    {":args":["\"0,5\"", 6, ":ground", ":pushable"],
      ":pclass":"Chair",
      ":plant-id":"\"chair1\"",
      ":type":":pclass-ctor"},
@@ -288,7 +379,7 @@
    "arobot":
    {":access":":private",
     ":initial":
-    {":args":["\"5,0\"", ":ground", ":ground"],
+    {":args":["\"5,0\"", 0, ":ground", ":autonomous"],
      ":pclass":"Robot",
      ":plant-id":"\"Robot1\"",
      ":type":":pclass-ctor"},
@@ -340,4 +431,5 @@
         ":mode":":eaten"}]},
      ":display-args":null}]},
   ":modes":{":root":true},
-  ":type":":pclass"}}
+  ":type":":pclass"},
+ "lvars":{":lvars":{"\"a chair\"":":unset"}, ":type":":lvars"}}

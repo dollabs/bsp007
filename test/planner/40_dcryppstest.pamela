@@ -778,78 +778,59 @@
                :pre (and (call dmcp.find-binary-proposition
                                (mode-of BinaryPropositionTypes :connects-with) p1 newloc)
                           (= connected p1)
-                          (= TA-location p1))
-               :post (= TA-location newloc)
+                          (same TA-location p1))
+               :post (same TA-location newloc)
                :primitive true}
               [newloc])
             (defpmethod down            ;move-to-subsystem
               {:doc "move down in a system to a subcomponent"
                :pre (and (call dmcp.find-binary-proposition (mode-of BinaryPropositionTypes :is-part-of) newloc p2)
-                         (= TA-location p2))
-               :post (= TA-location newloc)
+                         (same TA-location p2))
+               :post (same TA-location newloc)
                :primitive true}
               [newloc])
 
             (defpmethod up              ; move-to-supersystem
               {:doc "move up in a system to a containing supercomponent"
                :pre (and (call dmcp.find-binary-proposition (mode-of BinaryPropositionTypes :is-part-of) p3 newloc)
-                         (= TA-location p3))
-               :post (= TA-location newloc)
+                         (same TA-location p3))
+               :post (same TA-location newloc)
                :primitive true}
               [newloc])
 
             (defpmethod launch-phishing-attack
               {:doc "Attempt to gain access by launching a phishing attack to obtain credentials and connect"
-               ;:pre ;(call dmcp.find-binary-proposition
-                    ;      (mode-of BinaryPropositionTypes :is-of-dcrypps-category)
-                    ;      target
-                    ;      (mode-of AuthenticationRequired :Workstation))
                :post (= connected target)
                :primitive true}
               [target])
 
             (defpmethod launch-PW-guessing
               {:doc "Attempt to gain access by launching a ohishing attack to obtain credentials and connect"
-               ;:pre (call dmcp.find-binary-proposition
-               ;           (mode-of BinaryPropositionTypes :is-of-dcrypps-category)
-               ;           target (mode-of AuthenticationRequired :Workstation))
                :post (= connected target)
                :primitive true}
               [target])
 
             (defpmethod launch-backdoor-attack
               {:doc "Attempt to gain access by launching a ohishing attack to obtain credentials and connect"
-               ;:pre (call dmcp.find-binary-proposition
-               ;           (mode-of BinaryPropositionTypes :is-of-dcrypps-category)
-               ;           target
-               ;           (mode-of AuthenticationRequired :Workstation))
                :post (= connected target)
                :primitive true}
               [target])
 
             (defpmethod launch-supply-chain-attack
               {:doc "Attempt to gain access by launching a phishing attack to obtain credentials and connect"
-               ;:pre (call dmcp.find-binary-proposition
-               ;           (mode-of BinaryPropositionTypes :is-of-dcrypps-category)
-               ;           target
-               ;           (mode-of AuthenticationRequired :SmartController))
                :post (= connected target)
                :primitive true}
               [target])
 
             (defpmethod launch-factory-pw-attack
               {:doc "Attempt to gain access by launching a ohishing attack to obtain credentials and connect"
-               ;:pre (call dmcp.find-binary-proposition
-               ;           (mode-of BinaryPropositionTypes :is-of-dcrypps-category)
-               ;           target
-               ;           (mode-of AuthenticationRequired :Router))
                :post (= connected target)
                :primitive true}
               [target])
 
             (defpmethod launch-traffic-injection-attack
               {:doc "attack the device with false commands"
-               :pre (= TA-location object.T-location)
+               :pre (same TA-location object.T-location)
                :post (= object (mode-of TargetStates :attacked))
                :primitive true}
               [object])

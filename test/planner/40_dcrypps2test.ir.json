@@ -2257,7 +2257,7 @@
   ":type":":pclass"},
  "TargetStates":
  {":args":null,
-  ":modes":{":attacked":true, ":normal":true},
+  ":modes":{":attacked":true, ":normal":true, ":visited":true},
   ":type":":pclass"},
  "ThreeAxisAccelerometer":
  {":args":null,
@@ -2492,10 +2492,6 @@
    {":access":":private",
     ":initial":{":name":"\"Proposition-arg1\"", ":type":":lvar"},
     ":observable":false},
-   "p10":
-   {":access":":private",
-    ":initial":{":name":"\"proposition-arg10\"", ":type":":lvar"},
-    ":observable":false},
    "p2":
    {":access":":private",
     ":initial":{":name":"\"proposition-arg2\"", ":type":":lvar"},
@@ -2507,26 +2503,6 @@
    "p4":
    {":access":":private",
     ":initial":{":name":"\"proposition-arg4\"", ":type":":lvar"},
-    ":observable":false},
-   "p5":
-   {":access":":private",
-    ":initial":{":name":"\"proposition-arg5\"", ":type":":lvar"},
-    ":observable":false},
-   "p6":
-   {":access":":private",
-    ":initial":{":name":"\"proposition-arg6\"", ":type":":lvar"},
-    ":observable":false},
-   "p7":
-   {":access":":private",
-    ":initial":{":name":"\"proposition-arg7\"", ":type":":lvar"},
-    ":observable":false},
-   "p8":
-   {":access":":private",
-    ":initial":{":name":"\"proposition-arg8\"", ":type":":lvar"},
-    ":observable":false},
-   "p9":
-   {":access":":private",
-    ":initial":{":name":"\"proposition-arg9\"", ":type":":lvar"},
     ":observable":false}},
   ":methods":
   {"down":
@@ -2544,27 +2520,43 @@
      ":pre":
      {":type":":and",
       ":args":
-      [{":type":":function-call",
+      [{":type":":lookup-propositions",
+        ":where":null,
+        ":propositions":
+        [{":type":":proposition-pattern",
+          ":look-where":null,
+          ":prop-name":":is-part-of",
+          ":args":
+          [{":type":":method-arg-ref", ":names":["newloc"]},
+           {":type":":field-ref", ":names":["p2"]}]}]},
+       {":type":":not",
         ":args":
-        [{":type":":field-ref",
-          ":names":["dmcp", "find-binary-proposition"]},
-         {":type":":mode-ref",
-          ":mode-ref":
-          {":type":":symbol-ref", ":names":
-                                  ["BinaryPropositionTypes"]},
-          ":mode":":is-part-of"},
-         {":type":":method-arg-ref", ":names":["newloc"]},
-         {":type":":field-ref", ":names":["p2"]}]},
-       {":type":":equal",
+        [{":type":":equal",
+          ":args":
+          [{":type":":method-arg-ref", ":names":["newloc"]},
+           {":type":":mode-ref",
+            ":mode-ref":
+            {":type":":symbol-ref", ":names":["TargetStates"]},
+            ":mode":":visited"}]}]},
+       {":type":":same",
         ":args":
         [{":type":":field-ref", ":names":["TA-location"]},
          {":type":":field-ref", ":names":["p2"]}]}]},
      ":betweens":null,
      ":post":
-     {":type":":equal",
+     {":type":":and",
       ":args":
-      [{":type":":field-ref", ":names":["TA-location"]},
-       {":type":":method-arg-ref", ":names":["newloc"]}]},
+      [{":type":":same",
+        ":args":
+        [{":type":":field-ref", ":names":["TA-location"]},
+         {":type":":method-arg-ref", ":names":["newloc"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":method-arg-ref", ":names":["newloc"]},
+         {":type":":mode-ref",
+          ":mode-ref":
+          {":type":":symbol-ref", ":names":["TargetStates"]},
+          ":mode":":visited"}]}]},
      ":display-args":["newloc"]}],
    "lateral":
    [{":doc":"\"Move to another host in the same subnet\"",
@@ -2581,31 +2573,47 @@
      ":pre":
      {":type":":and",
       ":args":
-      [{":type":":function-call",
-        ":args":
-        [{":type":":field-ref",
-          ":names":["dmcp", "find-binary-proposition"]},
-         {":type":":mode-ref",
-          ":mode-ref":
-          {":type":":symbol-ref", ":names":
-                                  ["BinaryPropositionTypes"]},
-          ":mode":":connects-with"},
-         {":type":":field-ref", ":names":["p1"]},
-         {":type":":method-arg-ref", ":names":["newloc"]}]},
+      [{":type":":lookup-propositions",
+        ":where":null,
+        ":propositions":
+        [{":type":":proposition-pattern",
+          ":look-where":null,
+          ":prop-name":":connects-with",
+          ":args":
+          [{":type":":field-ref", ":names":["p1"]},
+           {":type":":method-arg-ref", ":names":["newloc"]}]}]},
        {":type":":equal",
         ":args":
         [{":type":":field-ref", ":names":["connected"]},
          {":type":":field-ref", ":names":["p1"]}]},
-       {":type":":equal",
+       {":type":":not",
+        ":args":
+        [{":type":":equal",
+          ":args":
+          [{":type":":method-arg-ref", ":names":["newloc"]},
+           {":type":":mode-ref",
+            ":mode-ref":
+            {":type":":symbol-ref", ":names":["TargetStates"]},
+            ":mode":":visited"}]}]},
+       {":type":":same",
         ":args":
         [{":type":":field-ref", ":names":["TA-location"]},
          {":type":":field-ref", ":names":["p1"]}]}]},
      ":betweens":null,
      ":post":
-     {":type":":equal",
+     {":type":":and",
       ":args":
-      [{":type":":field-ref", ":names":["TA-location"]},
-       {":type":":method-arg-ref", ":names":["newloc"]}]},
+      [{":type":":same",
+        ":args":
+        [{":type":":field-ref", ":names":["TA-location"]},
+         {":type":":method-arg-ref", ":names":["newloc"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":method-arg-ref", ":names":["newloc"]},
+         {":type":":mode-ref",
+          ":mode-ref":
+          {":type":":symbol-ref", ":names":["TargetStates"]},
+          ":mode":":visited"}]}]},
      ":display-args":["newloc"]}],
    "launch-PW-guessing":
    [{":doc":
@@ -2725,7 +2733,7 @@
      ":body":null,
      ":display-name":"\"Launch Traffic Injection Attack\"",
      ":pre":
-     {":type":":equal",
+     {":type":":same",
       ":args":
       [{":type":":field-ref", ":names":["TA-location"]},
        {":type":":method-arg-ref",
@@ -2755,27 +2763,43 @@
      ":pre":
      {":type":":and",
       ":args":
-      [{":type":":function-call",
+      [{":type":":lookup-propositions",
+        ":where":null,
+        ":propositions":
+        [{":type":":proposition-pattern",
+          ":look-where":null,
+          ":prop-name":":is-part-of",
+          ":args":
+          [{":type":":field-ref", ":names":["p3"]},
+           {":type":":method-arg-ref", ":names":["newloc"]}]}]},
+       {":type":":not",
         ":args":
-        [{":type":":field-ref",
-          ":names":["dmcp", "find-binary-proposition"]},
-         {":type":":mode-ref",
-          ":mode-ref":
-          {":type":":symbol-ref", ":names":
-                                  ["BinaryPropositionTypes"]},
-          ":mode":":is-part-of"},
-         {":type":":field-ref", ":names":["p3"]},
-         {":type":":method-arg-ref", ":names":["newloc"]}]},
-       {":type":":equal",
+        [{":type":":equal",
+          ":args":
+          [{":type":":method-arg-ref", ":names":["newloc"]},
+           {":type":":mode-ref",
+            ":mode-ref":
+            {":type":":symbol-ref", ":names":["TargetStates"]},
+            ":mode":":visited"}]}]},
+       {":type":":same",
         ":args":
         [{":type":":field-ref", ":names":["TA-location"]},
          {":type":":field-ref", ":names":["p3"]}]}]},
      ":betweens":null,
      ":post":
-     {":type":":equal",
+     {":type":":and",
       ":args":
-      [{":type":":field-ref", ":names":["TA-location"]},
-       {":type":":method-arg-ref", ":names":["newloc"]}]},
+      [{":type":":same",
+        ":args":
+        [{":type":":field-ref", ":names":["TA-location"]},
+         {":type":":method-arg-ref", ":names":["newloc"]}]},
+       {":type":":equal",
+        ":args":
+        [{":type":":method-arg-ref", ":names":["newloc"]},
+         {":type":":mode-ref",
+          ":mode-ref":
+          {":type":":symbol-ref", ":names":["TargetStates"]},
+          ":mode":":visited"}]}]},
      ":display-args":["newloc"]}]},
   ":modes":{":ready":true},
   ":type":":pclass"},
@@ -2842,15 +2866,9 @@
    "\"out_y_acceleration\"":":unset",
    "\"out_z_acceleration\"":":unset",
    "\"program\"":":unset",
-   "\"proposition-arg10\"":":unset",
    "\"proposition-arg2\"":":unset",
    "\"proposition-arg3\"":":unset",
    "\"proposition-arg4\"":":unset",
-   "\"proposition-arg5\"":":unset",
-   "\"proposition-arg6\"":":unset",
-   "\"proposition-arg7\"":":unset",
-   "\"proposition-arg8\"":":unset",
-   "\"proposition-arg9\"":":unset",
    "\"route\"":":unset",
    "\"step1\"":":unset",
    "\"step2\"":":unset",

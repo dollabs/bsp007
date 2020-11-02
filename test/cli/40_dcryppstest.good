@@ -1,0 +1,68 @@
+(choose
+ (choice
+  (sequence
+   (anattacker.launch-PW-guessing "/AttackPlanner.gs")
+   (anattacker.lateral "/AttackPlanner.router")
+   (anattacker.launch-phishing-attack "/AttackPlanner.router")
+   (anattacker.lateral "/AttackPlanner.st")
+   (anattacker.launch-traffic-injection-attack atarget)))
+ (choice
+  (sequence
+   (anattacker.launch-PW-guessing "/AttackPlanner.gs")
+   (anattacker.lateral "/AttackPlanner.mgp")
+   (anattacker.launch-supply-chain-attack "/AttackPlanner.mgp")
+   (anattacker.lateral "/AttackPlanner.st.TCPA")
+   (anattacker.up "/AttackPlanner.st")
+   (anattacker.launch-traffic-injection-attack atarget)))
+ (choice
+  (sequence
+   (anattacker.launch-supply-chain-attack "/AttackPlanner.gs")
+   (anattacker.lateral "/AttackPlanner.mgp")
+   (anattacker.launch-factory-pw-attack "/AttackPlanner.mgp")
+   (anattacker.lateral "/AttackPlanner.st")
+   (anattacker.launch-traffic-injection-attack atarget)))
+ (choice
+  (sequence
+   (anattacker.launch-phishing-attack "/AttackPlanner.gs")
+   (anattacker.lateral "/AttackPlanner.router")
+   (anattacker.launch-factory-pw-attack "/AttackPlanner.router")
+   (anattacker.lateral "/AttackPlanner.controller.TCPA")
+   (anattacker.launch-factory-pw-attack
+    "/AttackPlanner.controller.TCPA")
+   (anattacker.lateral "/AttackPlanner.gps.TCPA")
+   (anattacker.up "/AttackPlanner.gps")
+   (anattacker.launch-factory-pw-attack "/AttackPlanner.gps")
+   (anattacker.lateral "/AttackPlanner.st")
+   (anattacker.down "/AttackPlanner.st.TCPA")
+   (anattacker.up "/AttackPlanner.st")
+   (anattacker.launch-traffic-injection-attack atarget)))
+ (choice
+  (sequence
+   (anattacker.launch-PW-guessing "/AttackPlanner.gs")
+   (anattacker.lateral "/AttackPlanner.mgp")
+   (anattacker.launch-PW-guessing "/AttackPlanner.mgp")
+   (anattacker.lateral "/AttackPlanner.st")
+   (anattacker.launch-traffic-injection-attack atarget)))
+ (choice
+  (sequence
+   (anattacker.launch-PW-guessing "/AttackPlanner.gs")
+   (anattacker.lateral "/AttackPlanner.router.net1")
+   (anattacker.up "/AttackPlanner.router")
+   (anattacker.down "/AttackPlanner.router.net1")
+   (anattacker.up "/AttackPlanner.router")
+   (anattacker.launch-PW-guessing "/AttackPlanner.router")
+   (anattacker.lateral "/AttackPlanner.st")
+   (anattacker.launch-traffic-injection-attack atarget)))
+ (choice
+  (sequence
+   (anattacker.down "/AttackPlanner.gs.RFA")
+   (anattacker.launch-PW-guessing "/AttackPlanner.gs.RFA")
+   (anattacker.lateral "/AttackPlanner.router.net1")
+   (anattacker.up "/AttackPlanner.router")
+   (anattacker.launch-backdoor-attack "/AttackPlanner.router")
+   (anattacker.lateral "/AttackPlanner.controller.TCPA")
+   (anattacker.up "/AttackPlanner.controller")
+   (anattacker.launch-PW-guessing "/AttackPlanner.controller")
+   (anattacker.lateral "/AttackPlanner.st.TCPA")
+   (anattacker.up "/AttackPlanner.st")
+   (anattacker.launch-traffic-injection-attack atarget))))

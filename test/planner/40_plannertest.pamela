@@ -7,20 +7,25 @@
 
 ;;; Goal state  Monkey eats banana
 
+(defpclass BinaryPropositionTypes [] :modes [:is-part-of :is-a])
+
 ;;; (defpclass Edible [] :modes [:edible :inedible])
 (defpclass General [] :modes [:initial :nothing])
 
-(defpclass Height [] :modes [:ground :high :very-high])
+;;;(defpclass Height [] :modes [:ground :high :very-high])
 
 (defpclass Support [] :modes [:unknown :ground :chair1 :banana1])
 
 (defpclass Foodstate [] :modes [:ripe :young :spoiled :eaten])
 
-(defpclass Banana [pos hgt onwhat]
+(defpclass Mobility [] :modes [:pushable :fixed :autonomous])
+
+(defpclass Banana [pos hgt onwhat mobility]
   :modes {:ripe (or (mode-of General :initial)) :young true :spoiled true :eaten true} ; crappy way of specifying initial
   :fields {position pos
            height hgt
            on onwhat
+           mobile mobility
            edible :true}
   :methods [(defpmethod be-eaten
               {:doc "take an object by hand. Change state to eaten.  Perhaps should cease to exist+++"
@@ -34,11 +39,12 @@
                [nupos]
               )])
 
-(defpclass Chair [pos hgt onwhat]
+(defpclass Chair [pos hgt onwhat mobility]
   :modes [ :available :in-use ]
   :fields {position pos
            height hgt
            on onwhat
+           mobile mobility
            edible :false}
   :methods [(defpmethod reposition
               {:doc "Change position"
@@ -46,12 +52,15 @@
               [nupos]
               )])
 
-(defpclass Robot [pos hgt onwhat]
+(defpclass Robot [pos hgt onwhat mobility]  ; dmcpobj]
   :modes [ :ready ]
-  :fields {position pos
+  :fields {;;dmcp dmcpobj
+           position pos
            height hgt
            handholds (mode-of General :nothing)
-           on onwhat}
+           on onwhat
+           mobile mobility
+           achair (lvar "a chair")}
   :methods [(defpmethod take
               {:doc "take an object by hand"
                :pre (and (= handholds (mode-of General :nothing))
@@ -81,24 +90,44 @@
                :post (= position nupos)
                :primitive true}
               [me nupos])
-            ;; (defpmethod push
-            ;;   {:doc "push an object to the designated position"
-            ;;    :pre (and (not (= position toposition))
-            ;;              (= position object.position))
-            ;;    :post (and (= object.position toposition)
-            ;;               (= position toposition))
-            ;;    :primitive true}
-            ;;   [object toposition])
+            (defpmethod push
+              {:doc "push an object to the designated position"
+               :pre (= position object.position)
+                      ;;(and ;(= object.mobile (mode-of Mobility :pushable))
+                      ;;   (not (= position toposition))
+                      ;;   (= position object.position))
+               :post (and ;(= object achair)
+                          (= object.position toposition)
+                          (= position toposition)
+                          )
+               :primitive true}
+              [object toposition])
             ;; (defpmethod climb-on
             ;;   {:doc "climb on to the object"
-            ;;    :pre (and (= position object.position)
-            ;;              (not (= on object)))
-            ;;    :post (and (= on object)
-            ;;               (= height (mode-of Height :high)))
+            ;;    :pre (and ;(= position object.position) ; must be at the same place
+            ;;              (not (= on object)) ; can't climb on if we are already on
+            ;;              (= on object.on)    ; must be on the same thing to climb
+            ;;              )
+            ;;    :post (and (= height object.height)
+            ;;               (= on object)
+            ;;               )
             ;;    :primitive true}
             ;;   [object])
-            ;; ;; Not needed in the initial demo
-            ;; (defpmethod jump-down-from
+            (defpmethod climb-onto-chair
+              {:doc "find a chair and climb on to it"
+               :pre (and
+                     (propositions [(:is-a achair "Chair")])
+                     (= position achair.position)) ; must be at the same place
+                         ;;(not (= on achair)) ; can't climb on if we are already on
+                     ;(= on achair.on)
+                     ;(= achair object))   ; must be on the same thing to climb
+               :post (and
+                        (= height object.height)  ; object.height
+                        (= on object))
+               :primitive true}
+              [object])
+            ;; Not needed in the initial demo
+            ;; (defpmethodxs jump-down-from
             ;;   {:doc "jump off of an object"
             ;;    :pre (= on object)
             ;;    :post (= on (mode-of Support :ground))
@@ -108,9 +137,11 @@
 
 (defpclass world []
   :modes [ :root ]
-  :fields {abanana (Banana "10,10" :ground :ground  :id "banana1")
-           achair  (Chair  "0,5"   :ground :ground  :id "chair1")
-           arobot  (Robot  "5,0"   :ground :ground  :id "Robot1")}
+  :fields {;;dmcp (DMCP :id "dmcpid")
+           abanana (Banana "10,10" 6 :unknown :autonomous :id "banana1")
+           achair  (Chair  "0,5"   6 :ground  :pushable   :id "chair1")
+           ;;arobot  (Robot  "5,0"   0 :ground  :autonomous dmcp :id "Robot1")
+           arobot  (Robot  "5,0"   0 :ground  :autonomous :id "Robot1")}
   :methods [(defpmethod goal
               {:doc "eat the banana"
                :post (= abanana (mode-of Banana :eaten))}

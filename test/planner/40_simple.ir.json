@@ -1,15 +1,11 @@
 {"Banana":
- {":args":["pos", "hgt", "onwhat", "mobility"],
+ {":args":["pos", "hgt", "onwhat"],
   ":fields":
   {"edible":
    {":access":":private", ":initial":":true", ":observable":false},
    "height":
    {":access":":private",
     ":initial":{":names":["hgt"], ":type":":pclass-arg-ref"},
-    ":observable":false},
-   "mobile":
-   {":access":":private",
-    ":initial":{":names":["mobility"], ":type":":pclass-arg-ref"},
     ":observable":false},
    "on":
    {":access":":private",
@@ -79,17 +75,13 @@
    ":young":true},
   ":type":":pclass"},
  "Chair":
- {":args":["pos", "hgt", "onwhat", "mobility"],
+ {":args":["pos", "hgt", "onwhat"],
   ":fields":
   {"edible":
    {":access":":private", ":initial":":false", ":observable":false},
    "height":
    {":access":":private",
     ":initial":{":names":["hgt"], ":type":":pclass-arg-ref"},
-    ":observable":false},
-   "mobile":
-   {":access":":private",
-    ":initial":{":names":["mobility"], ":type":":pclass-arg-ref"},
     ":observable":false},
    "on":
    {":access":":private",
@@ -131,14 +123,15 @@
  {":args":null,
   ":modes":{":initial":true, ":nothing":true},
   ":type":":pclass"},
- "Mobility":
+ "Height":
  {":args":null,
-  ":modes":{":autonomous":true, ":fixed":true, ":pushable":true},
+  ":modes":{":ground":true, ":high":true, ":very-high":true},
   ":type":":pclass"},
  "Robot":
- {":args":["pos", "hgt", "onwhat", "mobility"],
+ {":args":["pos", "hgt", "onwhat"],
   ":fields":
-  {"handholds":
+  {"four":{":access":":private", ":initial":4, ":observable":false},
+   "handholds":
    {":access":":private",
     ":initial":
     {":mode":":nothing",
@@ -149,10 +142,6 @@
    {":access":":private",
     ":initial":{":names":["hgt"], ":type":":pclass-arg-ref"},
     ":observable":false},
-   "mobile":
-   {":access":":private",
-    ":initial":{":names":["mobility"], ":type":":pclass-arg-ref"},
-    ":observable":false},
    "on":
    {":access":":private",
     ":initial":{":names":["onwhat"], ":type":":pclass-arg-ref"},
@@ -160,52 +149,18 @@
    "position":
    {":access":":private",
     ":initial":{":names":["pos"], ":type":":pclass-arg-ref"},
-    ":observable":false}},
+    ":observable":false},
+   "ptlvar":
+   {":access":":private",
+    ":initial":{":name":"\"squared\"", ":type":":lvar"},
+    ":observable":false},
+   "ptlvar2":
+   {":access":":private",
+    ":initial":{":name":"\"reverse\"", ":type":":lvar"},
+    ":observable":false},
+   "two":{":access":":private", ":initial":2, ":observable":false}},
   ":methods":
-  {"climb-on":
-   [{":doc":"\"climb on to the object\"",
-     ":probability":1.0,
-     ":reward":0,
-     ":temporal-constraints":
-     [{":type":":bounds", ":value":[0, ":infinity"]}],
-     ":controllable":false,
-     ":cost":0,
-     ":args":["object"],
-     ":primitive":true,
-     ":body":null,
-     ":display-name":"\"Climb On\"",
-     ":pre":
-     {":type":":and",
-      ":args":
-      [{":type":":equal",
-        ":args":
-        [{":type":":field-ref", ":names":["position"]},
-         {":type":":method-arg-ref",
-          ":names":["object", "position"]}]},
-       {":type":":not",
-        ":args":
-        [{":type":":equal",
-          ":args":
-          [{":type":":field-ref", ":names":["on"]},
-           {":type":":method-arg-ref", ":names":["object"]}]}]},
-       {":type":":equal",
-        ":args":
-        [{":type":":field-ref", ":names":["on"]},
-         {":type":":method-arg-ref", ":names":["object", "on"]}]}]},
-     ":betweens":null,
-     ":post":
-     {":type":":and",
-      ":args":
-      [{":type":":equal",
-        ":args":
-        [{":type":":field-ref", ":names":["height"]},
-         {":type":":method-arg-ref", ":names":["object", "height"]}]},
-       {":type":":equal",
-        ":args":
-        [{":type":":field-ref", ":names":["on"]},
-         {":type":":method-arg-ref", ":names":["object"]}]}]},
-     ":display-args":["object"]}],
-   "eat":
+  {"eat":
    [{":doc":"\"eat an edible object\"",
      ":probability":1.0,
      ":reward":0,
@@ -263,12 +218,29 @@
      ":body":null,
      ":display-name":"\"Goto\"",
      ":pre":
-     {":type":":not",
+     {":type":":and",
       ":args":
-      [{":type":":equal",
+      [{":type":":not",
         ":args":
-        [{":type":":field-ref", ":names":["position"]},
-         {":type":":method-arg-ref", ":names":["nupos"]}]}]},
+        [{":type":":equal",
+          ":args":
+          [{":type":":field-ref", ":names":["position"]},
+           {":type":":method-arg-ref", ":names":["nupos"]}]}]},
+       {":type":":lookup-propositions",
+        ":where":null,
+        ":propositions":
+        [{":type":":proposition-pattern",
+          ":look-where":null,
+          ":prop-name":":squared",
+          ":args":
+          [{":type":":field-ref", ":names":["two"]},
+           {":type":":field-ref", ":names":["ptlvar"]}]},
+         {":type":":proposition-pattern",
+          ":look-where":null,
+          ":prop-name":":squared",
+          ":args":
+          [{":type":":field-ref", ":names":["ptlvar2"]},
+           {":type":":field-ref", ":names":["four"]}]}]}]},
      ":betweens":null,
      ":post":
      {":type":":equal",
@@ -276,36 +248,6 @@
       [{":type":":field-ref", ":names":["position"]},
        {":type":":method-arg-ref", ":names":["nupos"]}]},
      ":display-args":["me", "nupos"]}],
-   "push":
-   [{":doc":"\"push an object to the designated position\"",
-     ":probability":1.0,
-     ":reward":0,
-     ":temporal-constraints":
-     [{":type":":bounds", ":value":[0, ":infinity"]}],
-     ":controllable":false,
-     ":cost":0,
-     ":args":["object", "toposition"],
-     ":primitive":true,
-     ":body":null,
-     ":display-name":"\"Push\"",
-     ":pre":
-     {":type":":equal",
-      ":args":
-      [{":type":":field-ref", ":names":["position"]},
-       {":type":":method-arg-ref", ":names":["object", "position"]}]},
-     ":betweens":null,
-     ":post":
-     {":type":":and",
-      ":args":
-      [{":type":":equal",
-        ":args":
-        [{":type":":method-arg-ref", ":names":["object", "position"]},
-         {":type":":method-arg-ref", ":names":["toposition"]}]},
-       {":type":":equal",
-        ":args":
-        [{":type":":field-ref", ":names":["position"]},
-         {":type":":method-arg-ref", ":names":["toposition"]}]}]},
-     ":display-args":["object", "toposition"]}],
    "take":
    [{":doc":"\"take an object by hand\"",
      ":probability":1.0,
@@ -357,7 +299,7 @@
   {"abanana":
    {":access":":private",
     ":initial":
-    {":args":["\"10,10\"", 6, ":unknown", ":autonomous"],
+    {":args":["\"10,10\"", ":ground", ":ground"],
      ":pclass":"Banana",
      ":plant-id":"\"banana1\"",
      ":type":":pclass-ctor"},
@@ -365,7 +307,7 @@
    "achair":
    {":access":":private",
     ":initial":
-    {":args":["\"0,5\"", 0, ":ground", ":pushable"],
+    {":args":["\"0,5\"", ":ground", ":ground"],
      ":pclass":"Chair",
      ":plant-id":"\"chair1\"",
      ":type":":pclass-ctor"},
@@ -373,7 +315,7 @@
    "arobot":
    {":access":":private",
     ":initial":
-    {":args":["\"5,0\"", 0, ":ground", ":autonomous"],
+    {":args":["\"5,0\"", ":ground", ":ground"],
      ":pclass":"Robot",
      ":plant-id":"\"Robot1\"",
      ":type":":pclass-ctor"},
@@ -425,4 +367,7 @@
         ":mode":":eaten"}]},
      ":display-args":null}]},
   ":modes":{":root":true},
-  ":type":":pclass"}}
+  ":type":":pclass"},
+ "lvars":
+ {":lvars":{"\"reverse\"":":unset", "\"squared\"":":unset"},
+  ":type":":lvars"}}

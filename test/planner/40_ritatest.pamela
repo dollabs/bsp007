@@ -1,0 +1,1051 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Falcon minecraft building model
+
+(defpclass SituatedObject []
+  :meta {:doc "Where the entity is located"}
+  :fields {x 0
+           y 0
+           z 0
+           motion_x 0
+           motion_y 0
+           motion_z 0
+           yaw 0
+           pitch 0
+           space {:observable false}})
+
+(defpclass RectangularVolume [iblx ibly iblz itrx itry itrz vname]
+  :fields {bl-x iblx
+           bl-y ibly
+           bl-z iblz
+           tr-x itrx
+           tr-y itry
+           tr-z itrz
+           v-name vname})
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Building model for Falcon - Testbed v0.5 and beyond
+
+;; Level  61 [-2112 -2020] [143 207]
+;;     -2112      -2100     -2090     -2080     -2070     -2060     -2050     -2040     -2030     -2020
+;;     |           |         |         |         |         |         |         |         |         |
+;;     210987654321098765432109876543210987654321098765432109876543210987654321098765432109876543210
+;; 143 XXXXXXXXXXXXXXXXi||||||iiiii||||||||i||||||||||||||||i||||||||||||||i|||||||||||||||ib*        143
+;; 144                 D      |   S*      *S                S              S               | ***      144
+;; 145    Entrance     D  L       S        S  Executive     S  Executive   S               |   ***    145
+;; 146                 i  o   |   S Break  S    Suite 1     S    Suite 2   S               |     *    146
+;; 147                 D  b   |   S Room   S  S             S  S           S   S           |     *b   147
+;; 148                 D  b       S        S  SP            S  SP          S   S           |      *   148
+;; 149       **********i  y   |   S        S  SS            S  SS          S   SS          |      **  149
+;; 150       *        |ii i i |   S        S lSrS           S lSrS         S  lSrS        wi       *  150
+;; 151       *        ||      SSDSSSS    SSSD|SSSSSSSSSSSSSSSD|SSSSSSSSSSSSSDD|SSSS        D       *  151
+;; 152       *        ||       w    w    w w                w              w      S        i       *  152
+;; 153       *        ||                                                          S        |      **  153
+;; 154       *        |iil            North Corridor                              S        |      *   154
+;; 155       *        |irX       w               w                                S        |     *b   155
+;; 156       *        |iX||||||XDX||||||XX    iSDSSSSii99999999i    i||||||||i    S        |     *    156
+;; 157       *        ||                 X    SS    6i9      9r9    iri      i    S  sss   |   ***    157
+;; 158       *        ||                 |    SSl    i9      l99    |il      D    S  X X BB| ***      158
+;; 159       *        ||  QQQQQ   QQQQQ  |    Sri L 6i9   S    9    |   M    D    SSSSSSSSSib*        159
+;; 160       *        ||    Q       Q    |   wiiiiiiii9   m    9    |   a    iw   SSSSSSSSSi          160
+;; 161       *        ||    Q       Q    |    D      i9   a    9    |   i    |    SB       |          161
+;; 162       *        ||    Q       Q    |    iiiii  i9   l    9    |   n    |    SB       |          162
+;; 163       *        ||  QQQQQ   QQQQQ  | W  S   D  i9   l    9  C |        | E  SB  101  |          163
+;; 164       *        ||    Q       Q    | e  Sb  i  i9        iw e |   C    | a  SS       |          164
+;; 165       *        ||    Q       Q    | s  Siiii6 i9  CR1   D  n |   o    | s  SrS      |          165
+;; 166       *        ||    Q       Q    | t  Siiii  i9        D  t |   n    | t  SSSSSS   |          166
+;; 167       *        ||  QQQQQ   QQQQQ  X    S   D  iiQQQQQQQQi  e |   f    |   wSl       |          167
+;; 168       *        ||    Q       Q    | C  Sb  i  i9        D  r |   e    | C  D        |          168
+;; 169      *         ||    Q       Q    | o wiiiiiiii9        D  c |   r    | o  SSSSSSSSSi          169
+;; 170      *         ||    Q       Q    | r  D      i9    S   iw o |   e    | r  S        |          170
+;; 171     *          ||  QQQQQ   QQQQQ  | r  iiiii  i9    m   9  r |   n    | r  S   102  |          171
+;; 172    *           ||    Q       Q    | i  S   D  i9    a   9  r |   c    | i  S        |          172
+;; 173    *           ||    Q       Q    | d  Sb  i  i9    l   9  i |   e    | d  S  S     |          173
+;; 174    *           ||    Q       Q    | o  Siiii6 i9    l   9  d i        | o  S  S     |          174
+;; 175   *            ||  QQQQQ   QQQQQ  | r  Siiii  i9        9  o D   r    | r  S  S     |          175
+;; 176   *            ||                 |    S   D  i9  CR2 l99  r D   m  li|    S  SS    |          176
+;; 177   *   |||||||||||                 X    Sb  i  i9      9r9    i      ir|    S lSrSBBB|          177
+;; 178    i||||||||||||iX||||||XDX||||||XX    iSSSSSSii99999999i    iiiiiiiiii    SDSSSSSSSi          178
+;; 179    |                    w                                                  w        |          179
+;; 180    |                                                                                |          180
+;; 181    |                          South Corridor                                        |          181
+;; 182    | w        w        w        w        w        w        w        w        w      |          182
+;; 183    iDSSSSSSSSDSSSSSSSSDSSSSSSSSDSSSSSSSSDSSSSSSSSDSSSSSSSSDSSSSSSSSDSSSSSSSSDSSSSSSSi          183
+;; 184    | lSrSBBBS lSrSBBBS lSrSBBBS lSrSBBBS lSrSBBBS lSrSBBBS lSrSBBBS lSrSBBBS lSrSBBB|          184
+;; 185    |  SS    S  SS    S  SS    S  SS    S  SS    S  SS    S  SS    S  SS    S  SS    |          185
+;; 186    |  S     S  S     S  S     S  S     S  S     S  S     S  S     S  S     S  S     |          186
+;; 187    |  S     S  S     S  S     S  S     S  S     S  S     S  S     S  S     S  S     |          187
+;; 188    |  S     S  S     S  S     S  S     S  S     S  S     S  S     S  S     S  S     |          188
+;; 189    |        S        S        S        S        S        S        S        S        |          189
+;; 190    |   111  S   110  S   109  S   108  S   107  S   106  S   105  S   104  S   103  |          190
+;; 191    |        S        S        S        S        S        S        S        S        |          191
+;; 192 ***i||||||||i||||||||i||||||||i||||||||i||||||||i||||||||i||||||||i||||||||i||||||||i          192
+;; 193                                                                                     X          193
+;; 194                                                                                     X          194
+;; 195                                                                                     X          195
+;; 196                                                                                     X          196
+;; 197                                                                                     X          197
+;; 198                                                                                     X          198
+;; 199                                                                                     X          199
+;; 200                                    R                                                X          200
+;; 201                                    X                                                X          201
+;; 202                                    =                                                X          202
+;; 203                                    +                                                X          203
+;; 204                                                                                     X          204
+;; 205                                                                                     X          205
+;; 206                                                                                     X          206
+;; 207                                                                                     X          207
+;;     210987654321098765432109876543210987654321098765432109876543210987654321098765432109876543210
+;;     |           |         |         |         |         |         |         |         |         |
+;;     -2112      -2100     -2090     -2080     -2070     -2060     -2050     -2040     -2030     -2020
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; A Building contains Corridors
+
+
+(defpclass Building [c1 c2 c3 c4 c5]
+  :modes {:electricity-on (or (mode-of General :initial))
+          :no-power true}
+  :meta {:doc "The SAR building"}
+  :fields {corridor1 c1
+           corridor2 c2
+           corridor3 c3
+           corridor4 c4
+           corridor5 c5})
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; A corridor contains Rooms
+
+;; (defpclass Corridor [cname]
+;;   :meta {:doc "A Corridor"}
+;;   :inherit [RectangularVolume])
+;;   :fields {myName cname})
+
+(defpclass Illumination [] :modes {:dark true
+                                   :light (or (mode-of General :initial))})
+
+(defpclass NorthCorridor [iblx ibly iblz itrx itry itrz vname
+                          ;; Rooms
+                          ra rb rc rd re rf rg rh
+                          ;; Connected corridors
+                          ncwc nccc ncec]
+  :inherit [RectangularVolume]
+  :fields {c1cx ncwc
+           c2cx nccc
+           c3cx ncec
+           racx ra
+           rbcx rb
+           rccx rc
+           rdcx rd
+           recx re
+           rfcx rf
+           rgcx rg
+           rhcx rh})
+
+(defpclass WestCorridor [iblx ibly iblz itrx itry itrz vname
+                         ra rb ncwc scwc]
+  :inherit [RectangularVolume]
+  :fields {c1cx ncwc
+           c2cx scwc
+           racx ra
+           rbcx rb})
+
+(defpclass CenterCorridor [iblx ibly iblz itrx itry itrz vname
+                           ra rb rc nccc sccc]
+  :inherit [RectangularVolume]
+  :fields {c1cx nccc
+           c2cx sccc
+           racx ra
+           rbcx rb
+           rccx rc})
+
+(defpclass EastCorridor [iblx ibly iblz itrx itry itrz vname
+                         ra rb ncec scec]
+  :inherit [RectangularVolume]
+  :fields {c1cx ncec
+           c1cx scec
+           racx ra
+           rbcx rb})
+
+(defpclass SouthCorridor [iblx ibly iblz itrx itry itrz vname
+                          ra rb rc rd re rf rg rh ri rj scwc sccc scec]
+  :inherit [RectangularVolume]
+  :fields {c1cx scwc
+           c2cx sccc
+           c3cx scec
+           racx ra
+           rbcx rb
+           rccx rc
+           rdcx rd
+           racx re
+           racx rf
+           racx rg
+           racx rh
+           racx ri
+           racx rj})
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; A room has Doors, Victims
+
+
+(defpclass Room [iblx ibly iblz itrx itry itrz vname
+                 cx]
+  :meta {:doc "A Single Door Room"}
+  :inherit [RectangularVolume]
+  :modes {:unvisited (or (mode-of General :initial))
+          :visited true}
+  :fields {doorcx cx})
+
+(defpclass TwoDoorRoom [iblx ibly iblz itrx itry itrz vname
+                        cx cx2]
+  :meta {:doc "A Two Door Room"}
+  :inherit [Room]
+  :fields {doorcx cx
+           doorcx2 cx2})
+
+(defpclass ThreeDoorRoom [iblx ibly iblz itrx itry itrz vname
+                          cx cx2 cx3]
+  :meta {:doc "A Three Door Room"}
+  :inherit [Room]
+  :fields {doorcx cx
+           doorcx2 cx2
+           doorcx3 cx3})
+
+(defpclass Entrance-Commands [] :modes [:enter :leave :lock :unlock :open :close])
+
+(defpclass Portal [iblx ibly iblz itrx itry itrz vname
+                   cx]
+  :inherit [RectangularVolume]
+  :fields {connection cx}               ; shared lvar representing the connection
+  :modes [:open])
+
+(defpclass hole-in-the-wall [iblx ibly iblz itrx itry itrz vname
+                   cx]
+  :inherit [Portal]
+  :fields {connection cx}               ; shared lvar representing the connection
+  :modes [:open])
+
+(defpclass blockage  [iblx ibly iblz itrx itry itrz vname
+                 cx]
+  :meta {:doc "A Blockage"}
+  :inherit [Portal]
+  :modes {:blocked (or (mode-of General :initial))
+          :unblocked true})
+
+(defpclass Door-commands [] :modes [:open :close :lock :unlock :leave :enter])
+
+(defpclass Door [iblx ibly iblz itrx itry itrz vname
+                 cx]
+  :meta {:doc "A Door"}
+  :modes {:open true
+          :closed (or (mode-of General :initial))
+          :locked true
+          :blocked true}
+  :inherit [Portal]
+  :methods [(defpmethod open
+              {:pre (and :closed (= command (mode-of Door-commands :open)))
+               :post :open
+               :doc "opens the door"}
+              [command])
+            (defpmethod close
+              {:pre (and :open (= command (mode-of Door-commands :close)))
+               :post :closed
+               :doc "closes the door"}
+              [command])
+            (defpmethod enter
+              {:pre (and :open (or (= command (mode-of Door-commands :leave))
+                                   (= command (mode-of Door-commands :enter))))
+               :doc "Enters the doorway"}
+              [command])
+            (defpmethod lock
+              {:pre (and :closed (= command (mode-of Door-commands :lock)))
+               :post :locked
+               :doc "locks the door"}
+              [command])
+            (defpmethod unlock
+              {:pre (and :locked (= command (mode-of Door-commands :unlock)))
+               :post :closed
+               :doc "unlocks the door"}
+              [command])])
+
+(defpclass DoubleDoor [iblx ibly iblz itrx itry itrz vname
+                       cx]
+  :inherit [Door])
+
+(defpclass DoorlessEntrance [iblx ibly iblz itrx itry itrz vname
+                             cx]
+  :meta {:doc "A walk-in entrance without a door"}
+  :inherit [Portal]
+  :methods [(defpmethod walk-into-corridor
+              {:pre (or (= command (mode-of Door-commands :enter))
+                        (= command (mode-of Door-commands :leave)))
+               :doc "Enter through a doorless entrance"}
+              [command])])
+
+(defpclass CorridorJoin [iblx ibly iblz itrx itry itrz vname
+                         cx]
+  :meta {:doc "A Corridor Join, like a door for corridoors"}
+  :inherit [Portal]
+  :methods [(defpmethod walk-into-corridor
+              {:pre (or (= command (mode-of Door-commands :enter))
+                        (= command (mode-of Door-commands :leave)))
+               :doc "passes from one corridor into another"}
+              [command])])
+
+
+(defpclass Victim-commands [] :modes [:triage])
+
+;;; Victim types
+(defpclass Minecraft-object-prismarine       [iblx ibly iblz itrx itry itrz vname]     :inherit [RectangularVolume]
+  :modes {:awaiting-triage (or (mode-of General :initial))
+          :being-triaged true
+          :saved true
+          :dead true}
+  :fields {model-state :good}
+  :methods [(defpmethod triage
+              {:pre (and :awaiting-triage
+                         (= command (mode-of Victim-commands :triage)))
+               :post :saved
+               :doc "triage"}
+              [command])])
+
+(defpclass block_victim_1       [iblx ibly iblz itrx itry itrz vname]     :inherit [RectangularVolume]
+  :modes {:awaiting-triage (or (mode-of General :initial))
+          :being-triaged true
+          :saved true
+          :dead true}
+  :fields {model-state :good}
+  :methods [(defpmethod triage
+              {:pre (and :awaiting-triage
+                         (= command (mode-of Victim-commands :triage)))
+               :post :saved
+               :doc "triage"}
+              [command])])
+
+(defpclass Minecraft-object-gold_block       [iblx ibly iblz itrx itry itrz vname]     :inherit [RectangularVolume]
+  :modes {:awaiting-triage (or (mode-of General :initial))
+          :being-triaged true
+          :saved true
+          :dead true}
+  :fields {model-state :urgent}
+  :methods [(defpmethod triage
+              {:pre (and :awaiting-triage
+                         (= command (mode-of Victim-commands :triage)))
+               :post :saved
+               :doc "triage"}
+              [command])])
+
+(defpclass block_victim_2       [iblx ibly iblz itrx itry itrz vname]     :inherit [RectangularVolume]
+  :modes {:awaiting-triage (or (mode-of General :initial))
+          :being-triaged true
+          :saved true
+          :dead true}
+  :fields {model-state :urgent}
+  :methods [(defpmethod triage
+              {:pre (and :awaiting-triage
+                         (= command (mode-of Victim-commands :triage)))
+               :post :saved
+               :doc "triage"}
+              [command])])
+
+;; (defpclass Minecraft-object-cauldron       [iblx ibly iblz itrx itry itrz vname]     :inherit [RectangularVolume]
+;;   :modes [:awaiting-triage :triaged :dead]
+;;   :methods [(defpmethod triage
+;;               {:pre (and :awaiting-triage
+;;                          (= command (mode-of Victim-commands :triage)))
+;;                :post :triaged
+;;                :doc "triage"}
+;;               [command])])
+
+;; (defpclass Minecraft-object-wool           [iblx ibly iblz itrx itry itrz vname]    :inherit [RectangularVolume]
+;;   :modes [:awaiting-triage :triaged :dead]
+;;   :methods [(defpmethod triage
+;;               {:pre (and :awaiting-triage
+;;                          (= command (mode-of Victim-commands :triage)))
+;;                :post :triaged
+;;                :doc "triage"}
+;;               [command])])
+
+;; (defpclass Minecraft-object-anvil          [iblx ibly iblz itrx itry itrz vname]    :inherit [RectangularVolume]
+;;   :modes [:awaiting-triage :triaged :dead]
+;;   :methods [(defpmethod triage
+;;               {:pre (and :awaiting-triage
+;;                          (= command (mode-of Victim-commands :triage)))
+;;                :post :triaged
+;;                :doc "triage"}
+;;               [command])])
+
+(defpclass Minecraft-object-lever          [iblx ibly iblz itrx itry itrz vname cx] :inherit [RectangularVolume]
+  :modes {:on (or (mode-of General :initial))
+          :off true
+          :failed true}
+  :fields {connections cx}
+  :methods [(defpmethod switch
+              {:pre (and :off (or (= command :on) (= command :off)))
+               ;; +++ won't parse +++ :post command
+               :doc "switch"}
+              [command])])
+
+(defpclass Light                           [iblx ibly iblz itrx itry itrz vname cx] :inherit [RectangularVolume]
+  :modes {:dark true
+          :light (or (mode-of General :initial))
+          :failed true}
+  :fields {connections cx})
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Falcon Objects of Interest
+
+(defpclass Minecraft-object-furnace [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+(defpclass Minecraft-object-dispenser [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+(defpclass Minecraft-object-wall_sign [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+(defpclass Minecraft-object-cauldron [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+(defpclass Minecraft-object-wool [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+;;;(defpclass Minecraft-object-lever [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+;;;(defpclass Minecraft-object-gold_block [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+(defpclass Minecraft-object-crafting_table [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+(defpclass Minecraft-object-chest [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+(defpclass Minecraft-object-wooden_button [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+(defpclass Minecraft-object-stone_button [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+(defpclass Minecraft-object-ladder [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+;;;(defpclass Minecraft-object-prismarine [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+(defpclass Minecraft-object-anvil [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+(defpclass Minecraft-object-flower_pot [iblx ibly iblz itrx itry itrz vname] :inherit [RectangularVolume])
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Main class - the builder
+
+(defpclass Falcon []
+  :meta {:doc "Constructor of the SAR scenario - Falcon building"}
+  :fields {
+           ;; Corridor Connections
+           NCWC 	(lvar "Intersection from north corridor to west corridor")
+           NCCC         (lvar "Intersection from north corridor to center corridor")
+           NCEC         (lvar "Intersection between north corridor and east corridor")
+           SCWC         (lvar "Intersection from south corridor to west corridor")
+           SCCC         (lvar "Intersection from south corridor to center corridor")
+           SCEC         (lvar "Intersection from south corridor to east corridor")
+
+           ;; Doors
+           RE           (lvar "Right Entrance")
+           LE           (lvar "Left Entrance")
+           MCR-EC       (lvar "Main conference room door to East Corridor")
+           MCR-CC       (lvar "Main conference room door to center corridor")
+           CSR-NC       (lvar "Corner space door")
+           CSR-Terrace  (lvar "Terrace door")
+           SCR2-CC      (lvar "Small conference room 2 door")
+           SCR1-CC      (lvar "Small conference room 1 door")
+           R101-EC      (lvar "Door to room 101")
+           R102-SC      (lvar "Door to room 102")
+           R103-SC      (lvar "Door to room 103")
+           R104-SC      (lvar "Door to room 104")
+           R105-SC      (lvar "Door to room 105")
+           R106-SC      (lvar "Door to room 106")
+           R107-SC      (lvar "Door to room 107")
+           R108-SC      (lvar "Door to room 108")
+           R109-SC      (lvar "Door to room 109")
+           R110-SC      (lvar "Door to room 110")
+           R111-SC      (lvar "Door to room 111")
+           MR-WC        (lvar "Mens restroom")
+           MR-ID1       (lvar "Mens restroom inner door 1")
+           MR-ID2       (lvar "Mens restroom inner door 2")
+           WR-WC        (lvar "Womens restroom")
+           WR-ID1       (lvar "Womens restroom inner door 1")
+           WR-ID2       (lvar "Womens restroom inner door 2")
+           ES1-NC       (lvar "Executive suite 1")
+           ES2-NC       (lvar "Executive suite 2")
+           JR-NC        (lvar "Janitor room door")
+           CR-NC        (lvar "Cloak room door?")
+           CF-NC        (lvar "Cube farm door to north corridor")
+           CF-SC        (lvar "Cube farm door to south corridor")
+           ;; Doorless entrances
+           BR-NC        (lvar "Break doorless room entrance")
+           L-NC         (lvar "Lobby to north corridor entrance")
+           CSR-IP       (lvar "Corner space room east to corner space room north")
+
+           ;; Corridor Connections
+           northCorridorToWestCorridor (CorridorJoin -2074 156 60 -2077 156 61 "Corridor Intersection NC-WC" NCWC) ; Intersection from north corridor to west corridor
+           northCorridorToCenterCorridor  (CorridorJoin -2052 156 60 -2055 156 61 "Corridor Intersection NC-CC" NCCC)   ; Intersection from north corridor to center corridor
+           northCorridorToEastCorridor  (CorridorJoin -2038 156 60 -2041 156 61 "Corridor Intersection NC-EC" NCEC)   ; Intersection between north corridor and east corridor
+           southCorridorToWestCorridor (CorridorJoin -2074 178 60 -2077 178 61 "Corridor Intersection SC-WC" SCWC) ; Intersection from south corridor to west corridor
+           southCorridorToCenterCorridor  (CorridorJoin -2052 178 60 -2055 178 61 "Corridor Intersection SC-CC" SCCC)   ; Intersection from south corridor to center corridor
+           southCorridorToEastCorridor  (CorridorJoin -2038 178 60 -2041 178 61 "Corridor Intersection SC-EC" SCEC)   ; Intersection between south corridor and east corridor
+
+           ;; Doors
+           door35749a (Door -2096 147 60 -2096 147 61 "Right Entrance-a" RE)
+           door35749b (Door -2096   148 60 -2096 148 61 "Right Entrance-b" RE)
+           door35750a (Door -2096 144 60 -2096 144 61 "Left Entrance-a" LE)
+           door35750b (Door -2096 145 60 -2096 145 61 "Left Entrance-b" LE)
+           door35754a (Door -2042 158 60 -2042 158 61 "Main conference room door to East Corridor-a" MCR-EC)
+           door35754b (Door -2042 159 60 -2042 159 61 "Main conference room door to East Corridor-b" MCR-EC)
+           door35757a (Door -2051 175 60 -2051 175 61 "Main conference room door to center corridor-a" MCR-CC)
+           door35757b (Door -2051 176 60 -2051 176 61 "Main conference room door to center corridor-b" MCR-CC)
+           door35755a (Door -2042 151 60 -2042 151 61 "Corner space door-a" CSR-NC)
+           door35755b (Door -2043 151 60 -2043 151 61 "Corner space door-b" CSR-NC)
+           door35744 (Door -2028 151 60 -2028 151 61 "Terrace door" CSR-Terrace)
+           door35759a (Door -2056 168 60 -2056 168 61 "Small conference room 2 door-a" SCR2-CC)
+           door35759b (Door -2056 169 60 -2056 169 61 "Small conference room 2 door-b" SCR2-CC)
+           door35760a (Door -2056 165 60 -2056 165 61 "Small conference room 1 door-a" SCR1-CC)
+           door35760b (Door -2056 166 60 -2056 166 61 "Small conference room 1 door-b" SCR1-CC)
+           door35753 (Door -2037 168 60 -2037 168 61 "Door to room 101" R101-EC)
+           door35752 (Door -2036 178 60 -2036 178 61 "Door to room 102" R102-SC)
+           door35751 (Door -2036 183 60 -2036 183 61 "Door to room 103" R103-SC)
+           door35756 (Door -2045 183 60 -2045 183 61 "Door to room 104" R104-SC)
+           door35758 (Door -2054 183 60 -2054 183 61 "Door to room 105" R105-SC)
+           door35762 (Door -2063 183 60 -2063 183 61 "Door to room 106" R106-SC)
+           door35764 (Door -2072 183 60 -2072 183 61 "Door to room 107" R107-SC)
+           door35768 (Door -2081 183 60 -2081 183 61 "Door to room 108" R108-SC)
+           door35771 (Door -2090 183 60 -2090 183 61 "Door to room 109" R109-SC)
+           door35772 (Door -2099 183 60 -2099 183 61 "Door to room 110" R110-SC)
+           door35773 (Door -2108 183 60 -2108 183 61 "Door to room 111" R111-SC)
+           door35765 (Door -2073 170 60 -2073 170 61 "Mens room" MR-WC)
+           door35746 (Door -2069 172 60 -2069 172 61 "Mens room inner door 1" MR-ID1)
+           door35745 (Door -2069 176 60 -2069 176 61 "Mens room inner door 2" MR-ID2)
+           door35766 (Door -2073 161 60 -2073 161 61 "Womens room" WR-WC)
+           door35748 (Door -2069 163 60 -2069 163 61 "Womens room inner door 1" WR-ID1)
+           door35747 (Door -2069 167 60 -2069 167 61 "Womens room inner door 2" WR-ID2)
+           door35767 (Door -2075 151 60 -2075 151 61 "Executive suite 1" ES1-NC)
+           door35761 (Door -2058 151 60 -2058 151 61 "Executive suite 2" ES2-NC)
+           door35763 (Door -2071 156 60 -2071 156 61 "Janitor room door" JR-NC)
+           door35774 (Door -2087 151 60 -2087 151 61 "Cloak room door?" CR-NC)
+           door35770 (Door -2087 156 60 -2087 156 61 "Cube farm door to north corridor" CF-NC)
+           door35769 (Door -2087 178 60 -2087 178 61 "Cube farm door to south corridor" CF-SC)
+
+           ;; Doorless entrances
+           LobbyEnt    (DoorlessEntrance -2090 150 60 -2095 150 61 "Lobby entrance to North Corridor" L-NC) ; Entrance to north corridor from lobby
+           Breakent    (DoorlessEntrance -2079 151 60 -2082 151 61 "Break room entrance"  BR-NC) ; Entrance to break room
+           CornerRoom  (DoorlessEntrance -2029 151 60 -2036 151 61 "Corner space" CSR-IP)
+
+           ;; Rooms
+           ;; Numbered rooms
+           Room101 (Room -2036 161 60 -2029 168 61 "Room 101" R101-EC)
+           Room102 (Room -2036 170 60 -2029 177 61 "Room 102" R102-SC)
+           Room103 (Room -2036 184 60 -2029 191 61 "Room 103" R103-SC)
+           Room104 (Room -2045 184 60 -2038 191 61 "Room 104" R104-SC)
+           Room105 (Room -2054 184 60 -2047 191 61 "Room 105" R105-SC)
+           Room106 (Room -2063 184 60 -2056 191 61 "Room 106" R106-SC)
+           Room107 (Room -2072 184 60 -2065 191 61 "Room 107" R107-SC)
+           Room108 (Room -2081 184 60 -2074 191 61 "Room 108" R108-SC)
+           Room109 (Room -2090 184 60 -2083 191 61 "Room 109" R109-SC)
+           Room110 (Room -2099 184 60 -2092 191 61 "Room 110" R110-SC)
+           Room111 (Room -2108 184 60 -2101 191 61 "Room 111" R111-SC)
+
+           Lobby (ThreeDoorRoom -2095 144 60 -2090 149 61 "Lobby" LE RE L-NC)
+           CloakR (Room         -2088 144 60 -2086 150 61 "Cloak room" CR-NC)
+           BreakR (Room         -2084 144 60 -2077 150 61 "Break room" BR-NC)
+           ExecS1 (Room         -2075 144 60 -2060 150 61 "Executive Suite 1" ES1-NC)
+           ExecS2 (Room         -2058 144 60 -2045 150 61 "Executive Suite 2" ES2-NC)
+           CSNorth (ThreeDoorRoom -2043 144 60 -2029 150 61 "Corner space north" CSR-NC CSR-Terrace CSR-IP)
+           CSEast  (Room        -2036 151 60 -2029 158 61 "Corner space east"  CSR-IP)
+           Terrace (Room        -2027 144 60 -2021 158 61 "Terrace" CSR-Terrace)
+
+           WomRR (ThreeDoorRoom -2072 161 60 -2067 168 61 "Womens rest room" WR-WC WR-ID1 WR-ID2)
+           MenRR (ThreeDoorRoom -2072 170 60 -2067 177 61   "Mens rest room" MR-WC MR-ID1 MR-ID2)
+           RoomJ (Room          -2072 157 60 -2067 159 61           "Room J" JR-NC)
+           ;; Conference rooms
+           SCR1  (Room          -2064 157 60 -2057 166 61 "Small Conference Room 1" SCR1-CC)
+           SCR2  (Room          -2064 168 60 -2057 177 61 "Small Conference Room 2" SCR2-CC)
+           MCR   (TwoDoorRoom    -2050 157 60 -2043 177 61 "Main Conference Room"   MCR-EC MCR-CC)
+           ;; Cube farm
+           Cfarm (TwoDoorRoom   -2095 157 60 -2089 177 61 "Cubicle farm" CF-NC CF-SC)
+
+           ;; Where all missions begin
+           StagingArea (TwoDoorRoom -2112 144 60 -2097 177 61 "Outside Staging Area" RE LE)
+
+           ;; Corridors
+           NorthC (NorthCorridor -2095 151 60 -2038 155 61 "North Corridor" L-NC CR-NC BR-NC ES1-NC ES2-NC CSR-NC JR-NC CF-NC
+                                 NCWC NCCC NCEC)
+           WestC  (WestCorridor  -2077 157 60 -2074 177 61 "West Corridor" WR-WC  MR-WC
+                                 NCWC SCWC)
+           CenterC (CenterCorridor -2055 157 60 -2052 177 61 "Center Corridor" SCR1-CC SCR2-CC MCR-CC
+                                 NCCC SCCC)
+           EastC (EastCorridor  -2041 157 60 -2038 177 61 "East Corridor" MCR-EC R101-EC
+                                NCEC SCEC)
+           SouthC (SouthCorridor -2108 179 60 -2029 191 61 "South Corridor" R102-SC R103-SC R104-SC R105-SC R106-SC R107-SC
+                                 R108-SC R109-SC R110-SC R111-SC
+                                 SCWC SCCC SCEC)
+
+           ;; Building
+           building (Building NorthC WestC CenterC EastC SouthC)
+
+;;            ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;            ;; *** Autogenerated from the minecraft world ***
+
+;;            ;; Minecraft objects of type  :lever
+;;            ;; Switch connections
+
+;;            SAlight      (lvar "Staging area light") ; Switch at [-2190 169 29] is in
+
+;;            lever35379 (Minecraft-object-lever -2151 174 53 -2151 174 53 "lever" SAlight)  ;+++ Doesnt belong here not SAlight
+
+;; ;;;           staging area
+;; ;;;           lever43167 (Minecraft-object-lever -2190 169 29 -2190 169 29 "Staging area light" SAlight) ; Staging area lights
+;; ;;;           salamp (Light -2190 169 30 -2190 169 30 "Staging area light" SAlight)        ; Staging area lights
+
+;;            RJlight      (lvar "Room J light")       ; Switch at [-2169 161 29] is in Room J
+;;            lever43162 (Minecraft-object-lever -2134 170 53 -2134 170 53 "Room J light switch" RJlight)
+;;            rJlamp (Light -2134 170 54 -2134 170 54 "Room J light" RJlight)
+
+;;            R201light    (lvar "Room 201 light")     ; Switch at [-2169 154 29] is in Room 201
+;;            lever43163 (Minecraft-object-lever -2134 163 53 -2134 163 53 "Room 201 light switch" R201light) ;
+;;            r201lamp (Light -2134 163 54 -2134 163 54 "Room 201 light" R201light)
+
+;;            R203light    (lvar "Room 203 light")     ; Switch at [-2160 151 29] is in Room 203
+;;            lever43156 (Minecraft-object-lever -2125 160 53 -2125 160 53 "Room 203 light switch" R203light)
+;;            r203lamp (Light -2125 160 54 -2125 160 54 "Room 203 light" R203light)
+
+;;            R205light    (lvar "Room 205 light")     ; Switch at [-2155 151 29] is in Room 205
+;;            lever43154 (Minecraft-object-lever -2120 160 53 -2120 160 53 "Room 205 light switch" R205light)
+;;            r205lamp (Light -2120 160 54 -2120 160 54 "Room 205 light" R205light)
+
+;;            R208light1   (lvar "Room 208 light")     ; Switch at [-2156 163 29] is in Room 208
+;;            lever43155 (Minecraft-object-lever -2121 172 53 -2121 172 53 "Room 208 light switch" R208light1)
+;;            r208lamp (Light -2121 172 54 -2121 172 54 "Room 208 light" R208light1)
+
+;;            R208light2   (lvar "Room 208 light")     ; Switch at [-2165 163 29] is in Room 208
+;;            lever43159 (Minecraft-object-lever -2130 172 53 -2130 172 53 "Room 208 light switch" R208light2)
+;;            r208lamp (Light -2130 172 54 -2130 172 54 "Room 208 light" R208light2)
+
+;;            R210light    (lvar "Room 210 light")     ; Switch at [-2144 161 29] is in Room 210
+;;            lever43148 (Minecraft-object-lever -2109 170 53 -2109 170 53 "Room 210 light switch" R210light)
+;;            r210lamp (Light -2109 170 54 -2109 170 54 "Room 210 light" R210light)
+
+;;            R209light    (lvar "Room 209 light")     ; Switch at [-2169 171 29] is in Room 209
+;;            lever43161 (Minecraft-object-lever -2134 180 53 -2134 180 53 "Room 209 light switch" R209light)
+;;            r209lamp (Light -2134 180 54 -2134 180 54 "Room 209 light" R209light)
+
+;;            R211light    (lvar "Room 211 light")      ; Switch at [-2161 171 29] is in Room 211
+;;            lever43158 (Minecraft-object-lever -2126 180 53 -2126 180 53 "Room 211 light switch" R211light)
+;;            r211lamp (Light -2126 180 54 -2126 180 54 "Room 211 light" R211light)
+
+;;            R215light     (lvar "Room 215 light")      ; Switch at [-2148 170 29] is in Room 215
+;;            lever43149 (Minecraft-object-lever -2113 179 53 -2113 179 53 "Room 215 light switch" R215light)
+;;            r215lamp (Light -2113 179 54 -2113 179 54 "Room 215 light" R215light)
+
+;;            R216light1    (lvar "Room 216 light")      ; Switch at [-2167 184 29] is in Room 216
+;;            lever43160 (Minecraft-object-lever -2132 193 53 -2132 193 53 "Room 216 light" R216light1)
+;;            r216lamp (Light -2132 193 54 -2132 193 54 "lever" R216light1)
+
+;;            R216light2    (lvar "Room 216 light")      ; Switch at [-2161 184 29] is in Room 216
+;;            lever43157 (Minecraft-object-lever -2126 193 53 -2126 193 53 "Room 216 light switch" R216light2)
+;;            r216lamp (Light -2126 193 54 -2126 193 54 "Room 216 light" R216light2)
+
+;;            R218light   (lvar "Room 218 light")      ; Switch at [-2153 183 29] is in Room 218
+;;            lever43153 (Minecraft-object-lever -2118 192 53 -2118 192 53 "Room 218 light switch" R218light)
+;;            r218lamp (Light -2118 192 54 -2118 192 54 "Room 218 light" R218light)
+
+;;            R213Light    (lvar "Room 213 light")     ; Switch at [-2152 172 29] is in Room 213
+;;            lever43152 (Minecraft-object-lever -2117 181 53 -2117 181 53 "Room 213 light switch" R213Light)
+;;            r213lamp (Light -2117 181 54 -2117 181 54 "Room 213 light" R213Light)
+
+;;            R220light   (lvar "Room 220 light")      ; Switch at [-2149 183 29] is in Room 220
+;;            lever43150 (Minecraft-object-lever -2114 192 53 -2114 192 53 "Room 220 light switch" R220light)
+;;            r220lamp (Light -2114 192 54 -2114 192 54 "Room 220 light" R220light)
+
+;;            R207light   (lvar "Room 207 light")      ; Switch at [-2151 149 29] is in Room 207
+;; ;;;           lever43151 (Minecraft-object-lever -2151 149 29 -2151 149 29 "Room 207 light switch" R207light)
+;; ;;;           r207lamp (Light -2151 149 30 -2151 149 30 "Room 207 light" R207light)
+
+;;            Clights      (lvar "Corridor lights")
+;;            lever43164 (Minecraft-object-lever -2143 177 53 -2143 177 53 "Corridor lights switch" Clights) ; Corridoor Lights
+;;            lever43165 (Minecraft-object-lever -2151 177 53 -2151 177 53 "Corridor lights switch" Clights) ; Corridoor lights
+;;            lever43166 (Minecraft-object-lever -2186 165 29 -2186 165 29 "Corridor lights switch" Clights) ; Room 1 electric door?
+;;            cclamp      (Light -2143 177 54 -2143 177 54 "Center Corridor lights" Clights)
+;;            rightWElamp (Light -2120 196 54 -2120 196 54 "Right WE Corridor lights" Clights)
+;;            rightNSlamp (Light -2139 189 54 -2139 189 54 "Right NS Corridor lights" Clights)
+;;            leftWElamp  (Light -2120 155 54 -2120 155 54 "Left WE Corridor lights" Clights)
+;;            leftSNlamp  (Light -2139 164 54 -2139 164 54 "Left SN Corridor lights" Clights)
+
+           ;; Minecraft objects of type  :wall_sign
+           wall_sign35405 (Minecraft-object-wall_sign -2029 150 61 -2029 150 61 "wall_sign")
+           wall_sign35406 (Minecraft-object-wall_sign -2035 182 61 -2035 182 61 "wall_sign")
+           wall_sign35407 (Minecraft-object-wall_sign -2037 179 61 -2037 179 61 "wall_sign")
+           wall_sign35408 (Minecraft-object-wall_sign -2038 167 61 -2038 167 61 "wall_sign")
+           wall_sign35409 (Minecraft-object-wall_sign -2041 160 61 -2041 160 61 "wall_sign")
+           wall_sign35410 (Minecraft-object-wall_sign -2044 182 61 -2044 182 61 "wall_sign")
+           wall_sign35411 (Minecraft-object-wall_sign -2044 152 61 -2044 152 61 "wall_sign")
+           wall_sign35412 (Minecraft-object-wall_sign -2053 182 61 -2053 182 61 "wall_sign")
+           wall_sign35413 (Minecraft-object-wall_sign -2055 170 61 -2055 170 61 "wall_sign")
+           wall_sign35414 (Minecraft-object-wall_sign -2055 164 61 -2055 164 61 "wall_sign")
+           wall_sign35415 (Minecraft-object-wall_sign -2059 152 61 -2059 152 61 "wall_sign")
+           wall_sign35416 (Minecraft-object-wall_sign -2062 182 61 -2062 182 61 "wall_sign")
+           wall_sign35417 (Minecraft-object-wall_sign -2070 155 61 -2070 155 61 "wall_sign")
+           wall_sign35418 (Minecraft-object-wall_sign -2071 182 61 -2071 182 61 "wall_sign")
+           wall_sign35419 (Minecraft-object-wall_sign -2074 169 61 -2074 169 61 "wall_sign")
+           wall_sign35420 (Minecraft-object-wall_sign -2074 160 61 -2074 160 61 "wall_sign")
+           wall_sign35421 (Minecraft-object-wall_sign -2076 152 61 -2076 152 61 "wall_sign")
+           wall_sign35422 (Minecraft-object-wall_sign -2078 152 61 -2078 152 61 "wall_sign")
+           wall_sign35423 (Minecraft-object-wall_sign -2080 182 61 -2080 182 61 "wall_sign")
+           wall_sign35424 (Minecraft-object-wall_sign -2083 152 61 -2083 152 61 "wall_sign")
+           wall_sign35425 (Minecraft-object-wall_sign -2086 155 61 -2086 155 61 "wall_sign")
+           wall_sign35426 (Minecraft-object-wall_sign -2088 179 61 -2088 179 61 "wall_sign")
+           wall_sign35427 (Minecraft-object-wall_sign -2088 152 61 -2088 152 61 "wall_sign")
+           wall_sign35428 (Minecraft-object-wall_sign -2089 182 61 -2089 182 61 "wall_sign")
+           wall_sign35429 (Minecraft-object-wall_sign -2098 182 61 -2098 182 61 "wall_sign")
+           wall_sign35430 (Minecraft-object-wall_sign -2107 182 61 -2107 182 61 "wall_sign")
+           ;; Minecraft objects of type  :cauldron
+           cauldron35431 (Minecraft-object-cauldron -2067 157 60 -2067 157 60 "cauldron")
+           ;; Minecraft objects of type  :wool
+           wool35432 (Minecraft-object-wool -2056 177 62 -2056 177 62 "wool")
+           wool35433 (Minecraft-object-wool -2056 177 61 -2056 177 61 "wool")
+           wool35434 (Minecraft-object-wool -2056 176 62 -2056 176 62 "wool")
+           wool35435 (Minecraft-object-wool -2056 176 61 -2056 176 61 "wool")
+           wool35436 (Minecraft-object-wool -2056 175 62 -2056 175 62 "wool")
+           wool35437 (Minecraft-object-wool -2056 175 61 -2056 175 61 "wool")
+           wool35438 (Minecraft-object-wool -2056 174 62 -2056 174 62 "wool")
+           wool35439 (Minecraft-object-wool -2056 174 61 -2056 174 61 "wool")
+           wool35440 (Minecraft-object-wool -2056 173 62 -2056 173 62 "wool")
+           wool35441 (Minecraft-object-wool -2056 173 61 -2056 173 61 "wool")
+           wool35442 (Minecraft-object-wool -2056 172 62 -2056 172 62 "wool")
+           wool35443 (Minecraft-object-wool -2056 172 61 -2056 172 61 "wool")
+           wool35444 (Minecraft-object-wool -2056 171 62 -2056 171 62 "wool")
+           wool35445 (Minecraft-object-wool -2056 171 61 -2056 171 61 "wool")
+           wool35446 (Minecraft-object-wool -2056 163 62 -2056 163 62 "wool")
+           wool35447 (Minecraft-object-wool -2056 163 61 -2056 163 61 "wool")
+           wool35448 (Minecraft-object-wool -2056 162 62 -2056 162 62 "wool")
+           wool35449 (Minecraft-object-wool -2056 162 61 -2056 162 61 "wool")
+           wool35450 (Minecraft-object-wool -2056 161 62 -2056 161 62 "wool")
+           wool35451 (Minecraft-object-wool -2056 161 61 -2056 161 61 "wool")
+           wool35452 (Minecraft-object-wool -2056 160 62 -2056 160 62 "wool")
+           wool35453 (Minecraft-object-wool -2056 160 61 -2056 160 61 "wool")
+           wool35454 (Minecraft-object-wool -2056 159 62 -2056 159 62 "wool")
+           wool35455 (Minecraft-object-wool -2056 159 61 -2056 159 61 "wool")
+           wool35456 (Minecraft-object-wool -2056 158 62 -2056 158 62 "wool")
+           wool35457 (Minecraft-object-wool -2056 158 61 -2056 158 61 "wool")
+           wool35458 (Minecraft-object-wool -2056 157 62 -2056 157 62 "wool")
+           wool35459 (Minecraft-object-wool -2056 157 61 -2056 157 61 "wool")
+           wool35460 (Minecraft-object-wool -2057 178 62 -2057 178 62 "wool")
+           wool35461 (Minecraft-object-wool -2057 178 61 -2057 178 61 "wool")
+           wool35462 (Minecraft-object-wool -2057 177 62 -2057 177 62 "wool")
+           wool35463 (Minecraft-object-wool -2057 176 62 -2057 176 62 "wool")
+           wool35464 (Minecraft-object-wool -2057 176 61 -2057 176 61 "wool")
+           wool35465 (Minecraft-object-wool -2057 158 62 -2057 158 62 "wool")
+           wool35466 (Minecraft-object-wool -2057 158 61 -2057 158 61 "wool")
+           wool35467 (Minecraft-object-wool -2057 157 62 -2057 157 62 "wool")
+           wool35468 (Minecraft-object-wool -2057 156 62 -2057 156 62 "wool")
+           wool35469 (Minecraft-object-wool -2057 156 61 -2057 156 61 "wool")
+           wool35470 (Minecraft-object-wool -2058 178 62 -2058 178 62 "wool")
+           wool35471 (Minecraft-object-wool -2058 178 61 -2058 178 61 "wool")
+           wool35472 (Minecraft-object-wool -2058 177 62 -2058 177 62 "wool")
+           wool35473 (Minecraft-object-wool -2058 177 61 -2058 177 61 "wool")
+           wool35474 (Minecraft-object-wool -2058 157 62 -2058 157 62 "wool")
+           wool35475 (Minecraft-object-wool -2058 157 61 -2058 157 61 "wool")
+           wool35476 (Minecraft-object-wool -2058 156 62 -2058 156 62 "wool")
+           wool35477 (Minecraft-object-wool -2058 156 61 -2058 156 61 "wool")
+           wool35478 (Minecraft-object-wool -2059 178 62 -2059 178 62 "wool")
+           wool35479 (Minecraft-object-wool -2059 178 61 -2059 178 61 "wool")
+           wool35480 (Minecraft-object-wool -2059 156 62 -2059 156 62 "wool")
+           wool35481 (Minecraft-object-wool -2059 156 61 -2059 156 61 "wool")
+           wool35482 (Minecraft-object-wool -2060 178 62 -2060 178 62 "wool")
+           wool35483 (Minecraft-object-wool -2060 178 61 -2060 178 61 "wool")
+           wool35484 (Minecraft-object-wool -2060 156 62 -2060 156 62 "wool")
+           wool35485 (Minecraft-object-wool -2060 156 61 -2060 156 61 "wool")
+           wool35486 (Minecraft-object-wool -2061 178 62 -2061 178 62 "wool")
+           wool35487 (Minecraft-object-wool -2061 178 61 -2061 178 61 "wool")
+           wool35488 (Minecraft-object-wool -2061 156 62 -2061 156 62 "wool")
+           wool35489 (Minecraft-object-wool -2061 156 61 -2061 156 61 "wool")
+           wool35490 (Minecraft-object-wool -2062 178 62 -2062 178 62 "wool")
+           wool35491 (Minecraft-object-wool -2062 178 61 -2062 178 61 "wool")
+           wool35492 (Minecraft-object-wool -2062 156 62 -2062 156 62 "wool")
+           wool35493 (Minecraft-object-wool -2062 156 61 -2062 156 61 "wool")
+           wool35494 (Minecraft-object-wool -2063 178 62 -2063 178 62 "wool")
+           wool35495 (Minecraft-object-wool -2063 178 61 -2063 178 61 "wool")
+           wool35496 (Minecraft-object-wool -2063 156 62 -2063 156 62 "wool")
+           wool35497 (Minecraft-object-wool -2063 156 61 -2063 156 61 "wool")
+           wool35498 (Minecraft-object-wool -2064 178 62 -2064 178 62 "wool")
+           wool35499 (Minecraft-object-wool -2064 178 61 -2064 178 61 "wool")
+           wool35500 (Minecraft-object-wool -2064 156 62 -2064 156 62 "wool")
+           wool35501 (Minecraft-object-wool -2064 156 61 -2064 156 61 "wool")
+           wool35502 (Minecraft-object-wool -2065 177 62 -2065 177 62 "wool")
+           wool35503 (Minecraft-object-wool -2065 177 61 -2065 177 61 "wool")
+           wool35504 (Minecraft-object-wool -2065 176 62 -2065 176 62 "wool")
+           wool35505 (Minecraft-object-wool -2065 176 61 -2065 176 61 "wool")
+           wool35506 (Minecraft-object-wool -2065 175 62 -2065 175 62 "wool")
+           wool35507 (Minecraft-object-wool -2065 175 61 -2065 175 61 "wool")
+           wool35508 (Minecraft-object-wool -2065 174 62 -2065 174 62 "wool")
+           wool35509 (Minecraft-object-wool -2065 174 61 -2065 174 61 "wool")
+           wool35510 (Minecraft-object-wool -2065 173 62 -2065 173 62 "wool")
+           wool35511 (Minecraft-object-wool -2065 173 61 -2065 173 61 "wool")
+           wool35512 (Minecraft-object-wool -2065 172 62 -2065 172 62 "wool")
+           wool35513 (Minecraft-object-wool -2065 172 61 -2065 172 61 "wool")
+           wool35514 (Minecraft-object-wool -2065 171 62 -2065 171 62 "wool")
+           wool35515 (Minecraft-object-wool -2065 171 61 -2065 171 61 "wool")
+           wool35516 (Minecraft-object-wool -2065 170 62 -2065 170 62 "wool")
+           wool35517 (Minecraft-object-wool -2065 170 61 -2065 170 61 "wool")
+           wool35518 (Minecraft-object-wool -2065 169 62 -2065 169 62 "wool")
+           wool35519 (Minecraft-object-wool -2065 169 61 -2065 169 61 "wool")
+           wool35520 (Minecraft-object-wool -2065 168 62 -2065 168 62 "wool")
+           wool35521 (Minecraft-object-wool -2065 168 61 -2065 168 61 "wool")
+           wool35522 (Minecraft-object-wool -2065 166 62 -2065 166 62 "wool")
+           wool35523 (Minecraft-object-wool -2065 166 61 -2065 166 61 "wool")
+           wool35524 (Minecraft-object-wool -2065 165 62 -2065 165 62 "wool")
+           wool35525 (Minecraft-object-wool -2065 165 61 -2065 165 61 "wool")
+           wool35526 (Minecraft-object-wool -2065 164 62 -2065 164 62 "wool")
+           wool35527 (Minecraft-object-wool -2065 164 61 -2065 164 61 "wool")
+           wool35528 (Minecraft-object-wool -2065 163 62 -2065 163 62 "wool")
+           wool35529 (Minecraft-object-wool -2065 163 61 -2065 163 61 "wool")
+           wool35530 (Minecraft-object-wool -2065 162 62 -2065 162 62 "wool")
+           wool35531 (Minecraft-object-wool -2065 162 61 -2065 162 61 "wool")
+           wool35532 (Minecraft-object-wool -2065 161 62 -2065 161 62 "wool")
+           wool35533 (Minecraft-object-wool -2065 161 61 -2065 161 61 "wool")
+           wool35534 (Minecraft-object-wool -2065 160 62 -2065 160 62 "wool")
+           wool35535 (Minecraft-object-wool -2065 160 61 -2065 160 61 "wool")
+           wool35536 (Minecraft-object-wool -2065 159 62 -2065 159 62 "wool")
+           wool35537 (Minecraft-object-wool -2065 159 61 -2065 159 61 "wool")
+           wool35538 (Minecraft-object-wool -2065 158 62 -2065 158 62 "wool")
+           wool35539 (Minecraft-object-wool -2065 158 61 -2065 158 61 "wool")
+           wool35540 (Minecraft-object-wool -2065 157 62 -2065 157 62 "wool")
+           wool35541 (Minecraft-object-wool -2065 157 61 -2065 157 61 "wool")
+           wool35542 (Minecraft-object-wool -2073 176 62 -2073 176 62 "wool")
+           wool35543 (Minecraft-object-wool -2073 175 62 -2073 175 62 "wool")
+           wool35544 (Minecraft-object-wool -2073 174 62 -2073 174 62 "wool")
+           wool35545 (Minecraft-object-wool -2073 173 62 -2073 173 62 "wool")
+           wool35546 (Minecraft-object-wool -2073 170 62 -2073 170 62 "wool")
+           wool35547 (Minecraft-object-wool -2073 167 62 -2073 167 62 "wool")
+           wool35548 (Minecraft-object-wool -2073 166 62 -2073 166 62 "wool")
+           wool35549 (Minecraft-object-wool -2073 165 62 -2073 165 62 "wool")
+           wool35550 (Minecraft-object-wool -2073 164 62 -2073 164 62 "wool")
+           wool35551 (Minecraft-object-wool -2073 161 62 -2073 161 62 "wool")
+           wool35552 (Minecraft-object-wool -2077 207 60 -2077 207 60 "wool")
+           wool35553 (Minecraft-object-wool -2077 206 60 -2077 206 60 "wool")
+           wool35554 (Minecraft-object-wool -2077 205 60 -2077 205 60 "wool")
+           wool35555 (Minecraft-object-wool -2077 204 60 -2077 204 60 "wool")
+           wool35556 (Minecraft-object-wool -2077 203 60 -2077 203 60 "wool")
+           wool35557 (Minecraft-object-wool -2077 202 60 -2077 202 60 "wool")
+           wool35558 (Minecraft-object-wool -2077 201 60 -2077 201 60 "wool")
+           wool35559 (Minecraft-object-wool -2077 200 60 -2077 200 60 "wool")
+           wool35560 (Minecraft-object-wool -2077 199 60 -2077 199 60 "wool")
+           wool35561 (Minecraft-object-wool -2077 198 60 -2077 198 60 "wool")
+           wool35562 (Minecraft-object-wool -2077 197 60 -2077 197 60 "wool")
+           wool35563 (Minecraft-object-wool -2077 196 60 -2077 196 60 "wool")
+           wool35564 (Minecraft-object-wool -2077 195 60 -2077 195 60 "wool")
+           ;; Minecraft objects of type  :lever
+           lever-controls (lvar "Controls")
+           lever35565 (Minecraft-object-lever -2035 184 61 -2035 184 61 "lever" lever-controls)
+           lever35566 (Minecraft-object-lever -2035 177 61 -2035 177 61 "lever" lever-controls)
+           lever35567 (Minecraft-object-lever -2036 167 61 -2036 167 61 "lever" lever-controls)
+           lever35568 (Minecraft-object-lever -2041 150 61 -2041 150 61 "lever" lever-controls)
+           lever35569 (Minecraft-object-lever -2044 184 61 -2044 184 61 "lever" lever-controls)
+           lever35570 (Minecraft-object-lever -2044 176 61 -2044 176 61 "lever" lever-controls)
+           lever35571 (Minecraft-object-lever -2049 158 61 -2049 158 61 "lever" lever-controls)
+           lever35572 (Minecraft-object-lever -2053 184 61 -2053 184 61 "lever" lever-controls)
+           lever35573 (Minecraft-object-lever -2057 150 61 -2057 150 61 "lever" lever-controls)
+           lever35574 (Minecraft-object-lever -2058 176 61 -2058 176 61 "lever" lever-controls)
+           lever35575 (Minecraft-object-lever -2058 158 61 -2058 158 61 "lever" lever-controls)
+           lever35576 (Minecraft-object-lever -2062 184 61 -2062 184 61 "lever" lever-controls)
+           lever35577 (Minecraft-object-lever -2071 184 61 -2071 184 61 "lever" lever-controls)
+           lever35578 (Minecraft-object-lever -2071 158 61 -2071 158 61 "lever" lever-controls)
+           lever35579 (Minecraft-object-lever -2074 150 61 -2074 150 61 "lever" lever-controls)
+           lever35580 (Minecraft-object-lever -2080 184 61 -2080 184 61 "lever" lever-controls)
+           lever35581 (Minecraft-object-lever -2089 184 61 -2089 184 61 "lever" lever-controls)
+           lever35582 (Minecraft-object-lever -2094 154 61 -2094 154 61 "lever" lever-controls)
+           lever35583 (Minecraft-object-lever -2098 184 61 -2098 184 61 "lever" lever-controls)
+           lever35584 (Minecraft-object-lever -2107 184 61 -2107 184 61 "lever" lever-controls)
+           ;; Minecraft objects of type  :crafting_table
+           ;; Minecraft objects of type  :chest
+           ;; Minecraft objects of type  :wooden_button
+           wooden_button35596 (Minecraft-object-wooden_button -2072 177 61 -2072 177 61 "wooden_button")
+           wooden_button35597 (Minecraft-object-wooden_button -2072 173 61 -2072 173 61 "wooden_button")
+           wooden_button35598 (Minecraft-object-wooden_button -2072 168 61 -2072 168 61 "wooden_button")
+           wooden_button35599 (Minecraft-object-wooden_button -2072 164 61 -2072 164 61 "wooden_button")
+           ;; Minecraft objects of type  :stone_button
+           ;; Minecraft objects of type  :ladder
+           ladder35600 (Minecraft-object-ladder -2069 159 61 -2069 159 61 "ladder")
+           ladder35601 (Minecraft-object-ladder -2069 159 60 -2069 159 60 "ladder")
+           ;; Minecraft objects of type  :anvil
+           anvil35623 (Minecraft-object-anvil -2072 177 60 -2072 177 60 "anvil")
+           anvil35624 (Minecraft-object-anvil -2072 173 60 -2072 173 60 "anvil")
+           anvil35625 (Minecraft-object-anvil -2072 168 60 -2072 168 60 "anvil")
+           anvil35626 (Minecraft-object-anvil -2072 164 60 -2072 164 60 "anvil")
+           ;; Minecraft objects of type  :flower_pot
+           flower_pot35627 (Minecraft-object-flower_pot -2029 168 60 -2029 168 60 "flower_pot")
+           flower_pot35628 (Minecraft-object-flower_pot -2029 148 60 -2029 148 60 "flower_pot")
+           flower_pot35629 (Minecraft-object-flower_pot -2033 144 60 -2033 144 60 "flower_pot")
+           flower_pot35630 (Minecraft-object-flower_pot -2036 191 60 -2036 191 60 "flower_pot")
+           flower_pot35631 (Minecraft-object-flower_pot -2036 170 60 -2036 170 60 "flower_pot")
+           flower_pot35632 (Minecraft-object-flower_pot -2043 175 60 -2043 175 60 "flower_pot")
+           flower_pot35633 (Minecraft-object-flower_pot -2045 191 60 -2045 191 60 "flower_pot")
+           flower_pot35634 (Minecraft-object-flower_pot -2050 159 60 -2050 159 60 "flower_pot")
+           flower_pot35635 (Minecraft-object-flower_pot -2054 191 60 -2054 191 60 "flower_pot")
+           flower_pot35636 (Minecraft-object-flower_pot -2055 148 61 -2055 148 61 "flower_pot")
+           flower_pot35637 (Minecraft-object-flower_pot -2063 191 60 -2063 191 60 "flower_pot")
+           flower_pot35638 (Minecraft-object-flower_pot -2072 191 60 -2072 191 60 "flower_pot")
+           flower_pot35639 (Minecraft-object-flower_pot -2072 148 61 -2072 148 61 "flower_pot")
+           flower_pot35640 (Minecraft-object-flower_pot -2081 191 60 -2081 191 60 "flower_pot")
+           flower_pot35641 (Minecraft-object-flower_pot -2090 191 60 -2090 191 60 "flower_pot")
+           flower_pot35642 (Minecraft-object-flower_pot -2099 191 60 -2099 191 60 "flower_pot")
+           flower_pot35643 (Minecraft-object-flower_pot -2108 191 60 -2108 191 60 "flower_pot")
+
+           ;; Dummes for cloning
+           ;; Victims
+           dummy-block-victim-1 (block_victim_1 0 0 0 0 0 0 "prismarine")   ; Green victims
+           dummy-block-victim-2 (block_victim_2 0 0 0 0 0 0 "gold_block")   ; Gold/Yellow victims that die early
+           ;; Popup portals
+           ;;dummy-hole (hole-in-the-wall 0 0 0 0 0 0 "a hole in the wall")   ; Hole in the wall
+           ;; Popup blockages
+           ;;dummy-blockage (blockage 0 0 0 0 0 0 "a blockage")               ; A blockage in a corridor or doorway.
+           })
+
+(defpclass PreTrialSurvey []
+  :meta {:doc "The content of the Pre-Trial Survey"}
+  :fields {subject-id {:observable true}
+           spatial-ability-question-1 {:observable true}
+           spatial-ability-question-2 {:observable true}
+           spatial-ability-question-3 {:observable true}
+           spatial-ability-question-4 {:observable true}
+           spatial-ability-question-5 {:observable true}
+           spatial-ability-question-6 {:observable true}
+           spatial-ability-question-7 {:observable true}
+           spatial-ability-question-8 {:observable true}
+           spatial-ability-question-9 {:observable true}
+           spatial-ability-question-10 {:observable true}
+           spatial-ability-question-11 {:observable true}
+           spatial-ability-question-12 {:observable true}
+           spatial-ability-question-13 {:observable true}
+           spatial-ability-question-14 {:observable true}
+           spatial-ability-question-15 {:observable true}
+           spatial-ability-aggregate-score {:observable true} ;; this should come from (spatial-survey-aggregate-score subject-id)
+           satisficing-question-1 {:observable true}
+           satisficing-question-2 {:observable true}
+           satisficing-question-3 {:observable true}
+           satisficing-question-4 {:observable true}
+           satisficing-question-5 {:observable true}
+           satisficing-question-6 {:observable true}
+           satisficing-question-7 {:observable true}
+           satisficing-question-8 {:observable true}
+           satisficing-question-9 {:observable true}
+           satisficing-question-10 {:observable true}
+           satisficing-aggregate-score {:observable true}})
+
+(defpclass ParticipantProfile [name age gender culture minecraft-proficiency
+                               gamer-proficiency training-proficiency spatial-ability]
+  :meta {:doc "What we know about the participant a-priori - provided information"}
+
+  :fields {pname name                         ; Name as a String, eg "Fred"
+           page age                           ; age in years
+           pgender gender                     ; :male or :female
+           cultural culture                   ; Cultural affiliation a keyword
+           pmcprof minecraft-proficiency      ; Proficiency in minecraft (0 100)
+           pgamerprof gamer-proficiency       ; General Gamer Proficiency (0 100)
+           ptprof training-proficiency        ; Training proficiency (0 100) or however that is provided
+           pspatial-ability spatial-ability}  ; Special ability (0 100) or however that is provided
+)
+
+(defpclass General []           :modes [:initial :nothing])
+(defpclass DestinationStates [] :modes [:normal :arrived])
+
+(defpclass Destination [adest]
+  :modes {:normal (or (mode-of General :initial)) :arrived true} ; crappy way of specifying initial
+  :fields {t-location adest}
+  :methods [(defpmethod be-arrived
+              {:doc "Change state to arrived."
+               :pre (not :arrived)
+               :post :arrived
+               }
+              [])])
+
+(defpclass Strategy [] :modes [:left :right :by-corridor])
+
+(defpclass LPlayer [endat]
+  :fields {nowat (lvar "room came-from")
+           p-location endat}
+
+  :methods [(defpmethod goto-room      ; Goto a room
+              {:doc "Move to another room"
+               :pre (and
+                     (propositions [(:left-path-neighbor nowat newloc)])
+                         ;(= newloc (mode-of Room :unvisited))
+                     (same p-location nowat))
+               :post (same p-location newloc)
+               :primitive true}
+              [newloc])
+            ;; (defpmethod right-room      ; skip a room
+            ;;   {:doc "Skip a room that has been visited already"
+            ;;    :pre (and (= strategy (mode-of Strategy :right))
+            ;;              (not (= newloc (mode-of Room :unvisited)))
+            ;;              (= p-location nowat))
+            ;;    :post (= p-location newloc)
+            ;;    :primitive true}
+            ;;   [newloc])
+            (defpmethod arrive
+              {:doc "arrived"
+               :pre (same p-location object.t-location)
+               :post (= object (mode-of DestinationStates :arrived))
+               :primitive true}
+              [object])])
+
+(defpclass RPlayer [endat]
+  :fields {nowat (lvar "room came-from")
+           p-location endat}
+
+  :methods [(defpmethod goto-room      ; Goto a room
+              {:doc "Move to another room"
+               :pre (and
+                     (propositions [(:right-path-neighbor nowat newloc)]
+                                   ;;where (= newloc (mode-of Room :unvisited))
+                                   )
+                     (same p-location nowat))
+               :post (same p-location newloc)
+               :primitive true}
+              [newloc])
+            ;; (defpmethod skip-room      ; skip a room
+            ;;   {:doc "Skip a room that has been visited already"
+            ;;    :pre (and (propositions [(:right-path-neighbor nowat newloc)])
+            ;;              (not (= newloc (mode-of Room :unvisited)))
+            ;;              (= P-location nowat))
+            ;;    :post (= P-location newloc)
+            ;;    :primitive true}
+            ;;   [newloc])
+            (defpmethod arrive
+              {:doc "arrived"
+               :pre (same p-location object.t-location)
+               :post (= object (mode-of DestinationStates :arrived))
+               :primitive true}
+              [object])])
+
+(defpclass Main []
+  :modes [ :root ]
+  :fields {theBuilding (Falcon)
+           slplayer (LPlayer "/Main.theBuilding.StagingArea" :id "Player-left")
+           ;srplayer (RPlayer "/Main.theBuilding.StagingArea" :id "Player-right")
+           ldest (Destination "/Main.theBuilding.RoomJ" :id "targetdestination1")
+           rdest (Destination "/Main.theBuilding.SCR2" :id "targetdestination2")
+
+           rita (ParticipantProfile "Rita"       0 :asist-assistant    :robot    0  0  0  0)
+           observer (ParticipantProfile "Ed"     0 :testbed-observer   :robot    0  0  0  0)
+           p1-survey (PreTrialSurvey)
+           p1   (ParticipantProfile "Player396" 18 :male               :american 50 50 80 p1-survey)
+           ;; p2
+           ;; p3
+           ;; p4
+           }
+  :methods [(defpmethod goal
+              {:doc "Search the building"
+               :post (= ldest (mode-of Destination :arrived))
+                   ;;(= rdest (mode-of Destination :arrived))
+               }
+              [])])
+
+(defpclass Main2 []
+  :modes [ :root ]
+  :fields {theBuilding (Falcon)
+           ;slplayer (LPlayer "/Main.theBuilding.StagingArea" :id "Player-left")
+           srplayer (RPlayer "/Main.theBuilding.StagingArea" :id "Player-right")
+           ldest (Destination "/Main.theBuilding.RoomJ" :id "targetdestination1")
+           rdest (Destination "/Main.theBuilding.SCR2" :id "targetdestination2")
+
+           rita (ParticipantProfile "Rita"       0 :asist-assistant    :robot    0  0  0  0)
+           observer (ParticipantProfile "Ed"     0 :testbed-observer   :robot    0  0  0  0)
+           p1-survey (PreTrialSurvey)
+           p1   (ParticipantProfile "Player396" 18 :male               :american 50 50 80 p1-survey)
+           ;; p2
+           ;; p3
+           ;; p4
+           }
+  :methods [(defpmethod goal
+              {:doc "Search the building"
+               :post ;(= ldest (mode-of Destination :arrived))
+                      (= rdest (mode-of Destination :arrived))
+              }
+              [])])
+
+
+;;; Fin

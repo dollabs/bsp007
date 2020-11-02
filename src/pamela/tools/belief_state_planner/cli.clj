@@ -17,6 +17,7 @@
             [langohr.channel :as lch]
             [clojure.string :as string]
             [tpn.fromjson]
+            [random-seed.core :refer :all]
             [clojure.repl :refer [pst]]
             [clojure.tools.cli :refer [parse-opts]]
             [clojure.pprint :as pp :refer [pprint]]
@@ -26,13 +27,18 @@
             [pamela.unparser :as pup]
             ;;[dcrypps.common.core :as dc :refer :all]
             ;;[dcrypps.attack-model-generator.desirable-properties :as dp :refer :all]
+            [pamela.tools.belief-state-planner.imagine :as imag]
+            [pamela.tools.belief-state-planner.coredata :as global]
             [pamela.tools.belief-state-planner.runtimemodel :as rtm]
             [pamela.tools.belief-state-planner.montecarloplanner :as bs]
+            [pamela.tools.belief-state-planner.simplify :as simp]
+            [pamela.tools.belief-state-planner.buildir :as bir]
             [pamela.tools.belief-state-planner.dmcgpcore :as core]
             [pamela.tools.belief-state-planner.expressions :as dxp]
             [pamela.tools.belief-state-planner.ir-extraction :as irx])
   (:import (java.text SimpleDateFormat)
            (java.util Date))
+  (:refer-clojure :exclude [rand rand-int rand-nth])
   (:gen-class))
 
 ;(def default-action "observe") ; Maintain a belief state given a model and observations
@@ -51,6 +57,7 @@
                   ["-d" "--maxdepth n" "Maximum search depth" :default "20"]
                   ["-r" "--rawp bool" "raw solutions? (otherwise) compiled)" :default "true"]
                   ["-o" "--output file" "output" :default ""]
+                  ["-P" "--propositions file" "File containing propositions to load" :default nil]
                   ["-h" "--host rmqhost" "RMQ Host" :default "localhost"]
                   ["-p" "--port rmqport" "RMQ Port" :default 5672]
                   ["-e" "--exchange name" "RMQ Exchange Name" :default "tpn-updates"]
@@ -274,7 +281,7 @@
         maxd (read-string (get-in parsed [:options :maxdepth]))
         rawp (read-string (get-in parsed [:options :rawp]))
         outfile (get-in parsed [:options :output])
-
+        prop (get-in parsed [:options :propositions])
         ;; For connectivity with another RMQ system
         ch-name (get-in parsed [:options :exchange])
         _ (if (> verbosity 2) (println [ "ch-name = " ch-name]))
@@ -301,8 +308,7 @@
         _ (if (> verbosity 0) (println "DOLL Monte-Carlo Generative Planner" (:options parsed)))
         ]
 
-    (core/set-verbosity verbosity)
-    (rtm/set-verbosity verbosity)
+    (global/set-verbosity verbosity)
     (irx/set-verbosity verbosity)
     ;; Establish initial belief state
     ;; Start off in a clean state
@@ -346,6 +352,7 @@
 
             :make-plan
             (do
+              (set-random-seed! 666) ; for repeatability of the tests
               (if model
                 (do
                   (if (.exists (io/file model))
@@ -369,18 +376,21 @@
                       (rtm/load-model goals groo) ; no args
                       (rtm/establish-connectivity-propositions groo)
                       (rtm/establish-part-of-propositions groo)
-                      (if (> verbosity 3)
+                      (if (> verbosity 0)
                         (do (rtm/describe-current-model)
                             (bs/describe-belief-state)
                             (println "")))
                       (if (> verbosity 0) (println "goal model loaded: " goals)))
                     (do
-                      (println "File does not exist: " model)
+                      (println "File does not exist: " goals)
                       (Thread/sleep 2000)
                       (System/exit 1)))
+                  (if prop
+                    (if (.exists (io/file prop))
+                      (rtm/assert-propositions (read-string (slurp prop)))))
                   (let [solutions (core/solveit :samples samp :max-depth maxd :rawp rawp)]
                     (if (not rawp) (pprint solutions)
-                        (let [pamela-solutions (into #{} (map core/compile-actions-to-pamela solutions))
+                        (let [pamela-solutions (into #{} (map bir/compile-actions-to-pamela solutions))
                               result (case (count pamela-solutions)
                                        0 "No solutions found"
                                        1 (first (into [] pamela-solutions))
@@ -402,13 +412,9 @@
   (apply montecarloplanner args))
 
 ;;; (def repl true)
-;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "false" "make-plan")
-;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "1" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/simple.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "0" "-G" "world" "-d" "10" "-s" "100" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "1" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "2" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "1" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/plannertest.ir.json" "-v" "4" "-G" "world" "-d" "10" "-s" "8" "-r" "true" "make-plan")
-;;; (montecarloplanner  "-g" "tests/dcryppstest.ir.json" "-G" "AttackPlanner" "-v" "0" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_dcrypps2test.ir.json" "-G" "AttackPlanner" "-v" "0" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_dcryppstest.ir.json" "-G" "AttackPlanner" "-v" "0" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_simple.ir.json" "-G" "world" "-v" "0" "-d" "20" "-s" "1" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_plannertest.ir.json" "-G" "world" "-v" "4" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_ritatest.ir.json" "-G" "Main" "-v" "2" "-d" "50" "-P" "test/planner/40_ritatest.ppr" "-s" "1" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_ritatest.ir.json" "-G" "Main2" "-v" "2" "-d" "50" "-P" "test/planner/40_ritatest.ppr" "-s" "1" "-r" "true" "make-plan")

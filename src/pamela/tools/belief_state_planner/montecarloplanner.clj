@@ -24,7 +24,7 @@
 
 (def ^:dynamic *print-warnings* true)
 
-(def ^:dynamic *print-debugging* false) ; false
+(def ^:dynamic *print-debugging* false) ;true)
 
 ;;;    "Defines the basic belief state class that represents the domains
 ;;;     proposition-types propositions and variables of the belief state."
@@ -654,7 +654,12 @@
 
 (defn filter-binary-propositions ;; and not excluded, (or not restricted, matching)
   [a not-a relation not-relation b not-b props]
-  (if *print-debugging* (println "In filter-binary-propositions with:" a not-a relation not-relation b not-b "matching props="))
+  (if *print-debugging*
+    (println "In filter-binary-propositions with:"
+             (pr-str a) (pr-str not-a)
+             (pr-str relation) (pr-str not-relation)
+             (pr-str b) (pr-str not-b)
+             "matching props="))
 
   (let [matches (seq (remove nil? (map (fn [aprop]
                                          (let [{pt :ptype, sj :subject, obj :object} aprop]

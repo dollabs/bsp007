@@ -108,12 +108,33 @@
   [part1 part2]
   [:< part1 part2])
 
+(defn make-LESS-THAN-OR-EQUAL
+  "Constructor for <="
+  [part1 part2]
+  [:<= part1 part2])
+
+(defn make-GREATER-THAN
+  "Constructor for <"
+  [part1 part2]
+  [:> part1 part2])
+
+(defn make-GREATER-THAN-OR-EQUAL
+  "Constructor for <="
+  [part1 part2]
+  [:>= part1 part2])
+
 ;;; Function-call
 
 (defn make-CALL
   "Constructor for function call"
   [names args]
   (vec (concat [:call (first names) (rest names)] args)))
+
+;;; Propositions lookup
+(defn make-PROPOSITIONS
+  "constructor for propositions lookup"
+  [condition props]
+  [:lookup-propositions props condition])
 
 ;;;... to be continued
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

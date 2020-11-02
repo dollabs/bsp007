@@ -176,6 +176,7 @@
   ;; (println "in compile-reference, ref=" ref)
   (let [{type :type, names :names, pclass :pclass, args :args, mode :mode, mode-ref :mode-ref plant-id :plant-id} ref ]
     (case type
+      :literal (:value ref)
       :field-ref (into [] (cons :field names))
       :method-arg-ref (into [] (if (> (count names) 1) (cons :arg-field names) (cons :arg names)))
       :pclass-arg-ref (into [] (cons :class-arg names))
@@ -192,11 +193,21 @@
     (if (= (:type cond) :literal)
       (:value cond)
       (if (or (= (:type cond) :equal)
+              (= (:type cond) :gt)
+              (= (:type cond) :ge)
+              (= (:type cond) :lt)
+              (= (:type cond) :le)
               (= (:type cond) :and)
               (= (:type cond) :or)
-              (= (:type cond) :not))
+              (= (:type cond) :not)
+              (= (:type cond) :implies))
         cons
         'true))))
+
+(defn compile-proposition
+  [prop]
+  (let [{type :type, look-where :look-where, prop-name :prop-name args :args} prop]
+    [:lookup-in look-where (into [prop-name] (map compile-reference args))]))
 
 (defn compile-condition
   "Compile a condition into evaluable form;"
@@ -207,10 +218,12 @@
     (case type
       :mode-ref       (compile-reference cond)
       :literal        value
-      :equal          (if (= numargs 2) [:equal
+
+      (:equal :gt :ge :lt :le :same)
+                      (if (= numargs 2) [type
                                          (compile-reference (first args))
                                          (compile-reference (second args))]
-                          cond)         ; +++ unfinished - how to compile equal with args != 2
+                          cond)         ; +++ unfinished - how to compile inequalities with args != 2
       :and            (if (= numargs 1)
                         (compile-condition (first args))
                         (dxp/make-AND (map (fn [part] (compile-condition part)) args)))
@@ -228,6 +241,13 @@
                         cond) ; +++ unfinished - what do we want to do with a malformed xor
       :function-call  (dxp/make-CALL (get (first args) :names)
                                      (map (fn [arg] (compile-reference arg)) (rest args)))
+      :lookup-propositions (let [{where :where
+                                  props :propositions} cond]
+                             (dxp/make-PROPOSITIONS (compile-condition where)
+                                                    (into []
+                                                          (map (fn [aprop] (compile-proposition aprop))
+                                                               props))))
+
       'true)))
 
 (defn lvar? [lv]
