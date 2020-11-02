@@ -28,6 +28,7 @@
             [pamela.tools.belief-state-planner.lvarimpl :as lvar]
             [pamela.tools.belief-state-planner.prop :as prop]
             [pamela.tools.belief-state-planner.imagine :as imag]
+            [pamela.tools.belief-state-planner.vprops :as vp]
 
             [pamela.cli :as pcli]
             [pamela.unparser :as pup]
@@ -505,11 +506,11 @@
           _ (if (> global/verbosity 2)
               (println "arg1=" (prop/prop-readable-form arg1)
                        "arg2=" (prop/prop-readable-form arg2)))
-          arg1-unbound-lvar (and (lvar/is-lvar? arg1) (not (lvar/is-bound-lvar? arg1)))
-          arg2-unbound-lvar (and (lvar/is-lvar? arg2) (not (lvar/is-bound-lvar? arg2)))
+          arg1-unbound-lvar (lvar/unbound-lvar? arg1)
+          arg2-unbound-lvar (lvar/unbound-lvar? arg2)
           ;; Dereference bound LVARS
-          arg1 (if (and (lvar/is-lvar? arg1) (lvar/is-bound-lvar? arg1)) (lvar/deref-lvar arg1) arg1)
-          arg2 (if (and (lvar/is-lvar? arg2) (lvar/is-bound-lvar? arg2)) (lvar/deref-lvar arg2) arg2)]
+          arg1 (if (lvar/bound-lvar? arg1) (lvar/deref-lvar arg1) arg1)
+          arg2 (if (lvar/bound-lvar? arg2) (lvar/deref-lvar arg2) arg2)]
       ;; (if (and (not arg1-unbound-lvar) (not (string? arg1)))
       ;;   (println "arg1 is not a string" arg1))
       ;; (if (and (not arg2-unbound-lvar) (not (string? arg2)))
@@ -521,18 +522,26 @@
         (println "arg2=" (prop/prop-readable-form arg2)
                  "arg2-unbound-lvar=" (prop/prop-readable-form arg2-unbound-lvar)))
       (let [results
-            (cond ;; There are 4 cases, one bound, the other bound, both bound, neither bound
+            (cond ;; There are 4 binding cases, one bound, the other bound, both bound, neither bound
               (not (or arg1-unbound-lvar arg2-unbound-lvar)) ; both bound
-              [arg1 arg2 (bs/find-binary-propositions-matching #{arg1} nil #{pname} nil #{arg2} nil)]
+              (if (vp/virtual-proposition? pname)
+                [arg1 arg2 (vp/invoke-virtual-proposition pname arg1 arg2)]
+                [arg1 arg2 (bs/find-binary-propositions-matching #{arg1} nil #{pname} nil #{arg2} nil)])
 
               (and arg1-unbound-lvar (not arg2-unbound-lvar)) ; arg2 bound
-              [arg1 arg2 (bs/find-binary-propositions-matching nil nil #{pname} nil #{arg2} nil)]
+              (if (vp/virtual-proposition? pname)
+                [arg1 arg2 (vp/invoke-virtual-proposition pname nil arg2)]
+                [arg1 arg2 (bs/find-binary-propositions-matching nil nil #{pname} nil #{arg2} nil)])
 
               (and (not arg1-unbound-lvar) arg2-unbound-lvar) ; arg1 bound
-              [arg1 arg2 (bs/find-binary-propositions-matching #{arg1} nil #{pname} nil nil nil)]
+              (if (vp/virtual-proposition? pname)
+                [arg1 arg2 (vp/invoke-virtual-proposition pname arg1 nil)]
+                [arg1 arg2 (bs/find-binary-propositions-matching #{arg1} nil #{pname} nil nil nil)])
 
               (and arg1-unbound-lvar arg2-unbound-lvar) ; This is a strange request, but not illegal
-              [arg1 arg2 (bs/find-binary-propositions-matching nil nil #{pname} nil nil nil)]
+              (if (vp/virtual-proposition? pname)
+                [arg1 arg2 (vp/invoke-virtual-proposition pname nil nil)]
+                [arg1 arg2 (bs/find-binary-propositions-matching nil nil #{pname} nil nil nil)])
 
               :otherwise (irx/error "compute-prop-matches: can't get here, arg1=" (prop/prop-readable-form arg1)
                                     " arg2=" (prop/prop-readable-form arg2)))]
@@ -828,7 +837,7 @@
       (if (not (empty? solutions))                         ; We have done enough, return what we have
         (do
           (if (> global/verbosity 0) (println "Completed DMCP: " (count solutions) "found out of " sampled " samples."))
-          (if (> global/verbosity -1) (imag/print-imagination))
+          (if (> global/verbosity 0) (imag/print-imagination))
           (doall solutions))
         nil)      ; And it turns out that we didn't find any solutions. nil result signifies failure
       (let [_ (imag/reset-imagination)

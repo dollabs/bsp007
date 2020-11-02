@@ -60,6 +60,16 @@
   [thing]
   (= @(.boundp thing) :unbound))
 
+(defn bound-lvar?
+  [x]
+  (and (is-lvar? x)
+       (is-bound-lvar? x)))
+
+(defn unbound-lvar?
+  [x]
+  (and (is-lvar? x)
+       (is-unbound-lvar? x)))
+
 (defn deref-lvar
   [something]
   (if (instance? LVar something)

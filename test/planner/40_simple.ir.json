@@ -130,7 +130,8 @@
  "Robot":
  {":args":["pos", "hgt", "onwhat"],
   ":fields":
-  {"handholds":
+  {"four":{":access":":private", ":initial":4, ":observable":false},
+   "handholds":
    {":access":":private",
     ":initial":
     {":mode":":nothing",
@@ -148,7 +149,16 @@
    "position":
    {":access":":private",
     ":initial":{":names":["pos"], ":type":":pclass-arg-ref"},
-    ":observable":false}},
+    ":observable":false},
+   "ptlvar":
+   {":access":":private",
+    ":initial":{":name":"\"squared\"", ":type":":lvar"},
+    ":observable":false},
+   "ptlvar2":
+   {":access":":private",
+    ":initial":{":name":"\"reverse\"", ":type":":lvar"},
+    ":observable":false},
+   "two":{":access":":private", ":initial":2, ":observable":false}},
   ":methods":
   {"eat":
    [{":doc":"\"eat an edible object\"",
@@ -208,12 +218,29 @@
      ":body":null,
      ":display-name":"\"Goto\"",
      ":pre":
-     {":type":":not",
+     {":type":":and",
       ":args":
-      [{":type":":equal",
+      [{":type":":not",
         ":args":
-        [{":type":":field-ref", ":names":["position"]},
-         {":type":":method-arg-ref", ":names":["nupos"]}]}]},
+        [{":type":":equal",
+          ":args":
+          [{":type":":field-ref", ":names":["position"]},
+           {":type":":method-arg-ref", ":names":["nupos"]}]}]},
+       {":type":":lookup-propositions",
+        ":where":null,
+        ":propositions":
+        [{":type":":proposition-pattern",
+          ":look-where":null,
+          ":prop-name":":squared",
+          ":args":
+          [{":type":":field-ref", ":names":["two"]},
+           {":type":":field-ref", ":names":["ptlvar"]}]},
+         {":type":":proposition-pattern",
+          ":look-where":null,
+          ":prop-name":":squared",
+          ":args":
+          [{":type":":field-ref", ":names":["ptlvar2"]},
+           {":type":":field-ref", ":names":["four"]}]}]}]},
      ":betweens":null,
      ":post":
      {":type":":equal",
@@ -340,4 +367,7 @@
         ":mode":":eaten"}]},
      ":display-args":null}]},
   ":modes":{":root":true},
-  ":type":":pclass"}}
+  ":type":":pclass"},
+ "lvars":
+ {":lvars":{"\"reverse\"":":unset", "\"squared\"":":unset"},
+  ":type":":lvars"}}

@@ -51,7 +51,11 @@
   :fields {position pos
            height hgt
            handholds (mode-of General :nothing)
-           on onwhat}
+           on onwhat
+           two 2
+           four 4
+           ptlvar (lvar "squared")
+           ptlvar2 (lvar "reverse")}
   :methods [(defpmethod take
               {:doc "take an object by hand"
                :pre (and (= handholds (mode-of General :nothing))
@@ -77,7 +81,10 @@
               [object])
             (defpmethod goto
               {:doc "goto specified position"
-               :pre (not (= position nupos))
+               :pre (and
+                     (not (= position nupos))
+                     (propositions [(:squared two ptlvar) ;+++ constant 2 generates ":error :unknown conditional operand: 2"
+                                    (:squared ptlvar2 four)])) ;+++ similarly with 4.  fixme
                :post (= position nupos)
                :primitive true}
               [me nupos])
