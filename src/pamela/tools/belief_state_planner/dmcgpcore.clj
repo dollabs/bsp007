@@ -155,7 +155,7 @@
              (let [[arg1 arg2] (rest condition)
                    arg1 (if (value? arg1) (second arg1) arg1)
                    arg2 (if (value? arg2) (second arg2) arg2)]
-               (cond (and ; This doesn't work becquse we want to be qble to use finite values
+               (cond (and ; This doesn't work because we want to be able to use finite values
                       (or (global/RTobject? arg1) (= (first arg1) :field))
                       (and (vector? arg2) (= (first arg2) :mode-of)))
                      (list [condition [:any [:arg-mode]]])
