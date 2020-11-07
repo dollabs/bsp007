@@ -632,8 +632,14 @@
         (let [first-expn (eval/evaluate  wrtobject "???" (nth condit 1) nil nil nil nil)
               first-expn (if (lvar/is-lvar? first-expn) (lvar/deref-lvar first-expn) first-expn)
               second-expn (eval/evaluate wrtobject "???" (nth condit 2) nil nil nil nil)
-              second-expn (if (lvar/is-lvar? second-expn) (lvar/deref-lvar second-expn) second-expn)]
-          (if (> global/verbosity 3)
+              second-expn (if (lvar/is-lvar? second-expn) (lvar/deref-lvar second-expn) second-expn)
+              first-expn (if (and (keyword? second-expn) (string? first-expn))
+                           (eval/get-object-value (eval/maybe-get-named-object first-expn))
+                           first-expn)
+              second-expn (if (and (keyword? first-expn) (string? second-expn))
+                            (eval/get-object-value (eval/maybe-get-named-object second-expn))
+                            second-expn)]
+           (if (> global/verbosity 3)
             (println "(= "
                      (prop/prop-readable-form (nth condit 1)) "=" (prop/prop-readable-form first-expn)
                      (prop/prop-readable-form (nth condit 2)) "=" (prop/prop-readable-form second-expn)

@@ -1,4 +1,5 @@
 (propositions
+   (:nearly-unvisited-wrt-distance "/Main.theBuilding.StagingArea" "/Main.theBuilding.Room101")
    (:right-path-neighbor "/Main.theBuilding.ExecS2" "/Main.theBuilding.ExecS1")
    (:right-path-neighbor "/Main.theBuilding.Room109" "/Main.theBuilding.Room108")
    (:right-path-neighbor "/Main.theBuilding.MenRR" "/Main.theBuilding.WomRR")
