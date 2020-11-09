@@ -133,22 +133,28 @@
 (defn get-references-from-condition
   [condition]
   (if (> verbosity 2) (println "Entering get-references-from-condition, condition=" condition))
-  (let [result (cond
-                 (= (first condition) :thunk)
+  (let [result (case (first condition)
+                 :thunk
                  (do
                    (if (> verbosity 3)
                      (println "get-references-from-condition :thunk case -" condition))
                    (into [] (map (fn [ref] [:thunk ref (nth condition 2)])
                                  (get-references-from-condition (nth condition 1)))))
 
-                 (= (first condition) :equal)
-                 (into [] (apply concat (map (fn [expn] (get-references-from-expression expn)) (rest condition))))
+                 (:equal :same :notequal :notsame)
+                 (into [] (apply concat
+                                 (map (fn [expn] (get-references-from-expression expn))
+                                      (rest condition))))
 
-                 (= (first condition) :same)
-                 (into [] (apply concat (map (fn [expn] (get-references-from-expression expn)) (rest condition))))
+                 (:and :or)
+                 (into [] (apply concat
+                                 (map (fn [subcond] (get-references-from-expression subcond))
+                                      (rest condition))))
 
-                 :otherwise (do (irx/error "Unhandled case in get-references-from-condition: " condition) nil))]
-    (if (> verbosity 2) (println "exiting get-references-from-condition, condition=" condition "=" result))
+                 (do (irx/error "Unhandled case in get-references-from-condition: " condition)
+                     nil))]
+    (if (> verbosity 2)
+      (println "exiting get-references-from-condition, condition=" condition "=" result))
     result))
 
 (defn get-object-root-name
@@ -194,6 +200,10 @@
                            ;;(cons (get-object-root-name (nth goal 2))
                            (find-queries-in-goal querypart (nth goal 1)))
                   (:equal :same)
+                         (cond (= querypart (nth goal 1)) (get-queries-in (nth goal 2))
+                               (= querypart (nth goal 2)) (get-queries-in (nth goal 1))
+                               :otherwise [])
+                  (:notequal :notsame)
                          (cond (= querypart (nth goal 1)) (get-queries-in (nth goal 2))
                                (= querypart (nth goal 2)) (get-queries-in (nth goal 1))
                                :otherwise [])
@@ -261,37 +271,40 @@
 
                      :arg (get argmap (second condit))
 
-                     :arg-field (let [object (get argmap (nth condit 1))]
-                                  (if (thunk? object)
-                                    (case (first (nth object 1))
-                                      :field
-                                      [:arg-field (eval/deref-field (rest (nth object 1)) (nth object 2) :reference) (nth condit 2)]
+                     :arg-field
+                     (let [object (get argmap (nth condit 1))]
+                       (if (thunk? object)
+                         (case (first (nth object 1))
+                           :field
+                           [:arg-field (eval/deref-field (rest (nth object 1)) (nth object 2) :reference) (nth condit 2)]
 
-                                      :arg-field
-                                      (eval/deref-field (rest (nth object 1)) :reference)
+                           :arg-field
+                           (eval/deref-field (rest (nth object 1)) :reference)
 
                                         ;+++ possibly add other cases here
-                                      [:arg-field [:arg-field (nth object 2) (nth object 1)] (nth condit 2)])
-                                    [:arg-field object (nth condit 2)]))
+                           [:arg-field [:arg-field (nth object 2) (nth object 1)] (nth condit 2)])
+                         [:arg-field object (nth condit 2)]))
 
-                     :lookup-propositions [:lookup-propositions
-                                           (into [] (map (fn [prop-pat]
-                                                           (let [[lu where [pn arg1 arg2]] prop-pat]
-                                                             [lu where [pn
-                                                                        (replace-args-with-bindings mname arg1 argmap)
-                                                                        (replace-args-with-bindings mname arg2 argmap)]]))
-                                                         (nth condit 1)))
-                                           (let [condition (nth condit 2)]
-                                             (replace-args-with-bindings mname condition argmap))]
+                     :lookup-propositions
+                     [:lookup-propositions
+                      (into [] (map (fn [prop-pat]
+                                      (let [[lu where [pn arg1 arg2]] prop-pat]
+                                        [lu where [pn
+                                                   (replace-args-with-bindings mname arg1 argmap)
+                                                   (replace-args-with-bindings mname arg2 argmap)]]))
+                                    (nth condit 1)))
+                      (let [condition (nth condit 2)]
+                        (replace-args-with-bindings mname condition argmap))]
 
-                     (:and :or :not :equal :same)
-                                           (into [(first condit)]
-                                                  (map (fn [subexp]
-                                                         (replace-args-with-bindings mname subexp argmap))
-                                                       (rest condit)))
-
+                     (:and :or :not :equal :same :notequal :notsame)
+                     (into [(first condit)]
+                           (map (fn [subexp]
+                                  (replace-args-with-bindings mname subexp argmap))
+                                (rest condit)))
+                     ;; Default
                      condit))]
-    (if (> verbosity 2) (println "replace-args-with-bindings - condit=" condit " argmap=" argmap " replaced=" replaced))
+    (if (> verbosity 2)
+      (println "replace-args-with-bindings - condit=" condit " argmap=" argmap " replaced=" replaced))
     replaced))
 
 ;;; Format of an action is: [pclass (method-name [preconditions][postconditions] (probability) (list-of-args))]

@@ -192,16 +192,9 @@
     (:mode cond)
     (if (= (:type cond) :literal)
       (:value cond)
-      (if (or (= (:type cond) :equal)
-              (= (:type cond) :gt)
-              (= (:type cond) :ge)
-              (= (:type cond) :lt)
-              (= (:type cond) :le)
-              (= (:type cond) :and)
-              (= (:type cond) :or)
-              (= (:type cond) :not)
-              (= (:type cond) :implies))
-        cons
+      (case (:type cond)
+        (:equal :notequal :same :notsame :gt :ge :lt :le :and :or :not :implies)
+        cond
         'true))))
 
 (defn compile-proposition
@@ -219,10 +212,11 @@
       :mode-ref       (compile-reference cond)
       :literal        value
 
-      (:equal :gt :ge :lt :le :same)
+      (:equal :notequal :gt :ge :lt :le :same :notsame)
                       (if (= numargs 2) [type
                                          (compile-reference (first args))
                                          (compile-reference (second args))]
+                          ;; surely a constructor is called for here like with the others+++
                           cond)         ; +++ unfinished - how to compile inequalities with args != 2
       :and            (if (= numargs 1)
                         (compile-condition (first args))

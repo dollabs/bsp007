@@ -46,41 +46,6 @@
 ;;; simplify condition always returns a list representing a conjunction.
 (defn simplify-condition [condit wrtobject])
 
-;;; simplify-negate always returns an individual expression
-(defn simplify-negate
-  "maniulate the condition into conjunctive normal form and return a list of conjunctions."
-  [condit wrtobject]
-  ;; (println "in simplify-negate with: condit=" condit)
-  (if (not (or (seq? condit) (vector? condit)))
-    condit
-    (case (first condit)
-      ;; NOT NOT cancels, return the simplified subexpression
-      :not (let [exps (simplify-condition (second condit) wrtobject)]
-             ;; Handle case where expression of not simplifies to a conjunction.
-             (case (count exps)
-               0 :true
-               1 (first exps)
-               (into [:and] exps)))
-      ;; OR ~(Happy OR Sad) = ~Happy AND ~Sad
-      :or (into [:and] (map (fn [sc] (simplify-negate sc wrtobject)) (rest condit)))
-      ;; AND - ~(Happy AND Sad) = ~(~Happy OR ~Sad)
-      :and (simplify-negate (into [:or] (map (fn [sc] (simplify-negate sc wrtobject))
-                                             (rest condit)))
-                            wrtobject)
-      [:not condit])))
-
-
-
-;;; [:and [:same [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]]
-
-(defn conjunctive-list
-  [condit wrtobject]
-  (case (first condit)
-    :and (rest condit)
-    :or [condit]
-    :not [condit]
-    [condit]))
-
 ;; In un-lvar-expression with exprn= [:field p3]
 ;; In un-lvar-expression with exprn= [:mode-of (TargetStates) :attacked]
 ;; In un-lvar-expression with exprn= [:arg-field [:field atarget] location]
@@ -103,6 +68,79 @@
                                                             "now:" (prop/prop-readable-form  result))))
     result))
 
+;;; simplify-negate always returns an individual expression
+(defn simplify-negate
+  "maniulate the condition into conjunctive normal form and return a list of conjunctions."
+  [condit wrtobject]
+  ;; (println "in simplify-negate with: condit=" condit)
+  (if (not (or (seq? condit) (vector? condit)))
+    condit
+    (case (first condit)
+      ;; First handle the logical cases
+      ;; NOT NOT cancels, return the simplified subexpression
+      :not (let [exps (simplify-condition (second condit) wrtobject)]
+             ;; Handle case where expression of not simplifies to a conjunction.
+             (case (count exps)
+               0 :true
+               1 (first exps)
+               (into [:and] exps)))
+      ;; OR ~(Happy OR Sad) = ~Happy AND ~Sad
+      :or (into [:and] (map (fn [sc] (simplify-negate sc wrtobject))
+                            (rest condit)))
+      ;; AND - ~(Happy AND Sad) = ~Happy OR ~Sad
+      :and  (into [:or] (map (fn [sc] (simplify-negate sc wrtobject))
+                             (rest condit)))
+
+      ;; Handle logical inequalities
+      :equal (let [exp1 (un-lvar-expression (nth condit 1) wrtobject)
+                   exp2 (un-lvar-expression (nth condit 2) wrtobject)]
+               [:notequal exp1 exp2])
+
+      :notequal (let [exp1 (un-lvar-expression (nth condit 1) wrtobject)
+                      exp2 (un-lvar-expression (nth condit 2) wrtobject)]
+                  [:equal exp1 exp2])
+
+      :same  (let [exp1 (un-lvar-expression (nth condit 1) wrtobject)
+                   exp2 (un-lvar-expression (nth condit 2) wrtobject)]
+               [:notsame exp1 exp2])
+
+      :notsame  (let [exp1 (un-lvar-expression (nth condit 1) wrtobject)
+                   exp2 (un-lvar-expression (nth condit 2) wrtobject)]
+               [:same exp1 exp2])
+
+      :implies (let [exp1 (un-lvar-expression (nth condit 1) wrtobject)
+                     exp2 (simplify-negate (nth condit 2) wrtobject)]
+               [:and exp1 exp2])
+
+      ;; numerical inequalities
+      :gt [:le
+           (un-lvar-expression (nth condit 1) wrtobject)
+           (un-lvar-expression (nth condit 2) wrtobject)]
+      :lt [:ge
+           (un-lvar-expression (nth condit 1) wrtobject)
+           (un-lvar-expression (nth condit 2) wrtobject)]
+      :ge [:lt
+           (un-lvar-expression (nth condit 1) wrtobject)
+           (un-lvar-expression (nth condit 2) wrtobject)]
+      :le [:gt
+           (un-lvar-expression (nth condit 1) wrtobject)
+           (un-lvar-expression (nth condit 2) wrtobject)]
+
+      ;; Default not is not
+      [:not condit])))
+
+
+
+;;; [:and [:same [:field handholds] [:arg object]] [:not [:equal [:arg object] [:mode-of (Foodstate) :eaten]]]]
+
+(defn conjunctive-list
+  [condit wrtobject]
+  (case (first condit)
+    :and (rest condit)
+    :implies (into [(first condit)] (simplify-condition [:not (second condit)] wrtobject))
+    :or [condit]
+    :not [condit]
+    [condit]))
 
 (defn print-condition-tersely
   [condition]
@@ -137,9 +175,33 @@
                             (un-lvar-expression (nth condit 1) wrtobject)
                             (un-lvar-expression (nth condit 2) wrtobject)]]
 
+                   :notequal [[:notequal
+                               (un-lvar-expression (nth condit 1) wrtobject)
+                               (un-lvar-expression (nth condit 2) wrtobject)]]
+
                    :same [[:same
                             (un-lvar-expression (nth condit 1) wrtobject)
                             (un-lvar-expression (nth condit 2) wrtobject)]]
+
+                   :notsame [[:notsame
+                              (un-lvar-expression (nth condit 1) wrtobject)
+                              (un-lvar-expression (nth condit 2) wrtobject)]]
+
+                   :gt [[:gt
+                         (un-lvar-expression (nth condit 1) wrtobject)
+                         (un-lvar-expression (nth condit 2) wrtobject)]]
+
+                   :ge [[:ge
+                         (un-lvar-expression (nth condit 1) wrtobject)
+                         (un-lvar-expression (nth condit 2) wrtobject)]]
+
+                   :lt [[:lt
+                         (un-lvar-expression (nth condit 1) wrtobject)
+                         (un-lvar-expression (nth condit 2) wrtobject)]]
+
+                   :le [[:le
+                         (un-lvar-expression (nth condit 1) wrtobject)
+                         (un-lvar-expression (nth condit 2) wrtobject)]]
 
                    ;; NOT negate the simplified subexpression
                    :not (conjunctive-list (simplify-negate (second condit) wrtobject) wrtobject)

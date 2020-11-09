@@ -150,42 +150,61 @@
 
   (if (sequential? condition)               ;atomic conditions = no influence
     (case (first condition)
-      :thunk (let [[cond rto] (rest condition)] (generate-lookup-from-condition pclass cond))
-      (:equal :same)
-             (let [[arg1 arg2] (rest condition)
-                   arg1 (if (value? arg1) (second arg1) arg1)
-                   arg2 (if (value? arg2) (second arg2) arg2)]
-               (cond (and ; This doesn't work because we want to be able to use finite values
-                      (or (global/RTobject? arg1) (= (first arg1) :field))
-                      (and (vector? arg2) (= (first arg2) :mode-of)))
-                     (list [condition [:any [:arg-mode]]])
+      :thunk
+      (let [[cond rto] (rest condition)]
+        (generate-lookup-from-condition pclass cond))
 
-                     (and
-                      (or (global/RTobject? arg2) (and (vector? arg2) (= (first arg2) :field)))
-                      (and (vector? arg1) (= (first arg1) :mode-of)))
-                     (list [condition [:any [:arg-mode]]])
+      (:equal :same :notequal :notsame)
+      (let [[arg1 arg2] (rest condition)
+            arg1 (if (value? arg1) (second arg1) arg1)
+            arg2 (if (value? arg2) (second arg2) arg2)]
+        (cond (and ; This doesn't work because we want to be able to use finite values
+               (or (global/RTobject? arg1) (= (first arg1) :field))
+               (and (vector? arg2) (= (first arg2) :mode-of)))
+              (list [condition [:any [:arg-mode]]])
 
-                     (global/RTobject? arg1)
-                     (list [condition [:object arg1]]) ;+++ surely we want to get both cases
+              (and
+               (or (global/RTobject? arg2) (and (vector? arg2) (= (first arg2) :field)))
+               (and (vector? arg1) (= (first arg1) :mode-of)))
+              (list [condition [:any [:arg-mode]]])
 
-                     (global/RTobject? arg2)
-                     (list [condition [:object arg2]])
+              (global/RTobject? arg1)
+              (list [condition [:object arg1]]) ;+++ surely we want to get both cases
 
-                     (and (vector? arg1) (= (first arg1) :field))
-                     (list [condition [pclass [:field (second arg1)]]]) ;+++ surely we want to get both cases
+              (global/RTobject? arg2)
+              (list [condition [:object arg2]])
 
-                     (and (vector? arg2) (= (first arg2) :field))
-                     (list [condition [pclass [:field (second arg2)]]])
+              (and (vector? arg1) (= (first arg1) :field))
+              (list [condition [pclass [:field (second arg1)]]]) ;+++ surely we want to get both cases
 
-                     (and (vector? arg1) (= (first arg1) :arg-field))
-                     (list [condition [pclass [:arg-field (second arg1)]]])
+              (and (vector? arg2) (= (first arg2) :field))
+              (list [condition [pclass [:field (second arg2)]]])
 
-                     (and (vector? arg2) (= (first arg2) :arg-field))
-                     (list [condition [pclass [:arg-field (second arg2)]]])
+              (and (vector? arg1) (= (first arg1) :arg-field))
+              (list [condition [pclass [:arg-field (second arg1)]]])
 
-                     :else nil #_(list [pclass (extract-referents condition)]))) ; NYI+++
+              (and (vector? arg2) (= (first arg2) :arg-field))
+              (list [condition [pclass [:arg-field (second arg2)]]])
+
+              :else nil #_(list [pclass (extract-referents condition)]))) ; NYI+++
+
+      :and
+      (apply concat (map (partial generate-lookup-from-condition pclass) (rest condition)))
+
+      :or
+      (apply concat (map (partial generate-lookup-from-condition pclass) (rest condition)))
+
+      :lookup-propositions
+      nil
+
       ;; NYI +++ :and (apply concat (map (fn [arg] (compile-influence arg)) (rest condition)))
-      :not (list [:not]) ;+++
+      :not
+      (let [negqueries (generate-lookup-from-condition pclass (second condition))]
+        (println "In generate-lookup-from-condition with condition=" condition "negQ=" negqueries)
+        (map (fn [[cond pattern]] [cond [:not pattern]]) negqueries))                          ;+++
+
+      ;; Numerical inequalities NYI +++
+
       nil)
     nil))                                  ;NYI
 
@@ -276,6 +295,35 @@
       (nth postconds 2)
       nil)))
 
+(def inverse-preds
+  {:equal :notequal
+   :notequal :equal
+   :same :notsame
+   :notsame :same
+   :gt :le
+   :le :gt
+   :lt :ge
+   :ge :lt})
+
+(defn inverse-pred
+  [pred]
+  (get inverse-preds pred :no-inverse))
+
+(defn different-mode-literals
+  [args1 args2]
+  (let [arg1 (if (= (first (first args1)) :mode-of)
+               (nth (first args1) 2)
+               (if (= (first (second args1)) :mode-of)
+                 (nth (second args1) 2)
+                 nil))
+        arg2 (if (= (first (first args2)) :mode-of)
+               (nth (first args2) 2)
+               (if (= (first (second args2)) :mode-of)
+                 (nth (second args2) 2)
+                 nil))]
+    (println "in different-mode-literals arg1=" arg1 "arg2=" arg2)
+    (and arg1 arg2 (not (= arg1 arg2)))))
+
 ;;; +++ we need to handle all of the cases here +++
 (defn match-goal-query-aux
   [goal postconds]
@@ -286,47 +334,54 @@
     (= goal postconds)
     (list (first goal) (first postconds))
 
+    (and (= (first goal) (inverse-pred (first postconds)))
+         (or (= (first goal) :equal) (= (first postconds) :equal)))
+    (if (different-mode-literals (rest goal) (rest postconds))
+      (list (first goal) (first postconds)))
+
     (= (first goal) (first postconds))
     (case (first goal)
       (:equal :same) ;+++ is this right?  Does :same belong here?
-             (let [argcondpart (argpart postconds)
-                   -  (if (> global/verbosity 3)
-                        (println "argcondpart=" (prop/prop-readable-form argcondpart)))
-                   matchcondpart (nonargpart postconds)
-                   - (if (> global/verbosity 3)
-                       (println "matchcondpart=" (prop/prop-readable-form matchcondpart)))
-                   matchresult (if (and argcondpart matchcondpart)
-                                 (if (= matchcondpart (nth goal 1))
-                                   (into {} (list [(second argcondpart) (nth goal 2)]))
-                                   (if (= matchcondpart (nth goal 2))
-                                     (into {} (list [(second argcondpart) (nth goal 1)]))
-                                     nil)))]
-               (if (> global/verbosity 3)
-                 (println "match " (prop/prop-readable-form matchcondpart)
-                          " with " (prop/prop-readable-form goal)
-                          " goal =" (prop/prop-readable-form matchresult)))
-               matchresult)
+      (let [argcondpart (argpart postconds)
+            -  (if (> global/verbosity 3)
+                 (println "argcondpart=" (prop/prop-readable-form argcondpart)))
+            matchcondpart (nonargpart postconds)
+            - (if (> global/verbosity 3)
+                (println "matchcondpart=" (prop/prop-readable-form matchcondpart)))
+            matchresult (if (and argcondpart matchcondpart)
+                          (if (= matchcondpart (nth goal 1))
+                            (into {} (list [(second argcondpart) (nth goal 2)]))
+                            (if (= matchcondpart (nth goal 2))
+                              (into {} (list [(second argcondpart) (nth goal 1)]))
+                              nil)))]
+        (if (> global/verbosity 3)
+          (println "match " (prop/prop-readable-form matchcondpart)
+                   " with " (prop/prop-readable-form goal)
+                   " goal =" (prop/prop-readable-form matchresult)))
+        matchresult)
 
-             (do (if (> global/verbosity 0)
-                   (println "match-goal-query-aux unhandled case 1: goal="
-                            (prop/prop-readable-form goal)
-                            " posts=" (prop/prop-readable-form postconds)))
+      (do (if (> global/verbosity 0)
+            (println "match-goal-query-aux unhandled case 1: goal="
+                     (prop/prop-readable-form goal)
+                     " posts=" (prop/prop-readable-form postconds)))
           nil))
 
     :otherwise
     (do (if (> global/verbosity 0)
           (println "match-goal-query-aux unhandled case 2: goal=" (prop/prop-readable-form goal)
                    " posts=" (prop/prop-readable-form postconds)))
-      nil)))
+        nil)))
 
 (defn match-goal-query?
   [goal query]
   (let [postconds (irx/.postc (.methodsig query))
         amatch (case (first postconds)
                  (:equal :same)
-                   (match-goal-query-aux goal postconds)
+                 (match-goal-query-aux goal postconds)
+
                  :and
-                   (some (fn [apost] (match-goal-query-aux goal apost)) (rest postconds))
+                 (some (fn [apost] (match-goal-query-aux goal apost)) (rest postconds))
+
                  (do (if (> global/verbosity 0)
                        (println "match-goal-query? unhandled case: goal=" (prop/prop-readable-form goal)
                                 " posts=" (prop/prop-readable-form postconds)))
@@ -556,7 +611,7 @@
     (do (if (> global/verbosity 2) ; normally 2
           (println "found-candidate path=" (prop/prop-readable-form path) "constraint=" (prop/prop-readable-form condition)
                    "=" (condition-satisfied? condition wrtobj)
-                   "wrtobject=" wrtobj))
+                   "wrtobject=" (prop/prop-readable-form wrtobj)))
         (if (condition-satisfied? condition wrtobj) (reset! pmatches (conj @pmatches path)))) ; Success case
     (let [[arg1 arg2 matches] (compute-prop-matches wrtobj (first pvec))] ; [a1 a2 matches]
       (when (not (empty? matches))      ; continue if we found at least one match
@@ -622,7 +677,7 @@
       ;; OR - true if at least one subexpression is satisfied
       :or (some (fn [condit] (condition-satisfied? condit wrtobject)) (rest condit))
       ;; EQUAL -
-      :equal
+      (:equal :notequal)
       (do
         (if (> global/verbosity 3)
           (println "In condition-satisfied? with (= "
@@ -644,9 +699,11 @@
                      (prop/prop-readable-form (nth condit 1)) "=" (prop/prop-readable-form first-expn)
                      (prop/prop-readable-form (nth condit 2)) "=" (prop/prop-readable-form second-expn)
                      ")"))
-          (= first-expn second-expn)))
+           (if (= (first condit) :notequal)
+             (not (= first-expn second-expn))
+             (= first-expn second-expn))))
       ;; SAME -
-      :same
+      (:same :notsame)
       (do
         (if (> global/verbosity 3)
           (println "In condition-satisfied? with (same "
@@ -662,7 +719,10 @@
                      (prop/prop-readable-form (nth condit 1)) "=" (prop/prop-readable-form first-expn)
                      (prop/prop-readable-form (nth condit 2)) "=" (prop/prop-readable-form second-expn)
                      ")"))
-          (= first-expn second-expn)))
+          (if (= (first condit) :notsame)
+            (not (= first-expn second-expn))
+            (= first-expn second-expn))))
+      ;; CALL -
       :call
       (let [plant (nth condit 1)
             names (nth condit 2)
@@ -680,6 +740,7 @@
 
               :otherwise (do (irx/break "CALL: plant=" plant " names=" names " args=" args) true)))
 
+      ;; LOOKUP-PROPOSITIONS -
       :lookup-propositions
       (lookup-propositions wrtobject condit)
 
@@ -690,33 +751,47 @@
   ;; (println "In process-post-conditions postcs=" (prop/prop-readable-form postcs))
   (cond (and (vector? postcs) (not (empty? postcs)))
         (case (first postcs)
-          :thunk (println ":thunk NYI")
+          :thunk
+          (println ":thunk NYI")
 
-          :equal (let [a1 (eval/maybe-get-named-object
-                           (devalue wrtobj (eval/evaluate-reference wrtobj (nth postcs 1) nil nil nil nil)))
-                       a2 (eval/maybe-get-named-object
-                           (devalue wrtobj (eval/evaluate-reference wrtobj (nth postcs 2) nil nil nil nil)))]
-                   #_(println "In process-post-conditions postcs="     (prop/prop-readable-form postcs)
-                            "a1=" (prop/prop-readable-form a1) "a2=" (prop/prop-readable-form a2))
-                   (cond (and (keyword? a1) (global/RTobject? a2))
-                         (imag/imagine-changed-object-mode a2 a1 1.0) ;+++ probability should come from somewhere
+          :equal
+          (let [a1 (eval/maybe-get-named-object
+                    (devalue wrtobj (eval/evaluate-reference wrtobj (nth postcs 1) nil nil nil nil)))
+                a2 (eval/maybe-get-named-object
+                    (devalue wrtobj (eval/evaluate-reference wrtobj (nth postcs 2) nil nil nil nil)))]
+            #_(println "In process-post-conditions postcs="     (prop/prop-readable-form postcs)
+                       "a1=" (prop/prop-readable-form a1) "a2=" (prop/prop-readable-form a2))
+            (cond (and (keyword? a1) (global/RTobject? a2))
+                  (imag/imagine-changed-object-mode a2 a1 1.0) ;+++ probability should come from somewhere
 
-                         (and (keyword? a2) (global/RTobject? a1))
-                         (imag/imagine-changed-object-mode a1 a2 1.0) ;+++ probability should come from somewhere
+                  (and (keyword? a2) (global/RTobject? a1))
+                  (imag/imagine-changed-object-mode a1 a2 1.0) ;+++ probability should come from somewhere
 
-                         :otherwise nil))
+                  :otherwise nil))
 
-          :same nil ;(println ":same NYI")
+          (:same :notsame :notequal)
+          nil ;(println ":same/:notsame/:notequal NYI")
 
-          :not (println "not NYI")
+          :not
+          (println "not NYI")
 
-          :and (doseq [arg (rest postcs)] (process-post-conditions arg wrtobj))
+          :implies
+          (println "implies NYI")
 
-          :or (println "disjunctive post-conditions NYI") ; This shouldn't happen
+          (:gt :ge :lt :le)
+          (println "numerical inequalities  NYI")
 
-          :lookup-propositions (println "lookup-propositions in post conditions NYI")
+          :and
+          (doseq [arg (rest postcs)] (process-post-conditions arg wrtobj))
 
-          :call (println "function-calls in post conditions NYI")
+          :or
+          (println "disjunctive post-conditions NYI") ; This shouldn't happen
+
+          :lookup-propositions
+          (println "lookup-propositions in post conditions NYI")
+
+          :call
+          (println "function-calls in post conditions NYI")
 
           nil)
 
@@ -777,7 +852,8 @@
                           [subgoals postcs rto] (into []
                                                       (apply concat
                                                              (map (fn [[call prec postc] rto]
-                                                                    (if (not (global/RTobject? rto)) (irx/error "RTO not an RTobject in plan-generate: " rto))
+                                                                    (if (not (global/RTobject? rto))
+                                                                      (irx/error "RTO not an RTobject in plan-generate: " rto))
                                                                     [(map (fn [conj] [:thunk conj rto])
                                                                           (simp/simplify-cond-top-level prec rto))
                                                                      postc

@@ -201,6 +201,11 @@
                 res2 (evaluate wrtobject path (nth expn 2) class-bindings method-bindings cspam spam)]
             (if (= res1 res2) true false))
 
+          :notequal
+          (let [res1 (evaluate wrtobject path (nth expn 1) class-bindings method-bindings cspam spam)
+                res2 (evaluate wrtobject path (nth expn 2) class-bindings method-bindings cspam spam)]
+            (if (not (= res1 res2)) true false))
+
           :same
           (let [res1pre (evaluate-reference wrtobject (nth expn 1) class-bindings method-bindings cspam spam)
                 res1 (if (global/RTobject? res1pre)
@@ -211,6 +216,17 @@
                        res2pre
                        (evaluate wrtobject path res2pre class-bindings method-bindings cspam spam))]
             (if (= res1 res2) true false))
+
+          :notsame
+          (let [res1pre (evaluate-reference wrtobject (nth expn 1) class-bindings method-bindings cspam spam)
+                res1 (if (global/RTobject? res1pre)
+                       res1pre
+                       (evaluate wrtobject path res1pre class-bindings method-bindings cspam spam))
+                res2pre (evaluate-reference wrtobject (nth expn 2) class-bindings method-bindings cspam spam)
+                res2 (if (global/RTobject? res2pre)
+                       res2pre
+                       (evaluate wrtobject path res2pre class-bindings method-bindings cspam spam))]
+            (if (not (= res1 res2)) true false))
 
           :not
           (let [res (evaluate wrtobject path (nth expn 1) class-bindings method-bindings cspam spam)]
