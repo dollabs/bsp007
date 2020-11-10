@@ -1,0 +1,6 @@
+(sequence
+ (player.goto-room "/Main.theBuilding.Room101")
+ (player.goto-room "/Main.theBuilding.Room102")
+ (player.goto-room "/Main.theBuilding.Room103")
+ (player.goto-room "/Main.theBuilding.Room104")
+ (player.arrive missionstatus))

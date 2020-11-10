@@ -321,7 +321,8 @@
                (if (= (first (second args2)) :mode-of)
                  (nth (second args2) 2)
                  nil))]
-    (println "in different-mode-literals arg1=" arg1 "arg2=" arg2)
+    (if (> global/verbosity 3)
+      (println "in different-mode-literals arg1=" arg1 "arg2=" arg2))
     (and arg1 arg2 (not (= arg1 arg2)))))
 
 ;;; +++ we need to handle all of the cases here +++

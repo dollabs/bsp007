@@ -1092,7 +1092,7 @@
     {":args":
      [-2036, 161, 60, -2029, 168, 61, "\"Room 101\"",
       {":type":":field-ref", ":names":["R101-EC"]}],
-     ":pclass":"Room",
+     ":pclass":"RoomX",
      ":type":":pclass-ctor"},
     ":observable":false},
    "Room102":
@@ -3564,6 +3564,82 @@
      ":display-args":null}]},
   ":modes":{":root":true},
   ":type":":pclass"},
+ "Main3":
+ {":args":null,
+  ":fields":
+  {"aroom":
+   {":access":":private",
+    ":initial":{":name":"\"a room\"", ":type":":lvar"},
+    ":observable":false},
+   "missionstatus":
+   {":access":":private",
+    ":initial":
+    {":args":null, ":pclass":"MissionStatus", ":type":":pclass-ctor"},
+    ":observable":false},
+   "observer":
+   {":access":":private",
+    ":initial":
+    {":args":["\"Ed\"", 0, ":testbed-observer", ":robot", 0, 0, 0, 0],
+     ":pclass":"ParticipantProfile",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "p1":
+   {":access":":private",
+    ":initial":
+    {":args":
+     ["\"Player396\"", 18, ":male", ":american", 50, 50, 80, 80],
+     ":pclass":"ParticipantProfile",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "player":
+   {":access":":private",
+    ":initial":
+    {":args":
+     ["\"\/Main.theBuilding.StagingArea\"",
+      {":type":":field-ref", ":names":["missionstatus"]}],
+     ":pclass":"OPlayer",
+     ":plant-id":"\"Player-Opportunistic\"",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "rita":
+   {":access":":private",
+    ":initial":
+    {":args":
+     ["\"Rita\"", 0, ":asist-assistant", ":robot", 0, 0, 0, 0],
+     ":pclass":"ParticipantProfile",
+     ":type":":pclass-ctor"},
+    ":observable":false},
+   "theBuilding":
+   {":access":":private",
+    ":initial":
+    {":args":null, ":pclass":"Falcon", ":type":":pclass-ctor"},
+    ":observable":false}},
+  ":meta":{":doc":"\"Constructor of the SAR scenario\""},
+  ":methods":
+  {"goal":
+   [{":doc":"\"Search the building\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":null,
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Goal\"",
+     ":pre":true,
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["missionstatus"]},
+       {":type":":mode-ref",
+        ":mode-ref":
+        {":type":":symbol-ref", ":names":["MissionStatus"]},
+        ":mode":":finished"}]},
+     ":display-args":null}]},
+  ":type":":pclass"},
  "Minecraft-object-anvil":
  {":args":["iblx", "ibly", "iblz", "itrx", "itry", "itrz", "vname"],
   ":fields":
@@ -4197,6 +4273,17 @@
     ":observable":false}},
   ":inherit":["RectangularVolume"],
   ":type":":pclass"},
+ "MissionStatus":
+ {":args":null,
+  ":modes":
+  {":finished":true,
+   ":started":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"}},
+  ":type":":pclass"},
  "NorthCorridor":
  {":args":
   ["iblx", "ibly", "iblz", "itrx", "itry", "itrz", "vname", "ra", "rb",
@@ -4275,6 +4362,104 @@
     ":initial":{":names":["vname"], ":type":":pclass-arg-ref"},
     ":observable":false}},
   ":inherit":["RectangularVolume"],
+  ":type":":pclass"},
+ "OPlayer":
+ {":args":["startat", "mstatus"],
+  ":fields":
+  {"dest":
+   {":access":":private",
+    ":initial":{":name":"\"finalroom\"", ":type":":lvar"},
+    ":observable":false},
+   "from":
+   {":access":":private",
+    ":initial":{":name":"\"from\"", ":type":":lvar"},
+    ":observable":false},
+   "missionstatus":
+   {":access":":private",
+    ":initial":{":names":["mstatus"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "nowat":
+   {":access":":private",
+    ":initial":{":name":"\"room-came-from\"", ":type":":lvar"},
+    ":observable":false},
+   "p-location":
+   {":access":":private",
+    ":initial":{":names":["startat"], ":type":":pclass-arg-ref"},
+    ":observable":false}},
+  ":methods":
+  {"arrive":
+   [{":doc":"\"Finished when all rooms visited\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["newloc"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Arrive\"",
+     ":pre":
+     {":type":":and",
+      ":args":
+      [{":type":":lookup-propositions",
+        ":where":null,
+        ":propositions":
+        [{":type":":proposition-pattern",
+          ":look-where":null,
+          ":prop-name":":lookahead-steps",
+          ":args":
+          [{":type":":field-ref", ":names":["nowat"]},
+           {":type":":field-ref", ":names":["dest"]}]}]},
+       {":type":":same",
+        ":args":
+        [{":type":":field-ref", ":names":["p-location"]},
+         {":type":":field-ref", ":names":["dest"]}]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":equal",
+      ":args":
+      [{":type":":field-ref", ":names":["missionstatus"]},
+       {":type":":mode-ref",
+        ":mode-ref":
+        {":type":":symbol-ref", ":names":["MissionStatus"]},
+        ":mode":":finished"}]},
+     ":display-args":["newloc"]}],
+   "goto-room":
+   [{":doc":"\"Move to another room\"",
+     ":probability":1.0,
+     ":reward":0,
+     ":temporal-constraints":
+     [{":type":":bounds", ":value":[0, ":infinity"]}],
+     ":controllable":false,
+     ":cost":0,
+     ":args":["newloc"],
+     ":primitive":true,
+     ":body":null,
+     ":display-name":"\"Goto Room\"",
+     ":pre":
+     {":type":":and",
+      ":args":
+      [{":type":":lookup-propositions",
+        ":where":null,
+        ":propositions":
+        [{":type":":proposition-pattern",
+          ":look-where":null,
+          ":prop-name":":nearby-unvisited-wrt-distance",
+          ":args":
+          [{":type":":field-ref", ":names":["nowat"]},
+           {":type":":method-arg-ref", ":names":["newloc"]}]}]},
+       {":type":":same",
+        ":args":
+        [{":type":":field-ref", ":names":["p-location"]},
+         {":type":":field-ref", ":names":["nowat"]}]}]},
+     ":betweens":null,
+     ":post":
+     {":type":":same",
+      ":args":
+      [{":type":":field-ref", ":names":["p-location"]},
+       {":type":":method-arg-ref", ":names":["newloc"]}]},
+     ":display-args":["newloc"]}]},
   ":type":":pclass"},
  "ParticipantProfile":
  {":args":
@@ -4530,6 +4715,57 @@
     ":observable":false}},
   ":type":":pclass"},
  "Room":
+ {":args":
+  ["iblx", "ibly", "iblz", "itrx", "itry", "itrz", "vname", "cx"],
+  ":fields":
+  {"bl-x":
+   {":access":":private",
+    ":initial":{":names":["iblx"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "bl-y":
+   {":access":":private",
+    ":initial":{":names":["ibly"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "bl-z":
+   {":access":":private",
+    ":initial":{":names":["iblz"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "doorcx":
+   {":access":":private",
+    ":initial":{":names":["cx"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "tr-x":
+   {":access":":private",
+    ":initial":{":names":["itrx"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "tr-y":
+   {":access":":private",
+    ":initial":{":names":["itry"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "tr-z":
+   {":access":":private",
+    ":initial":{":names":["itrz"], ":type":":pclass-arg-ref"},
+    ":observable":false},
+   "v-name":
+   {":access":":private",
+    ":initial":{":names":["vname"], ":type":":pclass-arg-ref"},
+    ":observable":false}},
+  ":inherit":["RectangularVolume"],
+  ":meta":{":doc":"\"A Single Door Room\""},
+  ":modes":
+  {":unvisited":
+   {":args":
+    [{":type":":mode-ref",
+      ":mode-ref":{":type":":symbol-ref", ":names":["General"]},
+      ":mode":":initial"}],
+    ":type":":or"},
+   ":visited":true},
+  ":type":":pclass"},
+ "RoomModes":
+ {":args":null,
+  ":modes":{":unvisited":true, ":visited":true},
+  ":type":":pclass"},
+ "RoomX":
  {":args":
   ["iblx", "ibly", "iblz", "itrx", "itry", "itrz", "vname", "cx"],
   ":fields":
@@ -5108,5 +5344,9 @@
    "\"Womens restroom inner door 1\"":":unset",
    "\"Womens restroom inner door 2\"":":unset",
    "\"Womens restroom\"":":unset",
-   "\"room came-from\"":":unset"},
+   "\"a room\"":":unset",
+   "\"finalroom\"":":unset",
+   "\"from\"":":unset",
+   "\"room came-from\"":":unset",
+   "\"room-came-from\"":":unset"},
   ":type":":lvars"}}

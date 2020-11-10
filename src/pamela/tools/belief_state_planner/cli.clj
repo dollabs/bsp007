@@ -41,6 +41,8 @@
   (:refer-clojure :exclude [rand rand-int rand-nth])
   (:gen-class))
 
+;;;(in-ns 'pamela.tools.belief-state-planner.cli)
+
 ;(def default-action "observe") ; Maintain a belief state given a model and observations
 
 (defonce sdf (SimpleDateFormat. "yyyy-MMdd-HHmm"))
@@ -419,3 +421,4 @@
 ;;; (montecarloplanner  "-g" "test/planner/40_plannertest.ir.json" "-G" "world" "-v" "4" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "test/planner/40_ritatest.ir.json" "-G" "Main" "-v" "2" "-d" "50" "-P" "test/planner/40_ritatest.ppr" "-s" "1" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "test/planner/40_ritatest.ir.json" "-G" "Main2" "-v" "2" "-d" "50" "-P" "test/planner/40_ritatest.ppr" "-s" "1" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_ritatest.ir.json" "-G" "Main3" "-v" "0" "-d" "50" "-P" "test/planner/40_ritatest.ppr" "-s" "1" "-r" "true" "make-plan")

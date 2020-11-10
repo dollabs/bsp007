@@ -195,6 +195,14 @@
           :visited true}
   :fields {doorcx cx})
 
+(defpclass RoomX [iblx ibly iblz itrx itry itrz vname
+                 cx]
+  :meta {:doc "A Single Door Room"}
+  :inherit [RectangularVolume]
+  :modes {:unvisited (or (mode-of General :initial))
+          :visited true}
+  :fields {doorcx cx})
+
 (defpclass TwoDoorRoom [iblx ibly iblz itrx itry itrz vname
                         cx cx2]
   :meta {:doc "A Two Door Room"}
@@ -516,7 +524,7 @@
 
            ;; Rooms
            ;; Numbered rooms
-           Room101 (Room -2036 161 60 -2029 168 61 "Room 101" R101-EC)
+           Room101 (RoomX -2036 161 60 -2029 168 61 "Room 101" R101-EC)
            Room102 (Room -2036 170 60 -2029 177 61 "Room 102" R102-SC)
            Room103 (Room -2036 184 60 -2029 191 61 "Room 103" R103-SC)
            Room104 (Room -2045 184 60 -2038 191 61 "Room 104" R104-SC)
@@ -957,14 +965,6 @@
                :post (same p-location newloc)
                :primitive true}
               [newloc])
-            ;; (defpmethod right-room      ; skip a room
-            ;;   {:doc "Skip a room that has been visited already"
-            ;;    :pre (and (= strategy (mode-of Strategy :right))
-            ;;              (not (= newloc (mode-of Room :unvisited)))
-            ;;              (= p-location nowat))
-            ;;    :post (= p-location newloc)
-            ;;    :primitive true}
-            ;;   [newloc])
             (defpmethod arrive
               {:doc "arrived"
                :pre (same p-location object.t-location)
@@ -986,20 +986,47 @@
                :post (same p-location newloc)
                :primitive true}
               [newloc])
-            ;; (defpmethod skip-room      ; skip a room
-            ;;   {:doc "Skip a room that has been visited already"
-            ;;    :pre (and (propositions [(:right-path-neighbor nowat newloc)])
-            ;;              (not (= newloc (mode-of Room :unvisited)))
-            ;;              (= P-location nowat))
-            ;;    :post (= P-location newloc)
-            ;;    :primitive true}
-            ;;   [newloc])
-            (defpmethod arrive
+           (defpmethod arrive
               {:doc "arrived"
                :pre (same p-location object.t-location)
                :post (= object (mode-of DestinationStates :arrived))
                :primitive true}
               [object])])
+
+(defpclass RoomModes [] :modes [:unvisited :visited])
+
+(defpclass MissionStatus []
+  :modes {:started (or (mode-of General :initial)) :finished true})
+
+(defpclass OPlayer [startat mstatus]
+  :fields {nowat (lvar "room-came-from")
+           from (lvar "from")
+           dest (lvar "finalroom")
+           p-location startat
+           missionstatus mstatus}
+
+  :methods [(defpmethod goto-room      ; Goto a room
+              {:doc "Move to another room"
+               :pre (and
+                     (propositions [(:nearby-unvisited-wrt-distance
+                                     nowat newloc)])
+                     (same p-location nowat))
+               :post ;(and
+                     (same p-location newloc)
+                     ;     (= newloc (mode-of RoomModes :visited)))
+               :primitive true}
+              [newloc])
+
+            (defpmethod arrive      ; Finished
+              {:doc "Finished when all rooms visited"
+               :pre (and
+                     (propositions [(:lookahead-steps nowat dest)])
+                     (same p-location dest))
+
+               :post (= missionstatus (mode-of MissionStatus :finished))
+               :primitive true}
+              [newloc])
+            ])
 
 (defpclass Main []
   :modes [ :root ]
@@ -1047,5 +1074,20 @@
               }
               [])])
 
+(defpclass Main3 []
+  :meta {:doc "Constructor of the SAR scenario"}
+  :fields {theBuilding (Falcon)
+           missionstatus (MissionStatus)
+           player (OPlayer "/Main.theBuilding.StagingArea" missionstatus :id "Player-Opportunistic")
+
+           rita (ParticipantProfile "Rita"       0 :asist-assistant    :robot     0  0  0  0)
+           observer (ParticipantProfile "Ed"     0 :testbed-observer   :robot     0  0  0  0)
+           p1   (ParticipantProfile "Player396" 18 :male               :american 50 50 80 80)
+           aroom (lvar "a room")
+           }
+    :methods [(defpmethod goal
+              {:doc "Search the building"
+               :post (= missionstatus (mode-of MissionStatus :finished))}
+              [])])
 
 ;;; Fin

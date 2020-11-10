@@ -349,7 +349,7 @@
                                    :otherwise
                                    (deref-field (rest object) (second (first (global/get-root-objects))) :reference)) ; Force caller to be root+++?
                            - (if (> global/verbosity 2)
-                               (println ":arg-field obj= " (prop/prop-readable-form obj)))
+                               (println ":arg-field field=" field "obj=" (prop/prop-readable-form obj)))
                            value (deref-field field obj :reference)] ; +++ handle multilevel case NYI
                          (if (not (global/RTobject? value)) value [:value value]))
 
@@ -497,7 +497,7 @@
     (second (first namelist))
 
     (vector? wrtobject)
-    (do (irx/error "dereference failed on bad wrtobject=" wrtobject)
+    (do (irx/error "dereference failed on bad wrtobject=" (prop/prop-readable-form wrtobject))
         [:not-found namelist])
 
     (empty? wrtobject)
