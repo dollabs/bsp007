@@ -1,6 +1,9 @@
 (propositions
-   (:nearly-unvisited-wrt-distance "/Main.theBuilding.StagingArea" "/Main.theBuilding.Room101")
-   (:lookahead-steps "/Main.theBuilding.StagingArea" "/Main.theBuilding.Room101")
+   (:nearby-unvisited-wrt-distance "/Main.theBuilding.StagingArea" "/Main.theBuilding.Room101")
+   (:nearby-unvisited-wrt-distance "/Main.theBuilding.Room101" "/Main.theBuilding.Room102")
+   (:nearby-unvisited-wrt-distance "/Main.theBuilding.Room102" "/Main.theBuilding.Room103")
+   (:nearby-unvisited-wrt-distance "/Main.theBuilding.Room103" "/Main.theBuilding.Room104")
+   (:lookahead-steps "/Main.theBuilding.StagingArea" "/Main.theBuilding.Room104")
    (:right-path-neighbor "/Main.theBuilding.ExecS2" "/Main.theBuilding.ExecS1")
    (:right-path-neighbor "/Main.theBuilding.Room109" "/Main.theBuilding.Room108")
    (:right-path-neighbor "/Main.theBuilding.MenRR" "/Main.theBuilding.WomRR")

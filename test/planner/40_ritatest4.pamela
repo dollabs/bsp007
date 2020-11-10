@@ -965,14 +965,6 @@
                :post (same p-location newloc)
                :primitive true}
               [newloc])
-            ;; (defpmethod right-room      ; skip a room
-            ;;   {:doc "Skip a room that has been visited already"
-            ;;    :pre (and (= strategy (mode-of Strategy :right))
-            ;;              (not (= newloc (mode-of Room :unvisited)))
-            ;;              (= p-location nowat))
-            ;;    :post (= p-location newloc)
-            ;;    :primitive true}
-            ;;   [newloc])
             (defpmethod arrive
               {:doc "arrived"
                :pre (same p-location object.t-location)
@@ -994,15 +986,7 @@
                :post (same p-location newloc)
                :primitive true}
               [newloc])
-            ;; (defpmethod skip-room      ; skip a room
-            ;;   {:doc "Skip a room that has been visited already"
-            ;;    :pre (and (propositions [(:right-path-neighbor nowat newloc)])
-            ;;              (not (= newloc (mode-of Room :unvisited)))
-            ;;              (= P-location nowat))
-            ;;    :post (= P-location newloc)
-            ;;    :primitive true}
-            ;;   [newloc])
-            (defpmethod arrive
+           (defpmethod arrive
               {:doc "arrived"
                :pre (same p-location object.t-location)
                :post (= object (mode-of DestinationStates :arrived))
@@ -1016,22 +1000,28 @@
 
 (defpclass OPlayer [startat mstatus]
   :fields {nowat (lvar "room-came-from")
+           from (lvar "from")
+           dest (lvar "finalroom")
            p-location startat
            missionstatus mstatus}
 
   :methods [(defpmethod goto-room      ; Goto a room
               {:doc "Move to another room"
                :pre (and
-                     (propositions [(:nearby-unvisited-wrt-distance nowat newloc)])
+                     (propositions [(:nearby-unvisited-wrt-distance
+                                     nowat newloc)])
                      (same p-location nowat))
-               :post (and (same p-location newloc)
-                          (= newloc (mode-of RoomModes :visited)))
+               :post ;(and
+                     (same p-location newloc)
+                     ;     (= newloc (mode-of RoomModes :visited)))
                :primitive true}
               [newloc])
-            (defpmethod done      ; Finished
+
+            (defpmethod arrive      ; Finished
               {:doc "Finished when all rooms visited"
-               :pre (not (and (propositions [(:nearby-unvisited-wrt-distance nowat newloc)])
-                              (= newloc (mode-of RoomModes :visited))))
+               :pre (and
+                     (propositions [(:lookahead-steps nowat dest)])
+                     (same p-location dest))
 
                :post (= missionstatus (mode-of MissionStatus :finished))
                :primitive true}
@@ -1039,10 +1029,56 @@
             ])
 
 (defpclass Main []
+  :modes [ :root ]
+  :fields {theBuilding (Falcon)
+           slplayer (LPlayer "/Main.theBuilding.StagingArea" :id "Player-left")
+           ;srplayer (RPlayer "/Main.theBuilding.StagingArea" :id "Player-right")
+           ldest (Destination "/Main.theBuilding.RoomJ" :id "targetdestination1")
+           rdest (Destination "/Main.theBuilding.SCR2" :id "targetdestination2")
+
+           rita (ParticipantProfile "Rita"       0 :asist-assistant    :robot    0  0  0  0)
+           observer (ParticipantProfile "Ed"     0 :testbed-observer   :robot    0  0  0  0)
+           p1-survey (PreTrialSurvey)
+           p1   (ParticipantProfile "Player396" 18 :male               :american 50 50 80 p1-survey)
+           ;; p2
+           ;; p3
+           ;; p4
+           }
+  :methods [(defpmethod goal
+              {:doc "Search the building"
+               :post (= ldest (mode-of Destination :arrived))
+                   ;;(= rdest (mode-of Destination :arrived))
+               }
+              [])])
+
+(defpclass Main2 []
+  :modes [ :root ]
+  :fields {theBuilding (Falcon)
+           ;slplayer (LPlayer "/Main.theBuilding.StagingArea" :id "Player-left")
+           srplayer (RPlayer "/Main.theBuilding.StagingArea" :id "Player-right")
+           ldest (Destination "/Main.theBuilding.RoomJ" :id "targetdestination1")
+           rdest (Destination "/Main.theBuilding.SCR2" :id "targetdestination2")
+
+           rita (ParticipantProfile "Rita"       0 :asist-assistant    :robot    0  0  0  0)
+           observer (ParticipantProfile "Ed"     0 :testbed-observer   :robot    0  0  0  0)
+           p1-survey (PreTrialSurvey)
+           p1   (ParticipantProfile "Player396" 18 :male               :american 50 50 80 p1-survey)
+           ;; p2
+           ;; p3
+           ;; p4
+           }
+  :methods [(defpmethod goal
+              {:doc "Search the building"
+               :post ;(= ldest (mode-of Destination :arrived))
+                      (= rdest (mode-of Destination :arrived))
+              }
+              [])])
+
+(defpclass Main3 []
   :meta {:doc "Constructor of the SAR scenario"}
   :fields {theBuilding (Falcon)
            missionstatus (MissionStatus)
-           player (OPlayer "/Mail.theBuilding.StagingArea" missionstatus :id "Player-Opportunistic")
+           player (OPlayer "/Main.theBuilding.StagingArea" missionstatus :id "Player-Opportunistic")
 
            rita (ParticipantProfile "Rita"       0 :asist-assistant    :robot     0  0  0  0)
            observer (ParticipantProfile "Ed"     0 :testbed-observer   :robot     0  0  0  0)

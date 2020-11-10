@@ -253,26 +253,28 @@
   (if (vector? condition)               ;atomic conditions = no influence
     (case (first condition)
       (:equal :notequal :same :notsame :gt :ge :lt :le)
-                   (cond (or (and (vector? (nth condition 1)) (= (first (nth condition 1)) :arg)
-                                  (vector? (nth condition 2)) (= (first (nth condition 2)) :mode-of))
-                             (and (vector? (nth condition 2)) (= (first (nth condition 2)) :arg)
-                                  (vector? (nth condition 1)) (= (first (nth condition 1)) :mode-of)))
-                         (list [:arg-mode])
+      (cond (or (and (vector? (nth condition 1))
+                     (or (= (first (nth condition 1)) :arg) (= (first (nth condition 1)) :field))
+                     (vector? (nth condition 2)) (= (first (nth condition 2)) :mode-of))
+                (and (vector? (nth condition 2))
+                     (or (= (first (nth condition 2)) :arg) (= (first (nth condition 2)) :field))
+                     (vector? (nth condition 1)) (= (first (nth condition 1)) :mode-of)))
+            (list [:arg-mode])
 
-                         (and (= (first (nth condition 1)) :field))
-                         (list (nth condition 1))
+            (and (= (first (nth condition 1)) :field))
+            (list (nth condition 1))
 
-                         (and (vector? (nth condition 2)) (= (first (nth condition 2)) :field))
-                         (list (nth condition 2))
+            (and (vector? (nth condition 2)) (= (first (nth condition 2)) :field))
+            (list (nth condition 2))
 
-                         (and (vector? (nth condition 1)) (= (first (nth condition 1)) :arg-field))
-                         (list (nth condition 1))
+            (and (vector? (nth condition 1)) (= (first (nth condition 1)) :arg-field))
+            (list (nth condition 1))
 
-                         (and (vector? (nth condition 2)) (= (first (nth condition 2)) :arg-field))
-                         (list (nth condition 2))
+            (and (vector? (nth condition 2)) (= (first (nth condition 2)) :arg-field))
+            (list (nth condition 2))
 
-                         :else
-                         (list (extract-referents condition)))
+            :else
+            (list (extract-referents condition)))
 
       (:and :or :implies) (apply concat (map (fn [arg] (compile-influence arg)) (rest condition)))
 

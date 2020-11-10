@@ -803,25 +803,25 @@
               [target])
 
             (defpmethod launch-PW-guessing
-              {:doc "Attempt to gain access by launching a ohishing attack to obtain credentials and connect"
+              {:doc "Attempt to gain access by launching a password guessing attack to obtain credentials and connect"
                :post (= connected target)
                :primitive true}
               [target])
 
             (defpmethod launch-backdoor-attack
-              {:doc "Attempt to gain access by launching a ohishing attack to obtain credentials and connect"
+              {:doc "Attempt to gain access by launching a backdoor attack to obtain credentials and connect"
                :post (= connected target)
                :primitive true}
               [target])
 
             (defpmethod launch-supply-chain-attack
-              {:doc "Attempt to gain access by launching a phishing attack to obtain credentials and connect"
+              {:doc "Attempt to gain access by launching a supply chain attack to obtain credentials and connect"
                :post (= connected target)
                :primitive true}
               [target])
 
             (defpmethod launch-factory-pw-attack
-              {:doc "Attempt to gain access by launching a ohishing attack to obtain credentials and connect"
+              {:doc "Attempt to gain access by launching a factory password attack to obtain credentials and connect"
                :post (= connected target)
                :primitive true}
               [target])
