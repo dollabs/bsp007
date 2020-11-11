@@ -768,9 +768,9 @@
            p4 (lvar "proposition-arg4")}
   :methods [(defpmethod lateral         ;lateral-move
               {:doc "Move to another host in the same subnet"
-               :pre (and (propositions [(:connects-with p1 newloc)])
+               :pre (and (propositions [(:connects-with p1 newloc)]
+                           where (not (= newloc (mode-of TargetStates :visited))))
                          (= connected p1)
-                         (not (= newloc (mode-of TargetStates :visited)))
                          (same TA-location p1))
                :post (and (same TA-location newloc)
                           (= newloc (mode-of TargetStates :visited)))
@@ -778,8 +778,8 @@
               [newloc])
             (defpmethod down            ;move-to-subsystem
               {:doc "move down in a system to a subcomponent"
-               :pre (and (propositions [(:is-part-of newloc p2)])
-                         (not (= newloc (mode-of TargetStates :visited)))
+               :pre (and (propositions [(:is-part-of newloc p2)]
+                           where (not (= newloc (mode-of TargetStates :visited))))
                          (same TA-location p2))
                :post (and (same TA-location newloc)
                           (= newloc (mode-of TargetStates :visited)))
@@ -788,8 +788,8 @@
 
             (defpmethod up              ; move-to-supersystem
               {:doc "move up in a system to a containing supercomponent"
-               :pre (and (propositions [(:is-part-of p3 newloc)])
-                         (not (= newloc (mode-of TargetStates :visited)))
+               :pre (and (propositions [(:is-part-of p3 newloc)]
+                           where (not (= newloc (mode-of TargetStates :visited))))
                          (same TA-location p3))
                :post (and (same TA-location newloc)
                           (= newloc (mode-of TargetStates :visited)))
@@ -888,4 +888,5 @@
                (anattacker.move-to-subsystem step2)
                (anattacker.move-to-supersystem atarget)
                (anattacker.attack atarget))
-              )])
+              )]
+)

@@ -260,11 +260,14 @@
 
           :arg-field (let [[object & field] (rest expn)
                            - (if (> global/verbosity 2)
-                               (println ":arg-field object= " (prop/prop-readable-form object)
+                               (println "Evaluate :arg-field object= " (prop/prop-readable-form object)
                                         "field=" field "expn=" (prop/prop-readable-form expn)))
                            obj (cond
                                  (global/RTobject? object)
                                  object
+
+                                 (string? object)
+                                 (maybe-get-named-object object)
 
                                  (= (first object) :value)
                                  (second object)
@@ -334,14 +337,17 @@
 
           :arg-field (let [[object & field] (rest expn)
                            - (if (> global/verbosity 2)
-                               (println ":arg-field object= " (prop/prop-readable-form object)
+                               (println "Evaluate-reference :arg-field object= " (prop/prop-readable-form object)
                                         "field=" field "expn=" (prop/prop-readable-form expn)))
                            obj (cond
                                    (global/RTobject? object)
                                    object
 
+                                   (string? object)
+                                   (maybe-get-named-object object)
+
                                    (and (vector? object) (= (first object) :value))
-                                   (second object) ;+++ Surely, t his should be object, not second object
+                                   (second object) ;+++ Surely, this should be object, not second object
 
                                    (and (vector? object) (= (first object) :arg-field))
                                    (evaluate-reference wrtobject object class-bindings method-bindings cspam spam)
@@ -496,6 +502,11 @@
     (and (vector? (first namelist)) (= (first (first namelist)) :value))
     (second (first namelist))
 
+    ;; (string? namelist) ; +++ don't like this string references.
+    ;;                    ;; We should something to the syntax to remove ambiguity.
+    ;; (let [result (maybe-get-named-object namelist)]
+    ;;   result)
+
     (vector? wrtobject)
     (do (irx/error "dereference failed on bad wrtobject=" (prop/prop-readable-form wrtobject))
         [:not-found namelist])
@@ -529,7 +540,10 @@
                 (do
                   ;; (println "***!!! recursive dereference with object=" @match)
                   (deref-field remaining (or imagined @match) mode))))
-            [:not-found namelist :in wrtobject]))))))
+            (do
+              (def ^:dynamic ***namelist*** namelist)
+              (def ^:dynamic ***wrtobject*** wrtobject)
+              (irx/error [:not-found namelist :in (prop/prop-readable-form wrtobject)]))))))))
 
 (defn field-exists
   [names wrtobject]
