@@ -776,6 +776,7 @@
                           (= newloc (mode-of TargetStates :visited)))
                :primitive true}
               [newloc])
+
             (defpmethod down            ;move-to-subsystem
               {:doc "move down in a system to a subcomponent"
                :pre (and (propositions [(:is-part-of newloc p2)]
