@@ -18,7 +18,7 @@ set -e
 
 # Build an attack plan
 
-dmcgp.sh -s 10 -v 1 \
+java -jar $CODE/target/dmcgp.jar -s 10 -v 1 \
          -g $CODE/test/planner/${NUMBER}_plannertest.ir.json -G world \
          -o "$RESULTS/${NUMBER}_plannertest.plan" \
          make-plan

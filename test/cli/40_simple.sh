@@ -18,7 +18,7 @@ set -e
 
 # Build a simple plan
 
-dmcgp.sh -s 1 -v 0 \
+java -jar $CODE/target/dmcgp.jar -s 1 -v 0 \
          -g $CODE/test/planner/${NUMBER}_simple.ir.json -G world \
          -o "$RESULTS/${NUMBER}_simple.plan" \
          make-plan

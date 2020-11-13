@@ -18,7 +18,7 @@ set -e
 
 # Build an attack plan
 
-dmcgp.sh -s 1000 -v 0 \
+java -jar $CODE/target/dmcgp.jar -s 1000 -v 0 \
          -g $CODE/test/planner/${NUMBER}_dcryppstest.ir.json -G AttackPlanner \
          -o "$RESULTS/${NUMBER}_dcryppstest.plan" \
          make-plan

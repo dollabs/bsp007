@@ -18,7 +18,7 @@ set -e
 
 # Build a simple RITA plan
 
-dmcgp.sh -s 1 -v 0 -d 50 \
+java -jar $CODE/target/dmcgp.jar -s 1 -v 0 -d 50 \
          -g $CODE/test/planner/${NUMBER}_ritatest.ir.json \
          -P $CODE/test/planner/${NUMBER}_ritatest.ppr -G Main2 \
          -o "$RESULTS/${NUMBER}_rita2test.plan" \
