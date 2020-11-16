@@ -371,6 +371,10 @@
      (list (symbol (str (first names)  "." (second names))))
      argvals)))
 
+(defn compile-actionlist-to-pamela
+  [action-list]
+  (map (fn [anaction] (compile-action-to-pamela anaction)) action-list))
+
 (defn compile-actions-to-pamela
   [action-list]
-  (cons 'sequence (map (fn [anaction] (compile-action-to-pamela anaction)) action-list)))
+  (cons 'sequence (compile-actionlist-to-pamela action-list)))

@@ -35,7 +35,8 @@
             [pamela.tools.belief-state-planner.buildir :as bir]
             [pamela.tools.belief-state-planner.dmcgpcore :as core]
             [pamela.tools.belief-state-planner.expressions :as dxp]
-            [pamela.tools.belief-state-planner.ir-extraction :as irx])
+            [pamela.tools.belief-state-planner.ir-extraction :as irx]
+            [pamela.tools.belief-state-planner.planexporter :as pexp])
   (:import (java.text SimpleDateFormat)
            (java.util Date))
   (:refer-clojure :exclude [rand rand-int rand-nth])
@@ -391,16 +392,23 @@
                       (println "File does not exist: " goals)
                       (Thread/sleep 2000)
                       (System/exit 1)))
-                  (let [solutions (core/solveit :samples samp :max-depth maxd :rawp rawp)]
-                    (if (not rawp) (pprint solutions)
-                        (let [pamela-solutions (into #{} (map bir/compile-actions-to-pamela solutions))
-                              result (case (count pamela-solutions)
-                                       0 "No solutions found"
-                                       1 (first (into [] pamela-solutions))
-                                       (cons 'choose (map (fn [asoln] (list 'choice asoln)) pamela-solutions)))]
-                          (if (= outfile "")
-                            (pprint result)
-                            (spit outfile (with-out-str (pprint result))))))))
+                  (let [solutions (core/solveit :samples samp :max-depth maxd :rawp true)] ;+++ was rawp
+                    (if (not rawp)
+                      (let [pamela-solutions (into #{} (map bir/compile-actions-to-pamela solutions))
+                            result (case (count pamela-solutions)
+                                     0 "No solutions found"
+                                     1 (first (into [] pamela-solutions))
+                                     (cons 'choose (map (fn [asoln] (list 'choice asoln)) pamela-solutions)))]
+                        (if (= outfile "")
+                          (pprint result)
+                          (spit outfile (with-out-str (pprint result)))))
+                      (let [pamela-solutions (into #{} (map bir/compile-actionlist-to-pamela solutions)) ; (pexp/compile-plan solutions)
+                            result (case (count pamela-solutions)
+                                     0 "No solutions found"
+                                     (pexp/assemble-solutions pamela-solutions groo 'goal))]
+                        (if (= outfile "")
+                          (pprint result)
+                          (spit outfile (with-out-str (pprint result))))))))
                 (println "Nothing to do, no goals provided")))
 
             (println "Unknown action: " (first arguments)))
@@ -418,6 +426,7 @@
 ;;; (montecarloplanner  "-g" "test/planner/40_dcrypps2test.ir.json" "-G" "AttackPlanner" "-v" "0" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "test/planner/40_dcryppstest.ir.json" "-G" "AttackPlanner" "-v" "0" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "test/planner/40_simple.ir.json" "-G" "world" "-v" "0" "-d" "20" "-s" "1" "-r" "true" "make-plan")
+;;; (montecarloplanner  "-g" "test/planner/40_simple.ir.json" "-G" "world" "-v" "0" "-d" "20" "-s" "1" "-r" "false" "make-plan")
 ;;; (montecarloplanner  "-g" "test/planner/40_plannertest.ir.json" "-G" "world" "-v" "4" "-d" "20" "-s" "1000" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "test/planner/40_ritatest.ir.json" "-G" "Main" "-v" "2" "-d" "50" "-P" "test/planner/40_ritatest.ppr" "-s" "1" "-r" "true" "make-plan")
 ;;; (montecarloplanner  "-g" "test/planner/40_ritatest.ir.json" "-G" "Main2" "-v" "2" "-d" "50" "-P" "test/planner/40_ritatest.ppr" "-s" "1" "-r" "true" "make-plan")
