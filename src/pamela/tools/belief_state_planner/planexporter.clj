@@ -31,7 +31,7 @@
 
 (defn translate-plan
   [plans]
-  (println "translating plans: " plans)
+  ;; (println "translating plans: " plans)
   (map (fn [a-plan]
          (map (fn [step]
                 (into [:call (nth step 0)] ; Function name
@@ -115,7 +115,7 @@
                     asoln))
              cleaned-solutions)]
     ;; Fix this in the DMCP. +++pr
-    (println "solutions = " solutions "cleaned-solutions = " cleaned-solutions "compiled-result = " compiled-result)
+    ;; (println "solutions = " solutions "cleaned-solutions = " cleaned-solutions "compiled-result = " compiled-result)
     (doall compiled-result)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -172,22 +172,30 @@
 
 
 (defn emit-pclass-pamela
-  [pclass-name args method-list]
-  (list 'defpclass
-        pclass-name
-        (or args [])
-        :methods (vec method-list)))
+  [pclass-name args field-list method-list]
+  #_(println "In emit-pclass-pamela with pclass-name=" pclass-name
+           "args=" args "field-list=" field-list "method-list=" method-list)
+  `(~'defpclass
+        ~pclass-name
+        ~(or args [])
+        ~@(if (not (empty? field-list)) (list :fields (into {} field-list)))
+        ~@(if (not (empty? method-list)) (list :methods (into [] method-list)))))
 
 (defn emit-pmethod-pamela ; body is a list
   [pmethod-name args body]
-  (println "In emit-pmethod-pamela with pmethod-name=" pmethod-name "args=" args "body=" body)
+  #_(println "In emit-pmethod-pamela with pmethod-name=" pmethod-name "args=" args "body=" body)
   (concat (list 'defpmethod pmethod-name (vec (or args [])))
           (if (or (= body '((parallel)))
-                  (= body '((sequential)))
-                  (= body '((sequential (parallel))))
-                  (= body '((parallel (sequential)))))
+                  (= body '((sequence)))
+                  (= body '((sequence (parallel))))
+                  (= body '((parallel (sequence)))))
             '()
             body)))
+
+(defn emit-field-pamela
+  [field-name field-value]
+  #_(println "In emit-field-pamela with field-name=" field-name "field-value=" field-value)
+  [field-name field-value])
 
 (defn emit-sequence-pamela ; body is a list
   [body]
@@ -215,22 +223,29 @@
 
 (defn convert-symbolic-tpn-to-pamela
   [symbolic]
-  (println "In convert-symbolic-tpn-to-pamela with symbolic=" symbolic)
+  #_(println "In convert-symbolic-tpn-to-pamela with symbolic=" symbolic)
   (if (not (sequential? symbolic))
-    (do (println "Unexpected value: " symbolic " in convert-symbolic-tpn-to-pamela")
+    (do ;(println "Unexpected value: " symbolic " in convert-symbolic-tpn-to-pamela")
         symbolic)
     (case (first symbolic)
       :pclass
-      (emit-pclass-pamela (second symbolic) ; name
+      (emit-pclass-pamela (nth symbolic 1)  ; name
                    (or (nth symbolic 2) []) ; args
-                   (vec (doall (map (fn [x]
+                   (vec (doall (map (fn [x] ; fields
                                  (convert-symbolic-tpn-to-pamela x))
-                               (nth symbolic 3)))))
+                                    (nth symbolic 3))))
+                   (vec (doall (map (fn [x] ; methods
+                                 (convert-symbolic-tpn-to-pamela x))
+                               (nth symbolic 4)))))
+
+      :field
+      (emit-field-pamela (nth symbolic 1) ; field name
+                    (convert-symbolic-tpn-to-pamela (nth symbolic 2))) ; value
 
       :pmethod
       (emit-pmethod-pamela (second symbolic) ; method name
                     (or (nth symbolic 2) []) ; arglist (or nil)
-                    (map convert-symbolic-tpn-to-pamela (nth symbolic 3)))
+                    (map convert-symbolic-tpn-to-pamela (nth symbolic 3))) ; body
 
       :parallel
       (emit-parallel-pamela (map convert-symbolic-tpn-to-pamela (rest symbolic)))
@@ -239,9 +254,8 @@
       (emit-sequence-pamela (map convert-symbolic-tpn-to-pamela (rest symbolic)))
 
       :call
-      (emit-call-pamela (second symbolic)
-                 (map (fn [arg] arg)
-                      (nth symbolic 2)))
+      (emit-call-pamela (second symbolic) (rest (rest symbolic)))
+
       :choice
       (emit-choose-pamela
        (map (fn [achoice]
@@ -263,7 +277,7 @@
         [:call (if (= direction "lateral") 'move-lateral 'move-down)
          (list classname)]))
     (do
-      (println "acall=" acall)
+      #_(println "acall=" acall)
       acall)))
 
 (defn encode-as-tpn
@@ -294,7 +308,7 @@
                               (first (encode-as-tpn [] x))))
                           threads))])))))
 
-;;; +++ obsolete, remove me
+;;; +++ obsolete, remove me (carefully)
 (defn reverse-labeling-of-plans
   [aplan]
   (map (fn [aseq]
@@ -304,28 +318,44 @@
                 aseq (take (count aseq) labels))))
        aplan))
 
-(defn make-contingent-tpn-from-plan
-  [plan]
-  (let [aplan (reverse-labeling-of-plans plan)]
-    (if (= (count aplan) 1)
-      (encode-as-tpn [:sequence] aplan)
+(defn make-contingent-tpn-from-plans
+  [plans]
+  (let [rplans (reverse-labeling-of-plans plans)]
+    (if (= (count rplans) 1)
+      (encode-as-tpn [:sequence] rplans)
       ;; First divide the major parallel plans based on target
-      (let [targetset (into #{} (map last aplan))
+      (let [targetset (into #{} (map last rplans))
             ;; - (println "target set is: " targetset)
             threads (map (fn [target]
                            (remove nil?
                                    (map (fn [path]
                                           (if (= (last path) target) path))
-                                        aplan)))
+                                        rplans)))
                          targetset)]
-        (if (not (empty? threads))
-          (into [:choice] #(into [:sequence] (encode-as-tpn [] %)) threads)
-          nil)))))
+        ;; (println "In make-contingent-tpn-from-plans, threads=")
+        ;; (pprint threads)
+        (case (count threads)
+          0 nil
+          1 (encode-as-tpn [:sequence] (first threads))
+          `[:choose ~@(map #(into [:choice] (encode-as-tpn [:sequence] %))
+                           threads)])))))
 
-
+;;; The (root) object containts the plan
 (defn make-pclass-for-top
-  [name]
-  (list 'defpclass 'Top [] :fields {'ta (list name)}))
+  [rpclass]
+  [:pclass 'Top []
+   [[:field 'top `(~rpclass)]]
+   []])
+
+;;; The (root) object containts the plan
+(defn make-pclass-for-root
+  [rpclass paname paclass pmethod-name args plans refs]
+  [:pclass rpclass []
+   `[[:field ~(symbol paname) (~paclass)]
+     ~@(map (fn [aref] [:field aref (str aref)]) refs)]
+   [[:pmethod pmethod-name args
+     (let [pap (make-contingent-tpn-from-plans plans)]
+       (if pap (list pap) ()))]]])
 
 ;;; pclass-name is the class name of the solution
 ;;; pcargs is any arguments that thepclass expects
@@ -335,51 +365,85 @@
 ;;; mmap is the list of pmethods referred to in the plan and the number of arguments that they take
 
 (defn make-pclass-for-tpn
-  [pclass-name pcargs pmethod-name args plan mmap]
+  [pclass-name pcargs mmap]
   (let [pmethods
         (map (fn [[mname margs]]
-               [:pmethod mname (into [] (map (fn [n] (symbol (str "arg" (str n)))) (range 1 (+ margs 1)))) ()])
+               [:pmethod
+                mname                   ; name
+                (into [] (map (fn [n] (symbol (str "arg" (str n)))) (range 1 (+ margs 1)))) ; args
+                ()])                    ; body
              mmap)]
-    [:pclass pclass-name pcargs
-     (conj pmethods
-           [:pmethod pmethod-name args
-            (let [pap (make-contingent-tpn-from-plan plan)] (if pap (list pap) ()))])]))
+    [:pclass pclass-name pcargs [] pmethods]))
 
-(defn convert-plan-to-pamela
-  [plan rpclass rmeth]
-  (let [mmap (into {} (map (fn [acall] { (second acall) (- (count (rest acall)) 1) }) plan))]
+(defn extract-field-name
+  [plans]
+  (first (into [] (apply set/union
+                         (apply set/union (map (fn [plan]
+                                                 (map (fn [acall]
+                                                        #{ (first (string/split (str (second acall)) #"\.")) })
+                                                      plan))
+                                               plans))))))
+
+(defn convert-plans-to-pamela
+  [plans refs rpclass rmeth planningagent]
+  (let [fname (extract-field-name plans)
+        mmap (into {} (apply concat
+                             (map (fn [plan]
+                                    (map (fn [acall] { (symbol (last (string/split (str (second acall)) #"\.")))
+                                                      (- (count (rest acall)) 1) })
+                                         plan))
+                                  plans)))]
+    #_(println "In convert-plans-to-pamela with plans=" plans "refs=" refs "mmap=" mmap "fname=" fname)
     (list
-     (make-pclass-for-top rpclass)
      (convert-symbolic-tpn-to-pamela
-      (make-pclass-for-tpn rpclass nil rmeth nil plan mmap)))))
+      (make-pclass-for-top rpclass))
+     (convert-symbolic-tpn-to-pamela
+      (make-pclass-for-root rpclass fname planningagent rmeth nil plans refs))
+     (convert-symbolic-tpn-to-pamela
+      (make-pclass-for-tpn planningagent nil mmap)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn create-tpn-json-file-from-pamela [tpn-in-pamela]
+(defn create-tpn-json-file-from-pamela [tpn-in-pamela goal]
   ;; Pamela should someday be extended so we didn't have to write and read these temporary files
   (let [pamela-file (java.io.File/createTempFile "pamela-source" ".pamela")
         tpn-json-file (java.io.File/createTempFile "pamela-json" ".tpn.json")
         [top-form attacker-form] tpn-in-pamela]
     (with-open [ostrm (clojure.java.io/writer pamela-file)]
       ;; Take advantage of the fact that Pamela uses the same basic syntax as Clojure
-      (pprint top-form ostrm)
-      (pprint attacker-form ostrm))
+      (doseq [aform tpn-in-pamela]
+        (pprint aform ostrm)))
+
     ;;For testing only
     ;; (reset! tpn/my-count (rand-int 10000))
     (pcli/tpn {:input [pamela-file]
                :output tpn-json-file
                :file-format "json"
-               :construct-tpn "Top:ta:main"})
+               :construct-tpn (str "Top:top:" (str goal))})
     tpn-json-file))
 
+(defn extract-field-arguments
+  [solutions]
+  (into []
+        (apply set/union
+               (map (fn [plan]
+                      (apply set/union
+                             (map (fn [acall]
+                                    (into #{}
+                                          (remove nil?
+                                                  (map (fn [arg] (if (symbol? arg) arg))
+                                                       (rest acall)))))
+                                  plan)))
+                    solutions))))
 
 (defn assemble-solutions
   [solutions rclass rmeth]
-  (println "In assemble-solutions with rclass=" rclass "rmeth=" rmeth "solutions=" solutions)
-  (let [plans (into [] (translate-plan solutions))
-        jplans (json/write-str (into [] solutions))
-        tpn-net-pamela (convert-plan-to-pamela plans rclass rmeth)
-        _ (pprint tpn-net-pamela)
-        tpn-file (create-tpn-json-file-from-pamela tpn-net-pamela)]
-    (pprint tpn-file)
-    jplans))
+  #_(println "In assemble-solutions with rclass=" rclass "rmeth=" rmeth "solutions=" solutions)
+  (let [refs (extract-field-arguments solutions)
+        plans (into [] (translate-plan solutions))
+        ;; jplans (json/write-str (into [] solutions))
+        tpn-net-pamela (convert-plans-to-pamela plans refs rclass rmeth 'PlanningAgent)
+        ;; _ (pprint tpn-net-pamela)
+        tpn-file (create-tpn-json-file-from-pamela tpn-net-pamela rmeth)]
+    ;;(pprint tpn-file)
+    [tpn-net-pamela tpn-file]))

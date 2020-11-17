@@ -1,6 +1,21 @@
-(sequence
- (player.goto-room "/Main.theBuilding.Room101")
- (player.goto-room "/Main.theBuilding.Room102")
- (player.goto-room "/Main.theBuilding.Room103")
- (player.goto-room "/Main.theBuilding.Room104")
- (player.arrive missionstatus))
+((defpclass Top [] :fields {top (Main3)})
+ (defpclass
+  Main3
+  []
+  :fields
+  {player (PlanningAgent), missionstatus "missionstatus"}
+  :methods
+  [(defpmethod
+    goal
+    []
+    (sequence
+     (player.goto-room "/Main.theBuilding.Room101")
+     (player.goto-room "/Main.theBuilding.Room102")
+     (player.goto-room "/Main.theBuilding.Room103")
+     (player.goto-room "/Main.theBuilding.Room104")
+     (player.arrive missionstatus)))])
+ (defpclass
+  PlanningAgent
+  []
+  :methods
+  [(defpmethod goto-room [arg1]) (defpmethod arrive [arg1])]))

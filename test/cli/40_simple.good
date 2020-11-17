@@ -1,4 +1,21 @@
-(sequence
- (arobot.goto abanana "10,10")
- (arobot.take abanana)
- (arobot.eat abanana))
+((defpclass Top [] :fields {top (world)})
+ (defpclass
+  world
+  []
+  :fields
+  {arobot (PlanningAgent), abanana "abanana"}
+  :methods
+  [(defpmethod
+    goal
+    []
+    (sequence
+     (arobot.goto abanana "10,10")
+     (arobot.take abanana)
+     (arobot.eat abanana)))])
+ (defpclass
+  PlanningAgent
+  []
+  :methods
+  [(defpmethod goto [arg1 arg2])
+   (defpmethod take [arg1])
+   (defpmethod eat [arg1])]))

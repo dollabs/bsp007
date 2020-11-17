@@ -404,11 +404,11 @@
                           (spit outfile (with-out-str (pprint result)))))
                       (let [pamela-solutions (into #{} (map bir/compile-actionlist-to-pamela solutions)) ; (pexp/compile-plan solutions)
                             result (case (count pamela-solutions)
-                                     0 "No solutions found"
+                                     0 ["No solutions found"]
                                      (pexp/assemble-solutions pamela-solutions groo 'goal))]
                         (if (= outfile "")
                           (pprint result)
-                          (spit outfile (with-out-str (pprint result))))))))
+                          (spit outfile (with-out-str (pprint (first result)))))))))
                 (println "Nothing to do, no goals provided")))
 
             (println "Unknown action: " (first arguments)))
