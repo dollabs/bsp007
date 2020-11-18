@@ -20,6 +20,8 @@
             [pamela.tools.belief-state-planner.montecarloplanner :as bs]
             [pamela.tools.belief-state-planner.ir-extraction :as irx]
             [pamela.tools.belief-state-planner.coredata :as global]
+            [pamela.tools.belief-state-planner.buildir :as bir]
+            [pamela.tools.belief-state-planner.dmcgpcore :as core]
             [pamela.tools.belief-state-planner.lvarimpl :as lvar]
             [pamela.tools.belief-state-planner.prop :as prop]
             [pamela.tools.belief-state-planner.imagine :as imag]
@@ -420,7 +422,7 @@
                :output tpn-json-file
                :file-format "json"
                :construct-tpn (str "Top:top:" (str goal))})
-    tpn-json-file))
+    [pamela-file tpn-json-file]))
 
 (defn extract-field-arguments
   [solutions]
@@ -444,6 +446,36 @@
         ;; jplans (json/write-str (into [] solutions))
         tpn-net-pamela (convert-plans-to-pamela plans refs rclass rmeth 'PlanningAgent)
         ;; _ (pprint tpn-net-pamela)
-        tpn-file (create-tpn-json-file-from-pamela tpn-net-pamela rmeth)]
+        tpn-files (create-tpn-json-file-from-pamela tpn-net-pamela rmeth)]
     ;;(pprint tpn-file)
-    [tpn-net-pamela tpn-file]))
+    [tpn-net-pamela tpn-files]))
+
+(defn make-tpn-from-solutions
+  [solutions goal-root]
+  (let [pamela-solutions (into #{} (map bir/compile-actionlist-to-pamela solutions))
+        result (case (count pamela-solutions)
+                 0 nil                  ; ["No solutions found"]
+                 (assemble-solutions pamela-solutions goal-root 'goal))]
+    result))
+
+(defn generate-fresh-plan
+  [goal-root samp maxd]
+  ;; Make sure that we are in a good place wrt position of the player, etc
+  ;; +++
+  (let [solutions (core/solveit :samples samp :max-depth maxd :rawp true)
+        [symbpam [pamfile tpnfile]] (if solutions (make-tpn-from-solutions solutions goal-root))
+        pamstr (if pamfile (slurp pamfile))
+        tpnstr (if tpnfile (slurp tpnfile))]
+    (cond tpnstr                          ; if a solution was found
+          [pamstr tpnstr]
+
+          (and symbpam pamstr)
+          (do
+            (println "Error: generated pamela did not compile to a TPN:")
+            (pprint symbpam))
+
+          solutions
+          (println "Error: Bad solution found: solution")
+
+          :otherwise
+          (println "No solutions found."))))
