@@ -465,7 +465,7 @@
   (let [solutions (core/solveit :samples samp :max-depth maxd :rawp true)
         [symbpam [pamfile tpnfile]] (if solutions (make-tpn-from-solutions solutions goal-root))
         pamstr (if pamfile (slurp pamfile))
-        tpnstr (if tpnfile (slurp tpnfile))]
+        tpnstr (if tpnfile (json/read-str (slurp tpnfile)))]
     (cond tpnstr                          ; if a solution was found
           [pamstr tpnstr]
 
