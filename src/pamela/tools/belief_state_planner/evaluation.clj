@@ -111,9 +111,10 @@
         :unknown))))
 
 (defn get-object-value
-  "Gets the likely mode of the object - which must be an RTobject"
+  "Gets the likely mode of the object - which must be an RTobject or a variable"
   [obj]
-  (let [variable (.variable obj)
+  (let [variable (cond (RTobject? obj) (.variable obj)
+                       :otherwise obj)
         imagined (imag/get-mode variable)]
     (if imagined
       (do
