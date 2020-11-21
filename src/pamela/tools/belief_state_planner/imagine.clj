@@ -124,6 +124,8 @@
 (defn imagine-changed-field-value
   "Can be given the variable name of the object or the runtime object itself"
   [obj field value]
+  (if (> global/verbosity 0)
+    (println "*** imagine-changed-field-value obj=" (prop/prop-readable-form obj) "field=" field "value=" value))
   (if (global/RTobject? obj)
     (update-field-value (global/RTobject-variable obj) field value)
     (update-field-value obj field value)))
