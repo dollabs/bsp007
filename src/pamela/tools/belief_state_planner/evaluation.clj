@@ -103,12 +103,11 @@
         0 :null
 
         1 (first values)
+
         (let [best (apply max-key val pdf)]
           (if (>= (second best) threshold)
             (first best)
-            :null))
-
-        :unknown))))
+            :null))))))
 
 (defn get-object-value
   "Gets the likely mode of the object - which must be an RTobject or a variable"
