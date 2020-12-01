@@ -28,6 +28,7 @@
                          rootclass])
 
 (defrecord RTobject [variable type fields id])
+(defn prs [x] (with-out-str (prn x)))
 
 (defn RTobject?
   [x]

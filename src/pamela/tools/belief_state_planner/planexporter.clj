@@ -284,25 +284,25 @@
 
 (defn encode-as-tpn
   [sequence paths]
-  ;;(println "seq=" sequence "remain=" paths)
+  ;; (println "seq=" sequence "remain=" paths)
   (if (empty? (first paths))
     sequence
-    (if (every? #(= (second (first (first paths))) (second (first  %))) paths)
+    (if (every? #(= (first (first paths)) (first  %)) paths) ; (second) (second)
       (let [call (compile-call (first (first paths)))]
         (encode-as-tpn (if (not (empty? call))
                          (into sequence [call])
                          sequence)
                        (remove empty? (map rest paths))))
       (into sequence
-            (let [divergeset (into #{} (map (fn [x] (second (first x))) paths))
-                  ;; - (println "divergeset=" divergeset)
+            (let [divergeset (into #{} (map (fn [x]  (first x))) paths) ;(second)
+                  ;; _ (println "divergeset=" divergeset)
                   threads (map (fn [target]
                                  (remove nil?
                                          (map (fn [path]
-                                                (if (= (second (first path)) target) path))
+                                                (if (= (first path) target) path)) ; (second)
                                               paths)))
                                divergeset)]
-              ;;(println "threads=" threads)
+              ;; (println "threads=" threads)
               [(into [:choice]
                      (map (fn [x]
                             (if (> (count (first x)) 1)
@@ -321,26 +321,36 @@
        aplan))
 
 (defn make-contingent-tpn-from-plans
-  [plans]
+  [plans] ;+++ broken +++
   (let [rplans (reverse-labeling-of-plans plans)]
+    ;;(println "make-contingent-tpn-from-plans with plans=" plans)
     (if (= (count rplans) 1)
       (encode-as-tpn [:sequence] rplans)
       ;; First divide the major parallel plans based on target
-      (let [targetset (into #{} (map last rplans))
-            ;; - (println "target set is: " targetset)
+      (let [targetset (into #{} (map first rplans)) ;last
+            _ (println "target set is: " targetset)
             threads (map (fn [target]
                            (remove nil?
                                    (map (fn [path]
-                                          (if (= (last path) target) path))
+                                          (if (= (first path) target) path)) ;last
                                         rplans)))
                          targetset)]
-        ;; (println "In make-contingent-tpn-from-plans, threads=")
-        ;; (pprint threads)
+        ;;(println "In make-contingent-tpn-from-plans, threads=")
+        (pprint threads)
         (case (count threads)
           0 nil
           1 (encode-as-tpn [:sequence] (first threads))
-          `[:choose ~@(map #(into [:choice] (encode-as-tpn [:sequence] %))
+          `[:choose ~@(map (fn [thread] [:choice (encode-as-tpn [:sequence] thread)])
                            threads)])))))
+
+(defn make-single-thread-tpn-from-plan
+  [ap]
+  ;; (println "single-thread ap=" ap)
+  (let [sap (reverse-labeling-of-plans ap)]
+    ;; (println "single-thread sap=" sap)
+    (if (not (empty? sap))
+      (encode-as-tpn [:sequence] sap)
+      nil)))
 
 ;;; The (root) object containts the plan
 (defn make-pclass-for-top
@@ -356,7 +366,7 @@
    `[[:field ~(symbol paname) (~paclass)]
      ~@(map (fn [aref] [:field aref (str aref)]) refs)]
    [[:pmethod pmethod-name args
-     (let [pap (make-contingent-tpn-from-plans plans)]
+     (let [pap (make-single-thread-tpn-from-plan plans)] ;make-contingent-tpn-from-plans or make-single-thread-tpn-from-plan
        (if pap (list pap) ()))]]])
 
 ;;; pclass-name is the class name of the solution
