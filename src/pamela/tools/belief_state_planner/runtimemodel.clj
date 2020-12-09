@@ -673,7 +673,7 @@
     (if (not (empty? objects))
       (let [;; - (println "Found objects : " objects)
             fieldat (get-field-atom (first objects) field)]
-        (if fieldat
+        (if (and fieldat (instance? clojure.lang.Atom fieldat) (global/RTobject? @fieldat))
           (let [field-val @fieldat]
             (if field-val (.variable field-val)))
           (println "Field " field " does not exist in " (first objects))))
