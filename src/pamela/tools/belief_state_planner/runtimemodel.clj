@@ -667,15 +667,27 @@
           (println "Field " field " does not exist in " (first objects))))
       (do (println "No objects of type " object-type "were found.") nil))))
 
+;;; Does this really belong here? Maybe move it to DCRYPPS
+;;; It's use seems a little specialized -- not sure though.
 (defn find-name-of-field-object
   [object-type field]
   (let [objects (eval/find-objects-of-type object-type)]
     (if (not (empty? objects))
       (let [;; - (println "Found objects : " objects)
             fieldat (get-field-atom (first objects) field)]
-        (if (and fieldat (instance? clojure.lang.Atom fieldat) (global/RTobject? @fieldat))
+        (cond
+          (and fieldat
+               (instance? clojure.lang.Atom fieldat)
+               (global/RTobject? @fieldat))
           (let [field-val @fieldat]
             (if field-val (.variable field-val)))
+
+          (and fieldat
+               (instance? clojure.lang.Atom fieldat)
+               (lvar/is-lvar? @fieldat))
+          (str (global/RTobject-variable (first objects))) ; Forget the field, the object is implicated
+
+          :otherwise
           (println "Field " field " does not exist in " (first objects))))
       (do (println "No objects of type " object-type "were found.") nil))))
 
