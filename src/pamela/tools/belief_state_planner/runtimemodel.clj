@@ -671,21 +671,26 @@
 ;;; It's use seems a little specialized -- not sure though.
 (defn find-name-of-field-object
   [object-type field]
+  (println "In find-name-of-field-object with object-type=" object-type "and field=" field)
   (let [objects (eval/find-objects-of-type object-type)]
     (if (not (empty? objects))
-      (let [;; - (println "Found objects : " objects)
+      (let [;; _ (println "Found objects : " objects)
             fieldat (get-field-atom (first objects) field)]
+        (println "In find-name-of-field-object with fieldat=" fieldat)
         (cond
           (and fieldat
                (instance? clojure.lang.Atom fieldat)
                (global/RTobject? @fieldat))
-          (let [field-val @fieldat]
-            (if field-val (.variable field-val)))
+          (global/RTobject-variable @fieldat)
 
           (and fieldat
                (instance? clojure.lang.Atom fieldat)
                (lvar/is-lvar? @fieldat))
-          (str (global/RTobject-variable (first objects))) ; Forget the field, the object is implicated
+          (do (println "result is:" (global/RTobject-variable (first objects)))
+              (global/RTobject-variable (first objects))) ; Forget the field, the object is implicated
+
+          (nil? fieldat)
+          nil
 
           :otherwise
           (println "Field " field " does not exist in " (first objects))))
