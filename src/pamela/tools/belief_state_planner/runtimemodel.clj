@@ -508,8 +508,7 @@
 (defn lvar-connectivity-map
   "Iterate over all objects and collect the LVAR's contained in fields"
   []
-  (let [;;lvars @(global/.lvars global/*current-model*)
-        objects @(global/.objects global/*current-model*)]
+  (let [objects @(global/.objects global/*current-model*)]
     (into {}
           (seq (remove nil?
                   (map (fn [object]
@@ -517,6 +516,22 @@
                            (if (not (empty? lvar-set))
                              [object lvar-set])))
                        objects))))))
+
+;;; Find all objects that contain a specific LVAR
+
+(defn objects-containing-lvar
+  "Iterate over all objects and collect the LVAR's contained in fields that match anlvar"
+  [anlvar]
+  (let [objects @(global/.objects global/*current-model*)
+        objconnlvar (into []
+                          (remove nil?
+                                  (map (fn [object]
+                                         (let [lvar-set (lvars-in-object object)]
+                                           (if (and (not (empty? lvar-set))
+                                                    (some #{anlvar} lvar-set))
+                                             object)))
+                                       objects)))]
+    objconnlvar))
 
 ;;; (def cm (lvar-connectivity-map))
 
@@ -669,14 +684,14 @@
 
 ;;; Does this really belong here? Maybe move it to DCRYPPS
 ;;; It's use seems a little specialized -- not sure though.
-(defn find-name-of-field-object
+(defn find-name-of-field-objects
   [object-type field]
   (println "In find-name-of-field-object with object-type=" object-type "and field=" field)
   (let [objects (eval/find-objects-of-type object-type)]
     (if (not (empty? objects))
       (let [;; _ (println "Found objects : " objects)
             fieldat (get-field-atom (first objects) field)]
-        (println "In find-name-of-field-object with fieldat=" (prop/prop-readable-form fieldat))
+        (println "In find-name-of-field-objects with fieldat=" (prop/prop-readable-form fieldat))
         (cond
           (and fieldat
                (instance? clojure.lang.Atom fieldat)
@@ -686,8 +701,15 @@
           (and fieldat
                (instance? clojure.lang.Atom fieldat)
                (lvar/is-lvar? @fieldat))
-          (do (println "result is:" (global/RTobject-variable (first objects)))
-              (global/RTobject-variable (first objects))) ; Forget the field, the object is implicated
+          (let [lvconnobjs (objects-containing-lvar @fieldat)]
+            ;; (println "lvconnobjs=" (prop/prop-readable-form lvconnobjs))
+            (if (empty? lvconnobjs)
+              (let [objvars [(global/RTobject-variable (first objects))]]
+                (println "result is:" objvars)
+                objvars) ; Forget the field, the object is implicated +++ probably should obsolete this case
+              (let [objvars (map global/RTobject-variable lvconnobjs)]
+                (println "result is:" objvars)
+                objvars)))
 
           (nil? fieldat)
           nil
