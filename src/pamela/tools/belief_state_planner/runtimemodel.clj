@@ -676,7 +676,7 @@
     (if (not (empty? objects))
       (let [;; _ (println "Found objects : " objects)
             fieldat (get-field-atom (first objects) field)]
-        (println "In find-name-of-field-object with fieldat=" fieldat)
+        (println "In find-name-of-field-object with fieldat=" (prop/prop-readable-form fieldat))
         (cond
           (and fieldat
                (instance? clojure.lang.Atom fieldat)
