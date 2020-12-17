@@ -696,7 +696,7 @@
           (and fieldat
                (instance? clojure.lang.Atom fieldat)
                (global/RTobject? @fieldat))
-          (global/RTobject-variable @fieldat)
+          [(global/RTobject-variable @fieldat)]
 
           (and fieldat
                (instance? clojure.lang.Atom fieldat)
