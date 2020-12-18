@@ -702,7 +702,7 @@
                (instance? clojure.lang.Atom fieldat)
                (lvar/is-lvar? @fieldat))
           (let [lvconnobjs (objects-containing-lvar @fieldat)]
-            ;; (println "lvconnobjs=" (prop/prop-readable-form lvconnobjs))
+            (println "lvconnobjs=" (prop/prop-readable-form lvconnobjs))
             (if (empty? lvconnobjs)
               (let [objvars [(global/RTobject-variable (first objects))]]
                 (println "result is:" objvars)
