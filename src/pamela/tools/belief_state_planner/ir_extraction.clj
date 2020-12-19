@@ -40,16 +40,17 @@
 ;;;(def biased-coin-edn "/Users/paulr/checkouts/DOLL/projects/PAMELA/beliefstate/biased-coin.model.edn")
 ;;;(def demo-mar-2017-edn "/Users/paulr/checkouts/DOLL/projects/dance/code/demo-march-2017/pamela/demo-mar-2017.ir.edn")
 
+(def ^:dynamic *testir* nil)
+
 (defn readiniffordebugging [file]
-  (def ^:dynamic *testir*
-    (read-ir-file file)))
+  (def ^:dynamic *testir*  (read-ir-file file)))
 
 ;;; (readiniffordebugging biased-coin-edn)
 ;;; (readiniffordebugging switchandbulb-edn)
 ;;; (readiniffordebugging switchandbulb-edn)
 
 (defn setirfortesting [ir]
-  (def  ^:dynamic *testir* ir))
+  (def ^:dynamic *testir* ir))
 
 (defn break
   [& message]

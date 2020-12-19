@@ -76,12 +76,17 @@
 
 (def ^:dynamic *imagined-objects* {})
 
+(defmacro with-no-imagination
+  [& body]
+  `(binding [*imagined-objects* {}]
+     ~@body))
+
 (def field-lock (Object.))
 
 (defn reset-imagination
   "Forget imagined state to begin a new episode."
   []
-  (def ^:dynamic *imagined-objects* {}))
+  (set! *imagined-objects* {}))
 
 (defn print-field-values
   []
@@ -119,7 +124,7 @@
               (reset! known-source (merge (deref known-source) {kfield (atom value) }))))) ; add new field/value
         (do ; If the source is not known, the object the field and its value must be set
           (check-monitor kobj kfield value)
-          (def ^:dynamic *imagined-objects* (merge  *imagined-objects* { kobj (atom { kfield (atom value) }) })))))))
+          (set! *imagined-objects* (merge  *imagined-objects* { kobj (atom { kfield (atom value) }) })))))))
 
 (defn imagine-changed-field-value
   "Can be given the variable name of the object or the runtime object itself"

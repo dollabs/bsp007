@@ -55,6 +55,9 @@
   nil)
 
 
+(defn number-of-processors
+  []
+  (. (Runtime/getRuntime) availableProcessors))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Virtual states
@@ -917,37 +920,39 @@
 (defn solveit
   "Generate a plan for the goals specified in the model."
   [& {:keys [samples max-depth rawp] :or {samples 10 max-depth 10 rawp false}}]
-  (if (> global/verbosity 0) (println "DMCP: solving with " samples "samples, max-depth=" max-depth))
-  (loop [solutions ()
-         sampled 0]
-    (if (and (> global/verbosity 1) (> sampled 0))
-      (println "DMCP: " (count solutions) "found so far out of " sampled " samples."))
-    (if (>= sampled samples)
-      (if (not (empty? solutions))                         ; We have done enough, return what we have
-        (do
-          (if (> global/verbosity 0) (println "Completed DMCP: " (count solutions) "found out of " sampled " samples."))
-          (if (> global/verbosity 0) (imag/print-imagination))
-          (doall solutions))
-        nil)      ; And it turns out that we didn't find any solutions. nil result signifies failure
-      (let [_ (imag/reset-imagination)
-            root-objects (global/get-root-objects)
-            ;; - (println "root-objects=" root-objects)
-            controllable-objects (rtm/get-controllable-objects)
-            ;; - (println "controllable-objects=" controllable-objects)
-            [pclass goal-conds] (rtm/goal-post-conditions)
-            - (if (> global/verbosity 0) (do (println "Root PCLASS=" pclass "GOAL:" (prop/prop-readable-form goal-conds))))
-            actions (plan root-objects controllable-objects pclass
-                          (map (fn [agoal]
-                                 [:thunk agoal (second (first root-objects))]
-                                 #_agoal)
-                               (simp/simplify-cond-top-level goal-conds (second (first root-objects))))
-                          :max-depth max-depth)
-            ;; +++ Now put the call into the solution
-            compiled-calls (if actions (if rawp
-                                         actions
-                                         (bir/scompile-call-sequence (seq (map first actions)))))]
-        ;;(pprint actions)
-        (recur (if compiled-calls (cons compiled-calls solutions) solutions) (+ 1 sampled))))))
+  (imag/with-no-imagination
+    (lvar/with-no-lvar-plan-bindings
+      (if (> global/verbosity 0) (println "DMCP: solving with " samples "samples, max-depth=" max-depth))
+      (loop [solutions ()
+             sampled 0]
+        (if (and (> global/verbosity 1) (> sampled 0))
+          (println "DMCP: " (count solutions) "found so far out of " sampled " samples."))
+        (if (>= sampled samples)
+          (if (not (empty? solutions))                         ; We have done enough, return what we have
+            (do
+              (if (> global/verbosity 0) (println "Completed DMCP: " (count solutions) "found out of " sampled " samples."))
+              (if (> global/verbosity 0) (imag/print-imagination))
+              (doall solutions))
+            nil)      ; And it turns out that we didn't find any solutions. nil result signifies failure
+          (let [_ (imag/reset-imagination)
+                root-objects (global/get-root-objects)
+                ;; - (println "root-objects=" root-objects)
+                controllable-objects (rtm/get-controllable-objects)
+                ;; - (println "controllable-objects=" controllable-objects)
+                [pclass goal-conds] (rtm/goal-post-conditions)
+                - (if (> global/verbosity 0) (do (println "Root PCLASS=" pclass "GOAL:" (prop/prop-readable-form goal-conds))))
+                actions (plan root-objects controllable-objects pclass
+                              (map (fn [agoal]
+                                     [:thunk agoal (second (first root-objects))]
+                                     #_agoal)
+                                   (simp/simplify-cond-top-level goal-conds (second (first root-objects))))
+                              :max-depth max-depth)
+                ;; +++ Now put the call into the solution
+                compiled-calls (if actions (if rawp
+                                             actions
+                                             (bir/scompile-call-sequence (seq (map first actions)))))]
+            ;;(pprint actions)
+            (recur (if compiled-calls (cons compiled-calls solutions) solutions) (+ 1 sampled))))))))
 
 ;;; (solveit)
 

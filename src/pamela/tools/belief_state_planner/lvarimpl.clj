@@ -33,7 +33,13 @@
   [x]
   (instance? LVar x))
 
-(def planbindset nil)
+(def ^:dynamic *planbindset* nil)
+
+(defmacro with-no-lvar-plan-bindings
+  [& body]
+  `(binding [*planbindset* nil]
+     ~@body))
+
 
 (defn add-lvar
   "Add an lvar to the current model."
@@ -82,7 +88,7 @@
   [lv nval]
   (if (= @(.boundp lv) :unbound)
     (do
-      (if planbindset (reset! planbindset (conj @planbindset lv)))
+      (if *planbindset* (reset! *planbindset* (conj @*planbindset* lv)))
       (reset! (.boundp lv) :bound)
       (reset! (.binding lv) (deref-lvar nval)))
     (let [boundto (deref-lvar lv)]
@@ -99,34 +105,34 @@
 
 (defn unbind-planbind-set
   []
-  (if planbindset
+  (if *planbindset*
     (do
-      (doseq [lvar @planbindset]
+      (doseq [lvar @*planbindset*]
         (if (> global/verbosity 1) (println "Unbinding LVAR " (.name lvar)))
         (unbind-lvar lvar)))))
 
 (defn start-plan-bind-set
   []
   (if (> global/verbosity 1) (println "Starting to collect LVAR bindings"))
-  (if (not (= planbindset nil)) (unbind-planbind-set))
-  (def planbindset (atom #{})))
+  (if (not (= *planbindset* nil)) (unbind-planbind-set))
+  (set! *planbindset* (atom #{})))
 
 (defn stop-plan-bind-set
   []
   (if (> global/verbosity 1) (println "Stopping collecting LVAR bindings"))
   (unbind-planbind-set)
-  (def planbindset nil))
+  (set! *planbindset* nil))
 
 ;;; (def x (make-lvar "x"))
 ;;; x
 ;;; (start-plan-bind-set)
-;;; planbindset
+;;; *planbindset*
 ;;; (bind-lvar x 42)
 ;;; x
-;;; planbindset
+;;; *planbindset*
 ;;; (stop-plan-bind-set)
 ;;; x
-;;; planbindset
+;;; *planbindset*
 
 (defn lvar-string
   [lv]

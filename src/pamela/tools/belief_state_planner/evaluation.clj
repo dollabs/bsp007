@@ -490,6 +490,9 @@
           derefedthing)]
     deboundthing))
 
+(def ^:dynamic ***namelist*** :debug)
+(def ^:dynamic ***wrtobject*** :debug)
+
 (defn deref-field
   [namelist wrtobject mode]
   (if (> global/verbosity 2)
