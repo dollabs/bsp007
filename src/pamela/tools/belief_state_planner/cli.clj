@@ -392,7 +392,8 @@
                       (println "File does not exist: " goals)
                       (Thread/sleep 2000)
                       (System/exit 1)))
-                  (let [solutions (core/solveit :samples samp :max-depth maxd :rawp true)] ;+++ was rawp
+                  (let [;;solutions (core/solveit :samples samp :max-depth maxd :rawp true)] ;+++ was rawp
+                        solutions (core/mpsolveit :samples samp :max-depth maxd :rawp true)]
                     (if (not rawp)
                       (let [pamela-solutions (into #{} (map bir/compile-actions-to-pamela solutions))
                             result (case (count pamela-solutions)

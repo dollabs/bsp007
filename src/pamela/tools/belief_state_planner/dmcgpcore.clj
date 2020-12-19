@@ -957,4 +957,35 @@
 ;;; (solveit)
 
 
+(defn mpsolveit
+  "distribute samples over multiple threads."
+  [& {:keys [samples max-depth rawp usethreads] :or {samples 10 max-depth 10 rawp false usethreads :maximum}}]
+  (let [availablethreads (number-of-processors)
+        usethreads (if (= usethreads :maximum) (max 1 (- availablethreads 2)) usethreads)
+        _ (if (> global/verbosity 1) (println "Using" usethreads "threads (" availablethreads ") available"))
+        spthread (/ samples usethreads)
+        extra (mod samples usethreads)
+        ;; If too few samples demanded use less threads.
+        usethreads (if (= spthread 0) extra usethreads) ; Use one thread for each sample
+        extra (if (= spthread 0) 0 extra)               ; Allocate the extra to the threads
+        spthread (if (= spthread 0) 1 spthread)]        ; 1 sample per thread.
+    (if (= usethreads 1)
+      ;; If only using a single thread, don't creat another one!
+      (do (println "Single thread being used")
+          (solveit :samples samples :max-depth max-depth :rawp rawp))
+      (let [old-verbosity global/verbosity
+            ;; Turn off verbosity, incomprehensible with multiply threads
+            _ (global/set-verbosity 0)
+            futures (doall (map (fn [n]
+                                  (let [numsamps (if (= n 0) (+ spthread extra) spthread)]
+                                    (future
+                                      (solveit :samples numsamps :max-depth max-depth :rawp rawp))))
+
+                                (range usethreads)))
+            _ (println (count futures) "planner threads started")
+            results (doall (map deref futures))
+            combined-results (into [] (apply concat results))]
+        (global/set-verbosity old-verbosity) ; put verbosity back where we found it
+        combined-results))))
+
 ;;; Fin
