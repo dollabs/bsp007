@@ -83,6 +83,14 @@
 
 (def field-lock (Object.))
 
+(def ^:dynamic *planbindset* nil)
+
+(defmacro with-no-lvar-plan-bindings
+  [& body]
+  `(binding [*planbindset* nil]
+     ~@body))
+
+
 (defn reset-imagination
   "Forget imagined state to begin a new episode."
   []
@@ -141,6 +149,15 @@
   ;; +++ not using probability yet -- fixme +++
   (imagine-changed-field-value obj :mode value))
 
+(defn imagine-lvar-binding
+  "Imagine an LVAR binding.  nil couns as unbound."
+  [lvar value]
+  (if (and (lvar/is-lvar? lvar)
+           (lvar/is-unbound-lvar? lvar))
+    (imagine-changed-field-value (.name lvar) :lvar value)
+    (= (lvar/deref-lvar value)
+       (get-field-value (.name lvar) :lvar))))
+
 (defn print-imagination
   "Print out everything that is in the imagination"
   []
@@ -148,3 +165,81 @@
   (doseq [[name value] *imagined-objects*]
     (doseq [[field val] @value]
       (println name "." field "=" @val))))
+
+(defn is-bound-lvar?
+  [thing]
+  (or
+   (get-field-value (.name thing) :lvar)
+   (lvar/is-bound-lvar? thing)))
+
+(defn is-unbound-lvar?
+  [thing]
+  (and
+   (not (get-field-value (.name thing) :lvar))
+   (lvar/is-unbound-lvar? thing)))
+
+(defn deref-lvar
+  [something]
+    (if (lvar/is-lvar? something)
+      (let [imagined (get-field-value (lvar/lvar-name something) :lvar)]
+        (cond (not imagined)
+              (lvar/deref-lvar something)
+
+              imagined
+              (recur imagined)))
+      something))
+
+(defn bind-lvar
+  [lv nval]
+  (if (is-unbound-lvar? lv)
+    (do
+      (if *planbindset* (reset! *planbindset* (conj @*planbindset* lv)))
+      (imagine-lvar-binding lv (deref-lvar nval)))
+    (let [boundto (deref-lvar lv)]
+      (if (lvar/is-lvar? boundto)
+        (recur boundto nval)
+        (= boundto (deref-lvar nval))))))
+
+(defn unbind-lvar
+  [lv]
+  (let [imagined (get-field-value (lvar/lvar-name lv) :lvar)]
+    (if imagined
+      (imagine-lvar-binding lv nil)
+      (do (println "*** ERROR shouldn't get here ***") (lvar/unbind-lvar lv)))))
+
+(defn lvar-string
+  [lv]
+  (let [name (.name lv)]
+    (if (is-bound-lvar? lv)
+      (format "?%s=%s" name (str (deref-lvar lv)))
+      (format "?%s" name))))
+
+
+(defn describe-lvar
+  [lv]
+  (.write *out* (format "<LVAR name=%s%s%s>%n"
+                        (.name lv)
+                        (if (is-unbound-lvar? lv) "" " value=")
+                        (if (is-unbound-lvar? lv) "" (deref-lvar lv)))))
+
+;;; Start tracking LV bind operations
+
+(defn unbind-planbind-set
+  []
+  (if *planbindset*
+    (do
+      (doseq [lvar @*planbindset*]
+        (if (> global/verbosity 1) (println "Unbinding LVAR " (.name lvar)))
+        (unbind-lvar lvar)))))
+
+(defn start-plan-bind-set
+  []
+  (if (> global/verbosity 1) (println "Starting to collect LVAR bindings"))
+  (if (not (= *planbindset* nil)) (unbind-planbind-set))
+  (set! *planbindset* (atom #{})))
+
+(defn stop-plan-bind-set
+  []
+  (if (> global/verbosity 1) (println "Stopping collecting LVAR bindings"))
+  (unbind-planbind-set)
+  (set! *planbindset* nil))

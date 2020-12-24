@@ -33,7 +33,7 @@
 
 (def ^:dynamic *current-belief-state* (BeliefState. (atom nil) (atom nil) (atom nil) (atom nil)))
 
-(def ^:dynamic *initialized-mft* nil)
+;;; +++ do we still need this ??? (def ^:dynamic *initialized-mft* nil)
 
 ;;; A simple macro to produce code that uses a provided belief state
 ;;; if the provided belief state is nil the current belief state is

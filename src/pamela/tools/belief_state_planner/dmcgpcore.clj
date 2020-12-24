@@ -41,13 +41,6 @@
 
 (def ^:dynamic available-actions nil)
 (def ^:dynamic plan-fragment-library nil)
-;(def ^:dynamic verbosity 0)
-
-;(def ^:dynamic *printdebug* false) ; false
-
-;(defn set-verbosity
-;  [n]
-;  (def ^:dynamic verbosity n))
 
 (defn nyi
   [text]
@@ -487,13 +480,13 @@
         (if (lvar/is-lvar? arg1)
           (do
             (if (> global/verbosity 2) (println "*** Binding LVAR"))
-            (lvar/bind-lvar arg1 subj)
-            (if (> global/verbosity 2) (lvar/describe-lvar arg1))))
+            (imag/bind-lvar arg1 subj)
+            (if (> global/verbosity 2) (imag/describe-lvar arg1))))
         (if (lvar/is-lvar? arg2)
           (do
             (if (> global/verbosity 2) (println "*** Binding LVAR"))
-            (lvar/bind-lvar arg2 obj)
-            (if (> global/verbosity 2) (lvar/describe-lvar arg2))))
+            (imag/bind-lvar arg2 obj)
+            (if (> global/verbosity 2) (imag/describe-lvar arg2))))
         true))))
 
 (defn internal-condition-call
@@ -503,11 +496,11 @@
     (case name
       'find-binary-proposition
       (let [[pname arg1 arg2] args ; Presently pname must be supplied allow lvar for pname later ? +++
-            arg1-unbound-lvar (and (lvar/is-lvar? arg1) (not (lvar/is-bound-lvar? arg1)))
-            arg2-unbound-lvar (and (lvar/is-lvar? arg2) (not (lvar/is-bound-lvar? arg2)))
+            arg1-unbound-lvar (and (lvar/is-lvar? arg1) (not (imag/is-bound-lvar? arg1)))
+            arg2-unbound-lvar (and (lvar/is-lvar? arg2) (not (imag/is-bound-lvar? arg2)))
             ;; Dereference bound LVARS
-            arg1r (if (and (lvar/is-lvar? arg1) (lvar/is-bound-lvar? arg1)) (lvar/deref-lvar arg1) arg1)
-            arg2r (if (and (lvar/is-lvar? arg2) (lvar/is-bound-lvar? arg2)) (lvar/deref-lvar arg2) arg2)
+            arg1r (if (and (lvar/is-lvar? arg1) (imag/is-bound-lvar? arg1)) (imag/deref-lvar arg1) arg1)
+            arg2r (if (and (lvar/is-lvar? arg2) (imag/is-bound-lvar? arg2)) (imag/deref-lvar arg2) arg2)
             arg1 (if (and false (string? arg1r)) (symbol arg1r) arg1r)
             arg2 (if (and false (string? arg2r)) (symbol arg2r) arg2r)]
         ;; (if (and (not arg1-unbound-lvar) (not (string? arg1)))
@@ -569,11 +562,11 @@
           _ (if (> global/verbosity 2)
               (println "arg1=" (prop/prop-readable-form arg1)
                        "arg2=" (prop/prop-readable-form arg2)))
-          arg1-unbound-lvar (lvar/unbound-lvar? arg1)
-          arg2-unbound-lvar (lvar/unbound-lvar? arg2)
+          arg1-unbound-lvar (imag/is-unbound-lvar? arg1)
+          arg2-unbound-lvar (imag/is-unbound-lvar? arg2)
           ;; Dereference bound LVARS
-          arg1 (if (lvar/bound-lvar? arg1) (lvar/deref-lvar arg1) arg1)
-          arg2 (if (lvar/bound-lvar? arg2) (lvar/deref-lvar arg2) arg2)]
+          arg1 (if (imag/is-bound-lvar? arg1) (imag/deref-lvar arg1) arg1)
+          arg2 (if (imag/is-bound-lvar? arg2) (imag/deref-lvar arg2) arg2)]
       ;; (if (and (not arg1-unbound-lvar) (not (string? arg1)))
       ;;   (println "arg1 is not a string" arg1))
       ;; (if (and (not arg2-unbound-lvar) (not (string? arg2)))
@@ -626,14 +619,14 @@
         (doseq [m matches]
           ;; bind the lvars for a1 and a2 and recurse
           (let [{ptype :ptype, subj :subject, obj :object} m
-                ubarg1 (if (and (lvar/is-lvar? arg1) (not (lvar/is-bound-lvar? arg1)))
-                         (do (lvar/bind-lvar arg1 subj) arg1))
-                ubarg2 (if (and (lvar/is-lvar? arg2) (not (lvar/is-bound-lvar? arg2)))
-                         (do (lvar/bind-lvar arg2 subj) arg2))]
+                ubarg1 (if (and (lvar/is-lvar? arg1) (not (imag/is-bound-lvar? arg1)))
+                         (do (imag/bind-lvar arg1 subj) arg1))
+                ubarg2 (if (and (lvar/is-lvar? arg2) (not (imag/is-bound-lvar? arg2)))
+                         (do (imag/bind-lvar arg2 subj) arg2))]
             (lookup-propositions-aux (rest pvec) (conj path [arg1 arg2 m]) wrtobj condition pmatches)
             ;; Any lvars bound on the way in are unbound on the way out
-            (if ubarg1 (lvar/unbind-lvar ubarg1))
-            (if ubarg2 (lvar/unbind-lvar ubarg2))))))))
+            (if ubarg1 (imag/unbind-lvar ubarg1))
+            (if ubarg2 (imag/unbind-lvar ubarg2))))))))
 
 (defn select-and-bind2-n
   "Given a sequence of n proposition bindings that satisfy the condition, select one and make all necessary bindings"
@@ -649,12 +642,12 @@
       (let [selection (mcselect pmatches)] ; selection is a path of propositions one entry for each proposition
         (doseq [[arg1 arg2 aprop] selection]
           (let [{ptype :ptype, subj :subject, obj :object} aprop]
-            (when (and (lvar/is-lvar? arg1) (lvar/is-unbound-lvar? arg1))
+            (when (and (lvar/is-lvar? arg1) (imag/is-unbound-lvar? arg1))
               (if (> global/verbosity 2) (println "Binding " arg1 "to" subj))
-              (lvar/bind-lvar arg1 subj))
-            (when (and (lvar/is-lvar? arg2) (lvar/is-unbound-lvar? arg2))
+              (imag/bind-lvar arg1 subj))
+            (when (and (lvar/is-lvar? arg2) (imag/is-unbound-lvar? arg2))
               (if (> global/verbosity 2) (println "Binding " arg2 "to" obj))
-              (lvar/bind-lvar arg2 obj))))
+              (imag/bind-lvar arg2 obj))))
         selection))))
 
 (defn lookup-propositions
@@ -693,9 +686,9 @@
                    (prop/prop-readable-form (nth condit 2))
                    ")"))
         (let [first-expn (eval/evaluate  wrtobject "???" (nth condit 1) nil nil nil nil)
-              first-expn (if (lvar/is-lvar? first-expn) (lvar/deref-lvar first-expn) first-expn)
+              first-expn (if (lvar/is-lvar? first-expn) (imag/deref-lvar first-expn) first-expn)
               second-expn (eval/evaluate wrtobject "???" (nth condit 2) nil nil nil nil)
-              second-expn (if (lvar/is-lvar? second-expn) (lvar/deref-lvar second-expn) second-expn)
+              second-expn (if (lvar/is-lvar? second-expn) (imag/deref-lvar second-expn) second-expn)
               first-expn (if (and (keyword? second-expn) (string? first-expn))
                            (eval/get-object-value (eval/maybe-get-named-object first-expn))
                            first-expn)
@@ -719,9 +712,9 @@
                    (prop/prop-readable-form (nth condit 2))
                    ")"))
         (let [first-expn (eval/evaluate-reference  wrtobject (nth condit 1) nil nil nil nil)
-              first-expn (if (lvar/is-lvar? first-expn) (lvar/deref-lvar first-expn) first-expn)
+              first-expn (if (lvar/is-lvar? first-expn) (imag/deref-lvar first-expn) first-expn)
               second-expn (eval/evaluate-reference wrtobject (nth condit 2) nil nil nil nil)
-              second-expn (if (lvar/is-lvar? second-expn) (lvar/deref-lvar second-expn) second-expn)]
+              second-expn (if (lvar/is-lvar? second-expn) (imag/deref-lvar second-expn) second-expn)]
           (if (> global/verbosity 3)
             (println "(same "
                      (prop/prop-readable-form (nth condit 1)) "=" (prop/prop-readable-form first-expn)
@@ -828,7 +821,7 @@
                 (do (println) (println "Solving for:" (prop/prop-readable-form this-goal))))
             outstanding-goals (rest goals)] ; Afterwards we will solve the rest
 
-        (lvar/start-plan-bind-set)
+        (imag/start-plan-bind-set)
 
         (if (condition-satisfied? this-goal rootobject)
           (if (empty? outstanding-goals)
@@ -887,7 +880,7 @@
                       (if (> global/verbosity 2) (println "actions=" (prop/prop-readable-form actions)))
                       (if (> global/verbosity 2) (println "subgoals=" (prop/prop-readable-form subgoals)))
 
-                      (lvar/stop-plan-bind-set)
+                      (imag/stop-plan-bind-set)
 
                       (let [plan-part (concat actions complete-plan)]
                         (if (> global/verbosity 1) (println "ACTION-ADDED-TO-PARTIAL-PLAN: " (prop/prop-readable-form actions)))
@@ -921,7 +914,7 @@
   "Generate a plan for the goals specified in the model."
   [& {:keys [samples max-depth rawp] :or {samples 10 max-depth 10 rawp false}}]
   (imag/with-no-imagination
-    (lvar/with-no-lvar-plan-bindings
+    (imag/with-no-lvar-plan-bindings
       (if (> global/verbosity 0) (println "DMCP: solving with " samples "samples, max-depth=" max-depth))
       (loop [solutions ()
              sampled 0]
@@ -962,13 +955,13 @@
   [& {:keys [samples max-depth rawp usethreads] :or {samples 10 max-depth 10 rawp false usethreads :maximum}}]
   (let [availablethreads (number-of-processors)
         usethreads (if (= usethreads :maximum) (max 1 (- availablethreads 2)) usethreads)
-        _ (if (> global/verbosity 1) (println "Using" usethreads "threads (" availablethreads ") available"))
         spthread (/ samples usethreads)
         extra (mod samples usethreads)
         ;; If too few samples demanded use less threads.
         usethreads (if (= spthread 0) extra usethreads) ; Use one thread for each sample
         extra (if (= spthread 0) 0 extra)               ; Allocate the extra to the threads
         spthread (if (= spthread 0) 1 spthread)]        ; 1 sample per thread.
+    (println "Using" usethreads "threads (" availablethreads ") available, spthread=" spthread "extra=" extra)
     (if (= usethreads 1)
       ;; If only using a single thread, don't creat another one!
       (do (println "Single thread being used")

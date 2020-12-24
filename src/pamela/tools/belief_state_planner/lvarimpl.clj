@@ -13,11 +13,11 @@
             [clojure.tools.logging :as log]
             [clojure.java.io :as io]
             [clojure.set :as set]
+            [clojure.data.json :as json]
             [environ.core :refer [env]]
             [pamela.tools.belief-state-planner.montecarloplanner :as bs]
             [pamela.tools.belief-state-planner.ir-extraction :as irx]
-            [pamela.tools.belief-state-planner.coredata :as global]
-            [clojure.data.json :as json])
+            [pamela.tools.belief-state-planner.coredata :as global])
   (:gen-class))
 
 ;;;(in-ns 'pamela.tools.belief-state-planner.lvarimpl)
@@ -27,19 +27,17 @@
 
 (defrecord LVar [name binding boundp])
 
+(defn is-lvar?
+  [thing]
+  (instance? LVar thing))
+
 (declare describe-lvar)
 
-(defn LVar?
-  [x]
-  (instance? LVar x))
-
-(def ^:dynamic *planbindset* nil)
-
-(defmacro with-no-lvar-plan-bindings
-  [& body]
-  `(binding [*planbindset* nil]
-     ~@body))
-
+(defn lvar-name
+  [lv]
+  (if (is-lvar? lv)
+    (.name lv)
+    (println "ERROR: lvar-name called on a non lvar" lv)))
 
 (defn add-lvar
   "Add an lvar to the current model."
@@ -53,10 +51,6 @@
   (let [lv (LVar. name (atom nil) (atom :unbound))]
     (add-lvar lv)
     lv))
-
-(defn is-lvar?
-  [thing]
-  (instance? LVar thing))
 
 (defn is-bound-lvar?
   [thing]
@@ -79,49 +73,29 @@
 (defn deref-lvar
   [something]
   (if (instance? LVar something)
-    (if (= @(.boundp something) :unbound)
-      something
-      (deref-lvar @(.binding something)))
+    (cond (is-unbound-lvar? something)
+          something
+
+          :otherwise
+          (recur @(.binding something)))
     something))
 
 (defn bind-lvar
   [lv nval]
-  (if (= @(.boundp lv) :unbound)
+  (if (is-unbound-lvar? lv)
     (do
-      (if *planbindset* (reset! *planbindset* (conj @*planbindset* lv)))
+      ;; (if *planbindset* (reset! *planbindset* (conj @*planbindset* lv)))
       (reset! (.boundp lv) :bound)
       (reset! (.binding lv) (deref-lvar nval)))
     (let [boundto (deref-lvar lv)]
       (if (instance? LVar boundto)
-        (bind-lvar boundto nval)
+        (recur boundto nval)
         (= boundto (deref-lvar nval))))))
 
 (defn unbind-lvar
   [lv]
   (reset! (.boundp lv) :unbound)
   (reset! (.binding lv) nil))
-
-;;; Start tracking LV bind operations
-
-(defn unbind-planbind-set
-  []
-  (if *planbindset*
-    (do
-      (doseq [lvar @*planbindset*]
-        (if (> global/verbosity 1) (println "Unbinding LVAR " (.name lvar)))
-        (unbind-lvar lvar)))))
-
-(defn start-plan-bind-set
-  []
-  (if (> global/verbosity 1) (println "Starting to collect LVAR bindings"))
-  (if (not (= *planbindset* nil)) (unbind-planbind-set))
-  (set! *planbindset* (atom #{})))
-
-(defn stop-plan-bind-set
-  []
-  (if (> global/verbosity 1) (println "Stopping collecting LVAR bindings"))
-  (unbind-planbind-set)
-  (set! *planbindset* nil))
 
 ;;; (def x (make-lvar "x"))
 ;;; x
@@ -145,5 +119,5 @@
   [lv]
   (.write *out* (format "<LVAR name=%s%s%s>%n"
                         (.name lv)
-                        (if (= @(.boundp lv) :unbound) "" " value=")
-                        (if (= @(.boundp lv) :unbound) "" @(.binding lv)))))
+                        (if (is-unbound-lvar? lv) "" " value=")
+                        (if (is-unbound-lvar? lv) "" (deref-lvar lv)))))

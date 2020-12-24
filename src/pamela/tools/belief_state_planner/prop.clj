@@ -23,12 +23,14 @@
 
 ;;;(in-ns 'pamela.tools.belief-state-planner.prop)
 
+(def ^:dynamic lvar-string-impl lvar/lvar-string) ;+++ bind this to imag/lvar-string when in bsp
+
 (defn prop-readable-form
   "Convert the object into a clojure form that can be printed or pprinted"
   [object]
   (cond
     (lvar/is-lvar? object)
-    (lvar/lvar-string object)
+    (lvar-string-impl object)
 
     (global/RTobject? object)
     (str "$" (global/RTobject-variable object))

@@ -22,6 +22,7 @@
             [pamela.tools.belief-state-planner.expressions :as dxp]
             [pamela.tools.belief-state-planner.ir-extraction :as irx]
             [pamela.tools.belief-state-planner.lvarimpl :as lvar]
+            [pamela.tools.belief-state-planner.imagine :as imag]
             [pamela.tools.belief-state-planner.evaluation :as eval]
             [pamela.tools.belief-state-planner.coredata :as global]
 
@@ -53,7 +54,9 @@
 (defn un-lvar-expression
   [exprn wrtobject]
   (let [evaluated (eval/evaluate-reference wrtobject exprn nil nil nil nil)
-        bound-value (if (and (lvar/is-lvar? evaluated) (lvar/is-bound-lvar? evaluated)) (lvar/deref-lvar evaluated) false)
+        bound-value (if (and (lvar/is-lvar? evaluated) (imag/is-bound-lvar? evaluated))
+                      (imag/deref-lvar evaluated)
+                      false)
         - (if (> global/verbosity 3) (println "In un-lvar-expression with exprn=" (prop/prop-readable-form exprn)
                                        "evaluates to " (prop/prop-readable-form evaluated)))
         - (if (> global/verbosity 3) (if bound-value (println "****" (lvar/.name evaluated) "=" bound-value)))
