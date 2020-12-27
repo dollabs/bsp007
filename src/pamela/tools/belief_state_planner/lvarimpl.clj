@@ -54,21 +54,13 @@
 
 (defn is-bound-lvar?
   [thing]
-  (not (= @(.boundp thing) :unbound)))
+  (and (is-lvar? thing)
+       (not (= @(.boundp thing) :unbound))))
 
 (defn is-unbound-lvar?
   [thing]
-  (= @(.boundp thing) :unbound))
-
-(defn bound-lvar?
-  [x]
-  (and (is-lvar? x)
-       (is-bound-lvar? x)))
-
-(defn unbound-lvar?
-  [x]
-  (and (is-lvar? x)
-       (is-unbound-lvar? x)))
+  (and (is-lvar? thing)
+       (= @(.boundp thing) :unbound)))
 
 (defn deref-lvar
   [something]

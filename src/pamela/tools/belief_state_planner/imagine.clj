@@ -76,9 +76,12 @@
 
 (def ^:dynamic *imagined-objects* {})
 
+(declare lvar-string)
+
 (defmacro with-no-imagination
   [& body]
-  `(binding [*imagined-objects* {}]
+  `(binding [*imagined-objects* {}
+             prop/lvar-string-impl lvar-string]
      ~@body))
 
 (def field-lock (Object.))
@@ -149,14 +152,27 @@
   ;; +++ not using probability yet -- fixme +++
   (imagine-changed-field-value obj :mode value))
 
+(declare is-unbound-lvar? is-bound-lvar? deref-lvar)
+
 (defn imagine-lvar-binding
   "Imagine an LVAR binding.  nil couns as unbound."
   [lvar value]
   (if (and (lvar/is-lvar? lvar)
-           (lvar/is-unbound-lvar? lvar))
-    (imagine-changed-field-value (.name lvar) :lvar value)
-    (= (lvar/deref-lvar value)
-       (get-field-value (.name lvar) :lvar))))
+           (is-unbound-lvar? lvar))
+    (do
+      ;; (println "imagine: binding lvar" (lvar/.name lvar) "to" value)
+      (imagine-changed-field-value (lvar/.name lvar) :lvar value))
+    (= (deref-lvar value)
+       (get-field-value (lvar/.name lvar) :lvar))))
+
+(defn imagine-unbind-lvar-binding
+  "Imagine an LVAR binding.  nil couns as unbound."
+  [lvar]
+  (if (and (lvar/is-lvar? lvar)
+           (is-bound-lvar? lvar))
+    (do
+      (println "imagine: binding lvar" (lvar/.name lvar) "to" nil)
+      (imagine-changed-field-value (lvar/.name lvar) :lvar nil))))
 
 (defn print-imagination
   "Print out everything that is in the imagination"
@@ -166,16 +182,22 @@
     (doseq [[field val] @value]
       (println name "." field "=" @val))))
 
+;;; If the underlying lvar is bound, it is bound in the imagination too
+;;; It is not possible to imaging an alreadt bould lvar as being unbound.
+;;; Contrariwise, an unbound lvar can be imagined to be bound.
+
 (defn is-bound-lvar?
   [thing]
-  (or
-   (get-field-value (.name thing) :lvar)
-   (lvar/is-bound-lvar? thing)))
+  (and (lvar/is-lvar? thing)
+       (or
+        (get-field-value (lvar/.name thing) :lvar) ; a nil value indicated unbound
+        (lvar/is-bound-lvar? thing))))
 
 (defn is-unbound-lvar?
   [thing]
   (and
-   (not (get-field-value (.name thing) :lvar))
+   (lvar/is-lvar? thing)
+   (not (get-field-value (lvar/.name thing) :lvar))
    (lvar/is-unbound-lvar? thing)))
 
 (defn deref-lvar
@@ -204,12 +226,12 @@
   [lv]
   (let [imagined (get-field-value (lvar/lvar-name lv) :lvar)]
     (if imagined
-      (imagine-lvar-binding lv nil)
+        (imagine-unbind-lvar-binding lv)
       (do (println "*** ERROR shouldn't get here ***") (lvar/unbind-lvar lv)))))
 
 (defn lvar-string
   [lv]
-  (let [name (.name lv)]
+  (let [name (lvar/.name lv)]
     (if (is-bound-lvar? lv)
       (format "?%s=%s" name (str (deref-lvar lv)))
       (format "?%s" name))))
@@ -218,7 +240,7 @@
 (defn describe-lvar
   [lv]
   (.write *out* (format "<LVAR name=%s%s%s>%n"
-                        (.name lv)
+                        (lvar/.name lv)
                         (if (is-unbound-lvar? lv) "" " value=")
                         (if (is-unbound-lvar? lv) "" (deref-lvar lv)))))
 
@@ -229,7 +251,7 @@
   (if *planbindset*
     (do
       (doseq [lvar @*planbindset*]
-        (if (> global/verbosity 1) (println "Unbinding LVAR " (.name lvar)))
+        (if (> global/verbosity 1) (println "Unbinding LVAR " (lvar/.name lvar)))
         (unbind-lvar lvar)))))
 
 (defn start-plan-bind-set

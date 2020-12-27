@@ -585,7 +585,7 @@
   (let [cm (lvar-connectivity-map)]
     (doseq [[object lvars] cm]
       (let [object-name (.variable object)
-            lvnames (map (fn [lv] (.name lv)) lvars)]
+            lvnames (map (fn [lv] (lvar/.name lv)) lvars)]
         (println [object-name lvnames])))))
 
 ;;; (describe-connectivity-map)
