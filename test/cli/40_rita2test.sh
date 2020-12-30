@@ -21,7 +21,7 @@ set -e
 java -jar $CODE/target/dmcgp.jar -s 1 -v 0 -d 50 \
          -g $CODE/test/planner/${NUMBER}_ritatest.ir.json \
          -P $CODE/test/planner/${NUMBER}_ritatest.ppr -G Main2 \
-         -o "$RESULTS/${NUMBER}_rita2test.plan" \
+         -o "$RESULTS/${NUMBER}_rita2test.plan" -T 1\
          make-plan
 
 if ! diff -u "$dir/${NUMBER}_rita2test.good" "$RESULTS/${NUMBER}_rita2test.plan";

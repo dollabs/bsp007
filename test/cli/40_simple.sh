@@ -20,7 +20,7 @@ set -e
 
 java -jar $CODE/target/dmcgp.jar -s 1 -v 0 \
          -g $CODE/test/planner/${NUMBER}_simple.ir.json -G world \
-         -o "$RESULTS/${NUMBER}_simple.plan" \
+         -o "$RESULTS/${NUMBER}_simple.plan" -T 1\
          make-plan
 
 if ! diff -u "$dir/${NUMBER}_simple.good" "$RESULTS/${NUMBER}_simple.plan";

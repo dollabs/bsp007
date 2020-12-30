@@ -231,6 +231,7 @@
         (imagine-unbind-lvar-binding lv)
         (do (println "*** ERROR shouldn't get here, attempting to unbind an lvar ("
                      (lvar/lvar-name lv) ") that is already unbound ***")
+            (print-imagination)
             (lvar/unbind-lvar lv)))))
 
 (defn lvar-string
@@ -256,7 +257,7 @@
     (do
       (doseq [lvar @*planbindset*]
         (if (> global/verbosity 1) (println "Unbinding LVAR " (lvar/lvar-name lvar)))
-        (unbind-lvar lvar)))))
+        (if (is-bound-lvar? lvar) (unbind-lvar lvar))))))
 
 (defn start-plan-bind-set
   []

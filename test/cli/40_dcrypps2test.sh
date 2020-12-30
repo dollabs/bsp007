@@ -20,7 +20,7 @@ set -e
 
 java -jar $CODE/target/dmcgp.jar -s 1000 -v 0 \
          -g $CODE/test/planner/${NUMBER}_dcrypps2test.ir.json -G AttackPlanner \
-         -o "$RESULTS/${NUMBER}_dcrypps2test.plan" -T 0\
+         -o "$RESULTS/${NUMBER}_dcrypps2test.plan" -T 1\
          make-plan
 
 if ! diff -u "$dir/${NUMBER}_dcrypps2test.good" "$RESULTS/${NUMBER}_dcrypps2test.plan";
