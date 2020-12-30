@@ -7,6 +7,7 @@
 (ns pamela.tools.belief-state-planner.dmcgpcore
   "DOLL Monte-Carlo Generative Planner"
   (:require [clojure.string :as string]
+            ;;[clojure.core :refer [inst-ms]]
             [clojure.repl :refer [pst]]
             [clojure.tools.cli :refer [parse-opts]]
             [clojure.pprint :as pp :refer [pprint]]
@@ -609,7 +610,7 @@
   "Recurse down the propositions to find compatible matches that satisfy the condition"
   [pvec path wrtobj condition pmatches]
   (if (empty? pvec)
-    (do (if (> global/verbosity 2) ; normally 2
+    (do (if (> global/verbosity 2)
           (println "found-candidate path=" (prop/prop-readable-form path) "constraint=" (prop/prop-readable-form condition)
                    "=" (condition-satisfied? condition wrtobj)
                    "wrtobject=" (prop/prop-readable-form wrtobj)))
@@ -619,10 +620,10 @@
         (doseq [m matches]
           ;; bind the lvars for a1 and a2 and recurse
           (let [{ptype :ptype, subj :subject, obj :object} m
-                ubarg1 (if (and (lvar/is-lvar? arg1) (not (imag/is-bound-lvar? arg1)))
+                ubarg1 (if (and subj (lvar/is-lvar? arg1) (not (imag/is-bound-lvar? arg1)))
                          (do (imag/bind-lvar arg1 subj) arg1))
-                ubarg2 (if (and (lvar/is-lvar? arg2) (not (imag/is-bound-lvar? arg2)))
-                         (do (imag/bind-lvar arg2 subj) arg2))]
+                ubarg2 (if (and obj (lvar/is-lvar? arg2) (not (imag/is-bound-lvar? arg2)))
+                         (do (imag/bind-lvar arg2 obj) arg2))] ;; was subj, but surely that was wrong+++
             (lookup-propositions-aux (rest pvec) (conj path [arg1 arg2 m]) wrtobj condition pmatches)
             ;; Any lvars bound on the way in are unbound on the way out
             (if ubarg1 (imag/unbind-lvar ubarg1))
@@ -955,7 +956,7 @@
   [& {:keys [samples max-depth rawp usethreads] :or {samples 10 max-depth 10 rawp false usethreads :maximum}}]
   (let [availablethreads (number-of-processors)
         usethreads (if (= usethreads :maximum) (max 1 (- availablethreads 2)) usethreads)
-        spthread (/ samples usethreads)
+        spthread (quot samples usethreads)
         extra (mod samples usethreads)
         ;; If too few samples demanded use less threads.
         usethreads (if (= spthread 0) extra usethreads) ; Use one thread for each sample
@@ -963,21 +964,31 @@
         spthread (if (= spthread 0) 1 spthread)]        ; 1 sample per thread.
     (println "Using" usethreads "threads (" availablethreads ") available, spthread=" spthread "extra=" extra)
     (if (= usethreads 1)
-      ;; If only using a single thread, don't creat another one!
-      (do (println "Single thread being used")
-          (solveit :samples samples :max-depth max-depth :rawp rawp))
+      ;; If only using a single thread, don't create another one!
+      (let [_ (println "Single thread being used")
+            ;;starttimems (inst-ms (java.time.Instant/now))
+            results (solveit :samples samples :max-depth max-depth :rawp rawp)
+            ;;finishedtimems (inst-ms (java.time.Instant/now))
+            ]
+        ;;(println "Total time=" (- finishedtimems starttimems))
+        results)
       (let [old-verbosity global/verbosity
             ;; Turn off verbosity, incomprehensible with multiply threads
             _ (global/set-verbosity 0)
+            ;;starttimems (inst-ms (java.time.Instant/now))
             futures (doall (map (fn [n]
-                                  (let [numsamps (if (= n 0) (+ spthread extra) spthread)]
+                                  (let [numsamps (if (< n extra) (+ spthread 1) spthread)]
                                     (future
                                       (solveit :samples numsamps :max-depth max-depth :rawp rawp))))
-
                                 (range usethreads)))
             _ (println (count futures) "planner threads started")
+            ;;launchedtimems (inst-ms (java.time.Instant/now))
             results (doall (map deref futures))
+            ;;finishedtimems (inst-ms (java.time.Instant/now))
             combined-results (into [] (apply concat results))]
+        #_(println "Time to launch threads=" (- launchedtimems starttimems)
+                 "Compute time="  (- finishedtimems launchedtimems)
+                 "total time="   (- finishedtimems starttimems))
         (global/set-verbosity old-verbosity) ; put verbosity back where we found it
         combined-results))))
 

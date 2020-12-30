@@ -68,6 +68,7 @@
                   ["-w" "--watchedplant id" "WATCHEDPLANT ID" :default nil]
                   ["-t" "--tracefile file" " Trace filename" :default nil]
                   ["-v" "--verbose level" "Verbose mode" :default "0"]
+                  ["-T" "--threads n" "Maximum number of threads to use (0 means as many as possible)" :default "0"]
                   ["-?" "--help"]
                   ])
 
@@ -282,6 +283,7 @@
         groo (symbol (get-in parsed [:options :groot]))
         samp (read-string (get-in parsed [:options :samples]))
         maxd (read-string (get-in parsed [:options :maxdepth]))
+        maxt (read-string (get-in parsed [:options :threads]))
         rawp (read-string (get-in parsed [:options :rawp]))
         outfile (get-in parsed [:options :output])
         prop (get-in parsed [:options :propositions])
@@ -392,8 +394,10 @@
                       (println "File does not exist: " goals)
                       (Thread/sleep 2000)
                       (System/exit 1)))
-                  (let [solutions (core/solveit :samples samp :max-depth maxd :rawp true)] ;+++ was rawp
-                        ;;solutions (core/mpsolveit :samples samp :max-depth maxd :rawp true)]
+                  (let [solutions ; (if (= maxt 1)
+                        ;;  (core/solveit :samples samp :max-depth maxd :rawp true) ;+++ was rawp
+                        ;; (println "maxt=" maxt)
+                        (time (core/mpsolveit :samples samp :max-depth maxd :rawp true :usethreads (if (= maxt 0) :maximum maxt)))]
                     (if (not rawp)
                       (let [pamela-solutions (into #{} (map bir/compile-actions-to-pamela solutions))
                             result (case (count pamela-solutions)

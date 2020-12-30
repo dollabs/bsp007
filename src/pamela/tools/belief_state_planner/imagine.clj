@@ -74,41 +74,43 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Object references
 
-(def ^:dynamic *imagined-objects* {})
+(def ^:dynamic *imagined-objects* (atom {}))
 
 (declare lvar-string)
 
 (defmacro with-no-imagination
   [& body]
-  `(binding [*imagined-objects* {}
+  `(binding [*imagined-objects* (atom {})
+             *monitors* (atom #{})
+             *monitor-on* (atom true)
              prop/lvar-string-impl lvar-string]
      ~@body))
 
 (def field-lock (Object.))
 
-(def ^:dynamic *planbindset* nil)
+(def ^:dynamic *planbindset* (atom nil))
 
 (defmacro with-no-lvar-plan-bindings
   [& body]
-  `(binding [*planbindset* nil]
+  `(binding [*planbindset* (atom nil)]  ; create a new atom for each thread
      ~@body))
 
 
 (defn reset-imagination
   "Forget imagined state to begin a new episode."
   []
-  (set! *imagined-objects* {}))
+  (reset! *imagined-objects* {}))
 
 (defn print-field-values
   []
-  (pprint *imagined-objects*))
+  (pprint @*imagined-objects*))
 
 ;;; Returning NIl means that it was not found and hence the world-state value should be used.
 (defn get-field-value
   [obj field]
   ;; (println "Looking for " obj "." field)
   (locking field-lock
-    (let [source (get *imagined-objects* (keyword obj))]
+    (let [source (get @*imagined-objects* (keyword obj))]
       (if source
         (let [value (get (deref source) (keyword field))]
           (if value (deref value)))))))
@@ -122,7 +124,7 @@
   (locking field-lock
     (let [kobj (keyword obj)
           kfield (keyword field)
-          known-source (get *imagined-objects* kobj)] ; nil or an atom
+          known-source (get @*imagined-objects* kobj)] ; nil or an atom
       ;; (println (format "Setting %s.%s=%s" (name kobj) (name kfield) (str value)))
       (if known-source
         (let [known-field (get (deref known-source) kfield)] ; The source is known, but what about the field?
@@ -135,7 +137,7 @@
               (reset! known-source (merge (deref known-source) {kfield (atom value) }))))) ; add new field/value
         (do ; If the source is not known, the object the field and its value must be set
           (check-monitor kobj kfield value)
-          (set! *imagined-objects* (merge  *imagined-objects* { kobj (atom { kfield (atom value) }) })))))))
+          (reset! *imagined-objects* (merge  @*imagined-objects* { kobj (atom { kfield (atom value) }) })))))))
 
 (defn imagine-changed-field-value
   "Can be given the variable name of the object or the runtime object itself"
@@ -160,10 +162,10 @@
   (if (and (lvar/is-lvar? lvar)
            (is-unbound-lvar? lvar))
     (do
-      ;; (println "imagine: binding lvar" (lvar/.name lvar) "to" value)
-      (imagine-changed-field-value (lvar/.name lvar) :lvar value))
+      ;; (println "imagine: binding lvar" (lvar/lvar-name lvar) "to" value)
+      (imagine-changed-field-value (lvar/lvar-name lvar) :lvar value))
     (= (deref-lvar value)
-       (get-field-value (lvar/.name lvar) :lvar))))
+       (get-field-value (lvar/lvar-name lvar) :lvar))))
 
 (defn imagine-unbind-lvar-binding
   "Imagine an LVAR binding.  nil couns as unbound."
@@ -171,14 +173,14 @@
   (if (and (lvar/is-lvar? lvar)
            (is-bound-lvar? lvar))
     (do
-      (println "imagine: binding lvar" (lvar/.name lvar) "to" nil)
-      (imagine-changed-field-value (lvar/.name lvar) :lvar nil))))
+      ;; (println "imagine: binding lvar" (lvar/lvar-name lvar) "to" nil)
+      (imagine-changed-field-value (lvar/lvar-name lvar) :lvar nil))))
 
 (defn print-imagination
   "Print out everything that is in the imagination"
   []
   (println "Contents of imagination:")
-  (doseq [[name value] *imagined-objects*]
+  (doseq [[name value] @*imagined-objects*]
     (doseq [[field val] @value]
       (println name "." field "=" @val))))
 
@@ -190,32 +192,32 @@
   [thing]
   (and (lvar/is-lvar? thing)
        (or
-        (get-field-value (lvar/.name thing) :lvar) ; a nil value indicated unbound
+        (get-field-value (lvar/lvar-name thing) :lvar) ; a nil value indicated unbound
         (lvar/is-bound-lvar? thing))))
 
 (defn is-unbound-lvar?
   [thing]
   (and
    (lvar/is-lvar? thing)
-   (not (get-field-value (lvar/.name thing) :lvar))
+   (not (get-field-value (lvar/lvar-name thing) :lvar))
    (lvar/is-unbound-lvar? thing)))
 
 (defn deref-lvar
   [something]
-    (if (lvar/is-lvar? something)
-      (let [imagined (get-field-value (lvar/lvar-name something) :lvar)]
-        (cond (not imagined)
-              (lvar/deref-lvar something)
+  (if (lvar/is-lvar? something)
+    (let [imagined (get-field-value (lvar/lvar-name something) :lvar)]
+      (cond (not imagined)
+            (lvar/deref-lvar something)
 
-              imagined
-              (recur imagined)))
-      something))
+            imagined
+            (recur imagined)))
+    something))
 
 (defn bind-lvar
   [lv nval]
   (if (is-unbound-lvar? lv)
     (do
-      (if *planbindset* (reset! *planbindset* (conj @*planbindset* lv)))
+      (if @*planbindset* (reset! *planbindset* (conj @*planbindset* lv)))
       (imagine-lvar-binding lv (deref-lvar nval)))
     (let [boundto (deref-lvar lv)]
       (if (lvar/is-lvar? boundto)
@@ -227,11 +229,13 @@
   (let [imagined (get-field-value (lvar/lvar-name lv) :lvar)]
     (if imagined
         (imagine-unbind-lvar-binding lv)
-      (do (println "*** ERROR shouldn't get here ***") (lvar/unbind-lvar lv)))))
+        (do (println "*** ERROR shouldn't get here, attempting to unbind an lvar ("
+                     (lvar/lvar-name lv) ") that is already unbound ***")
+            (lvar/unbind-lvar lv)))))
 
 (defn lvar-string
   [lv]
-  (let [name (lvar/.name lv)]
+  (let [name (lvar/lvar-name lv)]
     (if (is-bound-lvar? lv)
       (format "?%s=%s" name (str (deref-lvar lv)))
       (format "?%s" name))))
@@ -240,7 +244,7 @@
 (defn describe-lvar
   [lv]
   (.write *out* (format "<LVAR name=%s%s%s>%n"
-                        (lvar/.name lv)
+                        (lvar/lvar-name lv)
                         (if (is-unbound-lvar? lv) "" " value=")
                         (if (is-unbound-lvar? lv) "" (deref-lvar lv)))))
 
@@ -248,20 +252,20 @@
 
 (defn unbind-planbind-set
   []
-  (if *planbindset*
+  (if @*planbindset*
     (do
       (doseq [lvar @*planbindset*]
-        (if (> global/verbosity 1) (println "Unbinding LVAR " (lvar/.name lvar)))
+        (if (> global/verbosity 1) (println "Unbinding LVAR " (lvar/lvar-name lvar)))
         (unbind-lvar lvar)))))
 
 (defn start-plan-bind-set
   []
   (if (> global/verbosity 1) (println "Starting to collect LVAR bindings"))
-  (if (not (= *planbindset* nil)) (unbind-planbind-set))
-  (set! *planbindset* (atom #{})))
+  (if (not (= @*planbindset* nil)) (unbind-planbind-set))
+  (reset! *planbindset* #{}))
 
 (defn stop-plan-bind-set
   []
   (if (> global/verbosity 1) (println "Stopping collecting LVAR bindings"))
   (unbind-planbind-set)
-  (set! *planbindset* nil))
+  (reset! *planbindset* nil))
