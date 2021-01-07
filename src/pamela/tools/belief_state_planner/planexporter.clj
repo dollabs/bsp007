@@ -472,7 +472,9 @@
   [goal-root samp maxd]
   ;; Make sure that we are in a good place wrt position of the player, etc
   ;; +++
-  (let [solutions (core/solveit :samples samp :max-depth maxd :rawp true)
+  (let [maxt 0    ; where should we get this from? env-variable? startup parameter?
+        solutions ;;(core/solveit :samples samp :max-depth maxd :rawp true)
+                (core/mpsolveit :samples samp :max-depth maxd :rawp true :usethreads (if (= maxt 0) :maximum maxt))
         [symbpam [pamfile tpnfile]] (if solutions (make-tpn-from-solutions solutions goal-root))
         pamstr (if pamfile (slurp pamfile))
         tpnstr (if tpnfile (json/read-str (slurp tpnfile)))]
