@@ -164,6 +164,11 @@
   [coll elm]
   (some #(= elm %) coll))
 
+(defn objects-matching
+  [apredicate-on-object]
+  (let [all-objects @(global/.objects global/*current-model*)]
+    (filter apredicate-on-object all-objects)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Extraction for the planner
 
