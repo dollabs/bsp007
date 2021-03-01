@@ -167,6 +167,7 @@
 (defn objects-matching
   [apredicate-on-object]
   (let [all-objects @(global/.objects global/*current-model*)]
+    (println "test on first object: " (if (apredicate-on-object (first all-objects)) "YES!"))
     (filter apredicate-on-object all-objects)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
