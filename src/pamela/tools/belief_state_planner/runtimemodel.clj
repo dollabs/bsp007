@@ -570,7 +570,7 @@
                       objects))))
 
 (defn add-connectivity-propositions
-  [lco root]
+  [lco root pred]
   (let [rootobj (if root (first (eval/find-objects-of-type (symbol root))))
         rootvar (if rootobj (.variable rootobj))]
     ;; (println "rootvar=" rootvar "root=" root)
@@ -579,11 +579,12 @@
         (doseq [ovar interconnected]
           (if (and (not (= var ovar))
                    (not (= var  rootvar))
-                   (not (= ovar rootvar)))
+                   (not (= ovar rootvar))
+                   (or (not pred) (pred var ovar)))
             (bs/add-binary-proposition :connects-with var ovar)))))))
 
 (defn add-connectivity-propositions-unidirectional
-  [lco root]
+  [lco root pred]
   (let [done (atom #{})
         rootobj (if root (first (eval/find-objects-of-type (symbol root))))
         rootvar (if rootobj (.variable rootobj))]
@@ -594,7 +595,8 @@
           (if (and (not (= var ovar))
                    (not (= var  rootvar))
                    (not (= ovar rootvar))
-                   (empty? (set/intersection @done (set [[var ovar][ovar var]]))))
+                   (empty? (set/intersection @done (set [[var ovar][ovar var]])))
+                   (or (not pred) (pred var ovar)))
             (do
               (bs/add-binary-proposition :connects-with var ovar)
               (reset! done (set/union @done (set [[var ovar][ovar var]]))))))))))
@@ -612,16 +614,16 @@
 ;;; (describe-connectivity-map)
 
 (defn establish-connectivity-propositions
-  [root]
+  [root & [pred]]
   (-> (lvar-connectivity-map)
       (list-of-connected-objects)
-      (add-connectivity-propositions root)))
+      (add-connectivity-propositions root pred)))
 
 (defn establish-unidirectional-connectivity-propositions
-  [root]
+  [root & [pred]]
   (-> (lvar-connectivity-map)
       (list-of-connected-objects)
-      (add-connectivity-propositions-unidirectional root)))
+      (add-connectivity-propositions-unidirectional root pred)))
 
 ;;; :is-Part-of propositions
 
