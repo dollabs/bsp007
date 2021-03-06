@@ -653,7 +653,7 @@
 (def som (subordinate-object-map))
 
 (defn add-part-of-propositions
-  [som root]
+  [som root pred]
   (doseq [[obj subs] som]
     (let [objname (.variable obj)
           rootobj (symbol root)]
@@ -661,12 +661,13 @@
         (let [subname (.variable asub)
               proposition (if (= (.type obj) rootobj) :has-root :is-part-of)]
           ;; (println "In add-part-of-propositions: " root (.type obj) subname proposition objname)
-          (bs/add-binary-proposition proposition subname objname))))))
+          (if (or (not pred) (pred objname subname))
+            (bs/add-binary-proposition proposition subname objname)))))))
 
 (defn establish-part-of-propositions
-  [root]
+  [root & [pred]]
   (-> (subordinate-object-map)
-      (add-part-of-propositions root)))
+      (add-part-of-propositions root pred)))
 
 (defn describe-connectivity-subordinate-object-map
   []
