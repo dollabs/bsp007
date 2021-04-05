@@ -36,7 +36,8 @@
             [pamela.tools.belief-state-planner.dmcgpcore :as core]
             [pamela.tools.belief-state-planner.expressions :as dxp]
             [pamela.tools.belief-state-planner.ir-extraction :as irx]
-            [pamela.tools.belief-state-planner.planexporter :as pexp])
+            [pamela.tools.belief-state-planner.planexporter :as pexp]
+            [pamela.tools.belief-state-planner.conapsp :as conapsp])
   (:import (java.text SimpleDateFormat)
            (java.util Date))
   (:refer-clojure :exclude [rand rand-int rand-nth])
