@@ -192,8 +192,8 @@
 
 
 (defn compute-connectivity-map
-  [portals distance-function filterfn]
-  (-> [portals distance-function filterfn]
+  [objects distance-function filterfn]
+  (-> [objects distance-function filterfn]
       compute-connectivity-map-from-objects
       compute-distances-between-objects
       compute-connectivity-matrix
