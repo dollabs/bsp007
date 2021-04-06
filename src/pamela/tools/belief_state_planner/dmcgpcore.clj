@@ -17,6 +17,7 @@
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojure.data.json :as json]
+            [clojure.math.numeric-tower :as math]
             [random-seed.core :refer :all]
             [pamela.tools.belief-state-planner.runtimemodel :as rtm]
             [pamela.tools.belief-state-planner.montecarloplanner :as bs]
@@ -468,6 +469,23 @@
   [choices]
   (rand-nth choices))
 
+(defn mc-select-nth
+  [vals eps]
+  (let [powr (* 4.0 (- 1 eps))          ;eps varies from 1 to 0, Powr varies from 0 to 4
+        minv (apply min vals)
+        maxv (apply max vals)
+        span (float (- maxv minv))
+        adjustment (- (/ span (+ 1 powr)) minv)
+        rebased (map (fn [n] (math/expt (/ (+ n adjustment) span) powr)) vals)
+        total (apply + rebased)
+        rn (* (rand) total)]
+    (loop [order 0
+           rvals rebased
+           rnum rn]
+      (if (or (< rnum (first rvals)) (= (rest rvals) ()))
+        order
+        (recur (+ order 1) (rest rvals) (- rnum (first rvals)))))))
+
 (defn select-and-bind2
   [arg1 arg2 matches]
   (let [num-matches (count matches)]
@@ -913,47 +931,53 @@
 
 (defn solveit
   "Generate a plan for the goals specified in the model."
-  [& {:keys [samples max-depth rawp] :or {samples 10 max-depth 10 rawp false}}]
-  (imag/with-no-imagination
-    (imag/with-no-lvar-plan-bindings
-      (if (> global/verbosity 0) (println "DMCP: solving with " samples "samples, max-depth=" max-depth))
-      (loop [solutions ()
-             sampled 0]
-        (if (and (> global/verbosity 1) (> sampled 0))
-          (println "DMCP: " (count solutions) "found so far out of " sampled " samples."))
-        (if (>= sampled samples)
-          (if (not (empty? solutions))                         ; We have done enough, return what we have
-            (do
-              (if (> global/verbosity 0) (println "Completed DMCP: " (count solutions) "found out of " sampled " samples."))
-              (if (> global/verbosity 0) (imag/print-imagination))
-              (doall solutions))
-            nil)      ; And it turns out that we didn't find any solutions. nil result signifies failure
-          (let [_ (imag/reset-imagination)
-                root-objects (global/get-root-objects)
-                ;; - (println "root-objects=" root-objects)
-                controllable-objects (rtm/get-controllable-objects)
-                ;; - (println "controllable-objects=" controllable-objects)
-                [pclass goal-conds] (rtm/goal-post-conditions)
-                - (if (> global/verbosity 0) (do (println "Root PCLASS=" pclass "GOAL:" (prop/prop-readable-form goal-conds))))
-                actions (plan root-objects controllable-objects pclass
-                              (map (fn [agoal]
-                                     [:thunk agoal (second (first root-objects))]
-                                     #_agoal)
-                                   (simp/simplify-cond-top-level goal-conds (second (first root-objects))))
-                              :max-depth max-depth)
-                ;; +++ Now put the call into the solution
-                compiled-calls (if actions (if rawp
-                                             actions
-                                             (bir/scompile-call-sequence (seq (map first actions)))))]
-            ;;(pprint actions)
-            (recur (if compiled-calls (cons compiled-calls solutions) solutions) (+ 1 sampled))))))))
+  [& {:keys [samples max-depth rawp rdist fdist] :or {samples 10 max-depth 10 rawp false rdist nil fdist nil}}]
+  (imag/with-no-distance-info
+    (imag/with-no-imagination
+      (imag/with-no-lvar-plan-bindings
+        (reset! imag/*reverse-steps-to-target* rdist)
+        (reset! imag/*steps-to-target* fdist)
+        ;;(println "reverse-steps-to-target=" @imag/*reverse-steps-to-target*)
+        ;; (println "steps-to-target=" @imag/*steps-to-target*)
+
+        (if (> global/verbosity 0) (println "DMCP: solving with " samples "samples, max-depth=" max-depth))
+        (loop [solutions ()
+               sampled 0]
+          (if (and (> global/verbosity 1) (> sampled 0))
+            (println "DMCP: " (count solutions) "found so far out of " sampled " samples."))
+          (if (>= sampled samples)
+            (if (not (empty? solutions))                         ; We have done enough, return what we have
+              (do
+                (if (> global/verbosity 0) (println "Completed DMCP: " (count solutions) "found out of " sampled " samples."))
+                (if (> global/verbosity 0) (imag/print-imagination))
+                (doall solutions))
+              nil)      ; And it turns out that we didn't find any solutions. nil result signifies failure
+            (let [_ (imag/reset-imagination)
+                  root-objects (global/get-root-objects)
+                  ;; - (println "root-objects=" root-objects)
+                  controllable-objects (rtm/get-controllable-objects)
+                  ;; - (println "controllable-objects=" controllable-objects)
+                  [pclass goal-conds] (rtm/goal-post-conditions)
+                  - (if (> global/verbosity 0) (do (println "Root PCLASS=" pclass "GOAL:" (prop/prop-readable-form goal-conds))))
+                  actions (plan root-objects controllable-objects pclass
+                                (map (fn [agoal]
+                                       [:thunk agoal (second (first root-objects))]
+                                       #_agoal)
+                                     (simp/simplify-cond-top-level goal-conds (second (first root-objects))))
+                                :max-depth max-depth)
+                  ;; +++ Now put the call into the solution
+                  compiled-calls (if actions (if rawp
+                                               actions
+                                               (bir/scompile-call-sequence (seq (map first actions)))))]
+              ;;(pprint actions)
+              (recur (if compiled-calls (cons compiled-calls solutions) solutions) (+ 1 sampled)))))))))
 
 ;;; (solveit)
 
 
 (defn mpsolveit
   "distribute samples over multiple threads."
-  [& {:keys [samples max-depth rawp usethreads] :or {samples 10 max-depth 10 rawp false usethreads :maximum}}]
+  [& {:keys [samples max-depth rawp usethreads rdist fdist] :or {samples 10 max-depth 10 rawp false usethreads :maximum rdist nil fdist nil}}]
   (let [availablethreads (number-of-processors)
         usethreads (if (= usethreads :maximum) (max 1 (- availablethreads 2)) usethreads)
         spthread (quot samples usethreads)
@@ -979,7 +1003,7 @@
             futures (doall (map (fn [n]
                                   (let [numsamps (if (< n extra) (+ spthread 1) spthread)]
                                     (future
-                                      (solveit :samples numsamps :max-depth max-depth :rawp rawp))))
+                                      (solveit :samples numsamps :max-depth max-depth :rawp rawp :rdist rdist :fdist fdist))))
                                 (range usethreads)))
             _ (println (count futures) "planner threads started")
             ;;launchedtimems (inst-ms (java.time.Instant/now))

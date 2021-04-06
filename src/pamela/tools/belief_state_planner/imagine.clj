@@ -95,6 +95,14 @@
   `(binding [*planbindset* (atom nil)]  ; create a new atom for each thread
      ~@body))
 
+(def ^:dynamic *reverse-steps-to-target* (atom nil))
+(def ^:dynamic *steps-to-target* (atom nil))
+
+(defmacro with-no-distance-info
+  [& body]
+  `(binding [*reverse-steps-to-target* (atom nil)
+             *steps-to-target* (atom nil)]  ; create a new atom for each thread
+     ~@body))
 
 (defn reset-imagination
   "Forget imagined state to begin a new episode."
