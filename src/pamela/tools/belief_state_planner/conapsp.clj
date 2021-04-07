@@ -140,7 +140,7 @@
                       (let [cands (into []
                                         (map
                                          (fn [indexy]
-                                           ;;(println "onames=" onames "x="
+                                           #_(println "onames=" onames "x="
                                                     indexx "("  (.indexOf onames indexx) ") y="
                                                     indexy "("  (.indexOf onames indexy) ")")
                                            [indexx (nth (nth apsp-graph (.indexOf onames indexx))
