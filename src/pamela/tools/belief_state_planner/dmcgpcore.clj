@@ -902,7 +902,8 @@
                       (imag/stop-plan-bind-set)
 
                       (let [plan-part (concat actions complete-plan)]
-                        (if (> global/verbosity 1) (println "ACTION-ADDED-TO-PARTIAL-PLAN: " (prop/prop-readable-form actions)))
+                        (if (> global/verbosity 1)
+                          (println "ACTION-ADDED-TO-PARTIAL-PLAN: " (prop/prop-readable-form actions)))
                         (if (empty? outstanding-goals)
                           plan-part             ; Current action has no prerequisited (rare) and there are none outstanding SUCCESS
                           (recur outstanding-goals plan-part (+ 1 depth)))))
@@ -938,7 +939,7 @@
         (reset! imag/*reverse-steps-to-target* rdist)
         (reset! imag/*steps-to-target* fdist)
         ;;(println "reverse-steps-to-target=" @imag/*reverse-steps-to-target*)
-        ;; (println "steps-to-target=" @imag/*steps-to-target*)
+        ;;(println "steps-to-target=" @imag/*steps-to-target*)
 
         (if (> global/verbosity 0) (println "DMCP: solving with " samples "samples, max-depth=" max-depth))
         (loop [solutions ()
@@ -991,7 +992,7 @@
       ;; If only using a single thread, don't create another one!
       (let [_ (println "Single thread being used")
             ;;starttimems (inst-ms (java.time.Instant/now))
-            results (solveit :samples samples :max-depth max-depth :rawp rawp)
+            results (solveit :samples samples :max-depth max-depth :rawp rawp :rdist rdist :fdist fdist)
             ;;finishedtimems (inst-ms (java.time.Instant/now))
             ]
         ;;(println "Total time=" (- finishedtimems starttimems))
