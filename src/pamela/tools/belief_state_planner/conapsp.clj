@@ -140,13 +140,13 @@
                       (let [cands (into []
                                         (map
                                          (fn [indexy]
-                                           (println "onames=" onames "x="
+                                           ;;(println "onames=" onames "x="
                                                     indexx "("  (.indexOf onames indexx) ") y="
                                                     indexy "("  (.indexOf onames indexy) ")")
                                            [indexx (nth (nth apsp-graph (.indexOf onames indexx))
                                                         (.indexOf onames indexy))])
                                          ys))]
-                        (println "cands=" cands)
+                        ;;(println "cands=" cands)
                         (apply min-key second cands)))
                     onames))
       (do
