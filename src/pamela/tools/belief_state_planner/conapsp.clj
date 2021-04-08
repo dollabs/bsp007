@@ -63,14 +63,14 @@
 
 (defn printGraph
   "Prints out an apsp distance map. prints out decimal part to save printout space."
-  [cmap]
+  [cmap names]
   (let [num-vertices (count cmap)]
     (dotimes [i num-vertices]
       (dotimes [j num-vertices]
         (if (= (nth (nth cmap i) j) INF)
           (print " INF ")
           (print (format "%3d" (int (nth (nth cmap i) j))) " ")))
-      (println))))
+      (println (nth names i)))))
 
 ;;; Test for apsp
 (defn apsp-test
@@ -87,9 +87,9 @@
     (if (not (= solution correctSolution))
       (do
         (println "Input graph:")
-        (printGraph graph)
+        (printGraph graph ["A" "B" "C" "D"])
         (println "Output solution:")
-        (printGraph solution)
+        (printGraph solution ["A" "B" "C" "D"])
         :failed))))
 
 (defn shortest-distance
@@ -111,7 +111,7 @@
 
 (defn apsp-distances
   [apsp xs]
-  (println "apsp=" apsp "xs=" xs)
+  ;;(println "apsp=" apsp "xs=" xs)
   (let [{namemap :namemap
          onames :onames
          cmap :cmap
@@ -138,7 +138,7 @@
 
 (defn apsp-reverse-distances
   [apsp ys]
-  (println "apsp=" apsp "ys=" ys)
+  ;;(println "apsp=" apsp "ys=" ys)
   (let [{namemap :namemap
          onames :onames
          cmap :cmap
@@ -165,6 +165,11 @@
 
 ;;; (apsp-test)
 
+(defn print-connectivity-map
+  [cmap]
+  (doseq [[k v] cmap]
+    (println (prop/prop-readable-form k) "=>" v)))
+
 (defn compute-connectivity-map-from-objects
   [[objects distance-function filterfn]]
   "Computes a map from objects to a set of object names to which they connect."
@@ -184,12 +189,12 @@
                                                                       (if (filterfn (:object o)) (:object o)))
                                                                     pprops)))
                                 pof2  (into pof1 (remove nil? (map (fn [o]
-                                                                     (if (filterfn (:object o)) (:subject o)))
+                                                                     (if (filterfn (:subject o)) (:subject o)))
                                                                    rpprops)))]
                             {anobject pof2}))
                         objects))]
     (println "Here is the connectivity map:")
-    (pprint cmap)
+    (print-connectivity-map cmap)
     (def ^:dynamic *cached-cmap* cmap)
     [cmap distance-function]))
 
@@ -206,8 +211,11 @@
                                                       (map (fn [[anobject2 cset2]]
                                                              (let [o2 (global/RTobject-variable anobject2)]
                                                                (if (contains? cset o2)
-                                                                 {o2
-                                                                  (distance-function anobject anobject2)}))) ; distance-between-objects
+                                                                 {o2            ; distance-between-objects
+                                                                  (distance-function anobject anobject2)}
+                                                                 (if (= anobject anobject2)
+                                                                   {o2 0}       ; Leading Diagonal
+                                                                   {o2 INF})))) ; No connection
                                                            cmap)))]
                                     (if (not (empty? connections))
                                       [(global/RTobject-variable anobject) connections])))
@@ -240,14 +248,14 @@
                                     onames))))
                          onames))]
     (println "onames=" onames "cmap4apsp:")
-    (printGraph cmap4apsp)
+    (printGraph cmap4apsp onames)
     [namemap onames cmap object-connects-map cmap4apsp]))
 
 (defn compute-apsp
   [[namemap onames cmap object-connects-map cmap4apsp]]
   (let [apsp-graph (apsp cmap4apsp)]
     (println "APSP graph:")
-    (printGraph apsp-graph)
+    (printGraph apsp-graph onames)
     {:namemap namemap
      :onames onames
      :cmap cmap
