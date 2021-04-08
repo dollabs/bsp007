@@ -992,7 +992,8 @@
       ;; If only using a single thread, don't create another one!
       (let [_ (println "Single thread being used")
             ;;starttimems (inst-ms (java.time.Instant/now))
-            results (solveit :samples samples :max-depth max-depth :rawp rawp :rdist rdist :fdist fdist)
+            results (solveit :samples samples :max-depth max-depth
+                             :rawp rawp :rdist rdist :fdist fdist)
             ;;finishedtimems (inst-ms (java.time.Instant/now))
             ]
         ;;(println "Total time=" (- finishedtimems starttimems))
@@ -1004,7 +1005,8 @@
             futures (doall (map (fn [n]
                                   (let [numsamps (if (< n extra) (+ spthread 1) spthread)]
                                     (future
-                                      (solveit :samples numsamps :max-depth max-depth :rawp rawp :rdist rdist :fdist fdist))))
+                                      (solveit :samples numsamps :max-depth max-depth
+                                               :rawp rawp :rdist rdist :fdist fdist))))
                                 (range usethreads)))
             _ (println (count futures) "planner threads started")
             ;;launchedtimems (inst-ms (java.time.Instant/now))

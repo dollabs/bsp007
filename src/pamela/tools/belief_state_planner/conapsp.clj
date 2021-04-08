@@ -110,20 +110,30 @@
         nil))))
 
 (defn apsp-distances
-  [apsp x]
+  [apsp xs]
+  (println "apsp=" apsp "xs=" xs)
   (let [{namemap :namemap
          onames :onames
          cmap :cmap
          portal-connects-map :pcm
          apsp-graph :apsp} apsp
-        numnames (count onames)
-        indexx (.indexOf onames x)]
-    (if (>= indexx 0)
-      (into {} (map (fn [indexy]
-                      {indexy (nth (nth apsp-graph indexx) (.indexOf onames indexy))})
+        numnames (count onames)]
+    (if (> (count xs) 0)
+      (into {} (map (fn [indexx]
+                      (let [cands (into []
+                                        (map
+                                         (fn [indexy]
+                                           #_(println "onames=" onames "x="
+                                                    indexx "("  (.indexOf onames indexx) ") y="
+                                                    indexy "("  (.indexOf onames indexy) ")")
+                                           [indexx (nth (nth apsp-graph (.indexOf onames indexy))
+                                                        (.indexOf onames indexx))])
+                                         xs))]
+                        ;;(println "cands=" cands)
+                        (apply min-key second cands)))
                     onames))
       (do
-        (if (< indexx 0) (println "x not found in onames" x onames))
+        (println "xs empty" xs)
         nil))))
 
 (defn apsp-reverse-distances
@@ -157,19 +167,29 @@
 
 (defn compute-connectivity-map-from-objects
   [[objects distance-function filterfn]]
-  "Computes a map from portal objects to a set of spaces names that they connect."
+  "Computes a map from objects to a set of object names to which they connect."
   (let [cmap (into {}
                    (map (fn [anobject]
                           (let [oname  (global/RTobject-variable anobject)
                                 cprops (bs/find-binary-propositions-matching
                                         #{oname} nil #{:connects-with} nil nil nil)
+                                pprops (bs/find-binary-propositions-matching
+                                        #{oname} nil #{:is-part-of} nil nil nil)
+                                rpprops (bs/find-binary-propositions-matching
+                                         nil nil #{:is-part-of} nil #{oname} nil)
                                 conto (into #{} (remove nil? (map (fn [o]
-                                                                    (if (filterfn o) (:object o)))
-                                                                  cprops)))]
-                            {anobject conto}))
+                                                                    (if (filterfn (:object o)) (:object o)))
+                                                                  cprops)))
+                                pof1  (into conto (remove nil? (map (fn [o]
+                                                                      (if (filterfn (:object o)) (:object o)))
+                                                                    pprops)))
+                                pof2  (into pof1 (remove nil? (map (fn [o]
+                                                                     (if (filterfn (:object o)) (:subject o)))
+                                                                   rpprops)))]
+                            {anobject pof2}))
                         objects))]
-    ;; (println "Here is the connectivity map:")
-    ;; (pprint cmap)
+    (println "Here is the connectivity map:")
+    (pprint cmap)
     (def ^:dynamic *cached-cmap* cmap)
     [cmap distance-function]))
 
@@ -179,21 +199,21 @@
   ;; a direct connection
   (let [object-connects-map
         (into {}
-              (map (fn [[anobject cset]]
-                     (let [connections
-                           (into {}
-                                 (remove nil?
-                                         (map (fn [[anobject2 cset2]]
-                                                (let [shared (clojure.set/intersection cset cset2)]
-                                                  (if (not (empty? shared))
-                                                    {(global/RTobject-variable anobject2)
-                                                     (distance-function anobject anobject2)}))) ; distance-between-objects
-                                              cmap)))]
-                       (if (not (empty? connections))
-                         {(global/RTobject-variable anobject) connections})))
-                   cmap))]
-    ;; (println "object-connects-map:")
-    ;; (pprint object-connects-map)
+              (remove nil? (map (fn [[anobject cset]]
+                                  (let [connections
+                                        (into {}
+                                              (remove nil?
+                                                      (map (fn [[anobject2 cset2]]
+                                                             (let [o2 (global/RTobject-variable anobject2)]
+                                                               (if (contains? cset o2)
+                                                                 {o2
+                                                                  (distance-function anobject anobject2)}))) ; distance-between-objects
+                                                           cmap)))]
+                                    (if (not (empty? connections))
+                                      [(global/RTobject-variable anobject) connections])))
+                                cmap)))]
+    (println "object-connects-map:")
+    (pprint object-connects-map)
     [cmap object-connects-map]))
 
 (defn get-object-vname
@@ -207,8 +227,7 @@
   [[cmap object-connects-map]]
   ;; Create a connectivity matrix as input to apsp
   (let [onames (map first object-connects-map)
-        vnames (map (fn [oome] (get-object-vname (first oome))) cmap)
-        namemap (into {} (map (fn [oname vname] {oname vname}) onames vnames))
+        namemap (into {} (map (fn [oname] {oname oname}) onames)) ; not needed here, no vnames
         ;;_ (println "name map is:" namemap)
         cmap4apsp (into []
                         (map
@@ -220,8 +239,8 @@
                                       (get fromMap aToOname INF))
                                     onames))))
                          onames))]
-    ;; (println "onames=" onames "cmap4apsp:")
-    ;; (printGraph cmap4apsp)
+    (println "onames=" onames "cmap4apsp:")
+    (printGraph cmap4apsp)
     [namemap onames cmap object-connects-map cmap4apsp]))
 
 (defn compute-apsp
