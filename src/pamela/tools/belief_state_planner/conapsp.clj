@@ -153,8 +153,15 @@
                                            #_(println "onames=" onames "x="
                                                     indexx "("  (.indexOf onames indexx) ") y="
                                                     indexy "("  (.indexOf onames indexy) ")")
-                                           [indexx (nth (nth apsp-graph (.indexOf onames indexx))
-                                                        (.indexOf onames indexy))])
+                                           [indexx (let [xindex (.indexOf onames indexx)
+                                                         yindex (.indexOf onames indexy)]
+                                                     (if (not (and xindex yindex))
+                                                       (do
+                                                         (if (not xindex) (println "*** Warning" indexx "unreachable"))
+                                                         (if (not yindex) (println "*** Warning" indexy "unreachable"))
+                                                         INF)
+                                                       (nth (nth apsp-graph xindex) yindex)))])
+
                                          ys))]
                         ;;(println "cands=" cands)
                         (apply min-key second cands)))
