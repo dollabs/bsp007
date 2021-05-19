@@ -155,10 +155,10 @@
                                                     indexy "("  (.indexOf onames indexy) ")")
                                            [indexx (let [xindex (.indexOf onames indexx)
                                                          yindex (.indexOf onames indexy)]
-                                                     (if (not (and xindex yindex))
+                                                     (if (not (and (>= xindex 0) (>= yindex 0)))
                                                        (do
-                                                         (if (not xindex) (println "*** Warning" indexx "unreachable"))
-                                                         (if (not yindex) (println "*** Warning" indexy "unreachable"))
+                                                         (if (== xindex -1) (println "*** Warning" indexx "unreachable"))
+                                                         (if (== yindex -1) (println "*** Warning" indexy "unreachable"))
                                                          INF)
                                                        (nth (nth apsp-graph xindex) yindex)))])
 
