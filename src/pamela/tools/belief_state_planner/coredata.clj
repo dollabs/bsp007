@@ -136,3 +136,20 @@
 (defn make-method-query
   [pclass methodsig rootobject rto]
   (MethodQuery. pclass methodsig rootobject rto))
+
+(defn get-object-field-value
+  "Returns the value of a field of an object if the field exists in the atom, otherwise returns the default value."
+  [obj field-name & [def]]
+  (let [fields @(RTobject-fields obj)
+        thisfieldatom (if fields (get fields (symbol field-name)))
+        fieldval (if thisfieldatom @thisfieldatom)]
+    (if fieldval fieldval def)))
+
+(defn get-objects-with-field
+  "Return a list of [object field value] for all objects that have the named field."
+  [field-name]
+  (let [matches (remove nil? (map (fn [obj] (let [fv (get-object-field-value obj field-name nil)]
+                                              (if fv {obj fv})))
+                                  @(.objects *current-model*)))]
+    (if (not (empty? matches))
+      {(symbol field-name) (into {} matches)})))
