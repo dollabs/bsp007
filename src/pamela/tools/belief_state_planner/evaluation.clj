@@ -521,15 +521,15 @@
 
     :otherwise
     (let [fields (.fields wrtobject)
-          ;; _ (println "***!!! namelist=" namelist " fields = " @fields)
+          _ (if (> global/verbosity 2) (println "***!!! namelist=" namelist " fields = " @fields))
           match (get @fields (first namelist))
           imagined (imag/get-field-value (global/RTobject-variable wrtobject) (first namelist))
-          ;; _ (println "***!!! found match for" (first namelist)  " = " match)
+          _ (if (> global/verbosity 2) (println "***!!! found match for" (first namelist)  " = " match))
           remaining (rest namelist)]
       (if (empty? remaining)
         (do
-          ;; (println "***!!! dereferenced " (first namelist)
-          ;;          "=" (prop/prop-readable-form match))
+          (if (> global/verbosity 2) (println "***!!! dereferenced " (first namelist)
+                                              "=" (prop/prop-readable-form match)))
           (if (= match nil)
             (irx/error "DEREF ERROR: [:not-found" namelist ":in" (prop/prop-readable-form wrtobject) "]")
             (or imagined @match)))
