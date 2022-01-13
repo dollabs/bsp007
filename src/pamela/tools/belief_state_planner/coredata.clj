@@ -148,8 +148,11 @@
 (defn get-objects-with-field
   "Return a list of [object field value] for all objects that have the named field."
   [field-name]
-  (let [matches (remove nil? (map (fn [obj] (let [fv (get-object-field-value obj field-name nil)]
-                                              (if fv {obj fv})))
-                                  @(.objects *current-model*)))]
+  (let [matches (remove nil?
+                        (map
+                         (fn [obj]
+                           (let [fv (get-object-field-value obj field-name nil)]
+                             (if fv {obj fv})))
+                         @(.objects *current-model*)))]
     (if (not (empty? matches))
       {(symbol field-name) (into {} matches)})))
