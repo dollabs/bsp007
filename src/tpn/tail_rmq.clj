@@ -15,7 +15,7 @@
             [langohr.channel :as lch]
             [clojure.string :as string]
             [tpn.fromjson]
-            [mongo.db])
+            [pamela.tools.utils.mongo.db :as mongo.db])
 
   (:import (java.text SimpleDateFormat)
            (java.util Date)))

@@ -6,9 +6,9 @@
 
 (ns tpn.dispatch-app
   (:require [mbroker.rabbitmq :as mq]
-            [plant.connection :as plant]
-            [plant.interface]
-            [plant.util]
+            [pamela.tools.plant.connection :as plant]
+            [pamela.tools.plant.interface]
+            [pamela.tools.plant.util]
             [clojure.tools.cli :as cli]
             [clojure.java.io :as io]
             [clojure.pprint :refer :all]
@@ -115,7 +115,7 @@
 (defn publish-to-plant [tpn-activities]
   (let [plant (:plant-interface @state)]
     (when plant
-      (let [call-ids     (plant.util/make-method-ids (count tpn-activities))
+      (let [call-ids     (pamela.tools.plant.util/make-method-ids (count tpn-activities))
             method-calls (map (fn [id act-id]
                                 {id (get (:tpn-map @state) act-id)})
                               call-ids (keys tpn-activities))]
@@ -129,7 +129,7 @@
                 argsmap       (or (:argsmap act-obj) {})
                 plant-part    (:plant-part act-obj)]
             (update-state! {invocation-id (:uid act-obj)})
-            (plant.interface/start plant plant-id invocation-id command args argsmap plant-part nil)
+            (pamela.tools.plant.interface/start plant plant-id invocation-id command args argsmap plant-part nil)
             ))))))
 
 (defn publish-dispatched [dispatched tpn-net]
