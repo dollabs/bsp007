@@ -4,14 +4,15 @@
 ;; Apache License, Version 2.0 which can be found in
 ;; the file LICENSE at the root of this distribution.
 
-(def project 'dollabs/dmcgp)
-(def version "0.2.0")
-(def description "DOLL Monte-Carlo Generative Planner")
+(def project 'dollabs/bsp007)
+(def version "0.3.0-SNAPSHOT")
+(def description "DOLL Monte-Carlo Generative Planner - Belief State Planner")
 (def project-url "https://TBD/dollabs/")
 (def main 'pamela.tools.belief-state-planner.cli)
 
 (set-env!
-  :source-paths #{"src"}
+ :source-paths #{"test"}
+ :resource-paths #{"src"}
   :dependencies   '[[org.clojure/clojure "1.8.0"]
                     [avenir "0.2.1"]
                     [org.clojure/core.async "0.2.395"]
@@ -57,22 +58,22 @@
        :scm         {:url project-url}
        :license     {"Apache-2.0" "http://opensource.org/licenses/Apache-2.0"}}
   aot {:namespace   #{main}}
-  jar {:main        main}
+  ;; jar {:main        main}
   test {:namespaces #{'testing.pamela.cli}}
   )
 
-(deftask clj-dev
-  "Clojure REPL for CIDER"
-  []
-  (comp
-    (cider)
-    (repl :server true)
-    (wait)))
+;; (deftask clj-dev
+;;   "Clojure REPL for CIDER"
+;;   []
+;;   (comp
+;;     (cider)
+;;     (repl :server true)
+;;     (wait)))
 
-(deftask cider-boot
-  "Cider boot params task"
-  []
-  (clj-dev))
+;; (deftask cider-boot
+;;   "Cider boot params task"
+;;   []
+;;   (clj-dev))
 
 (deftask build-jar
   "Build the project locally as a JAR."
@@ -85,6 +86,12 @@
       (uber)
       (jar :file (str (name project) ".jar"))
       (target :dir dir))))
+
+(deftask build
+         "Collects clj files "
+         []
+         (println "task: build")
+         (comp (pom) (jar) (install) (target :dir #{"target"})))
 
 (deftask cli
   "Run the project."
